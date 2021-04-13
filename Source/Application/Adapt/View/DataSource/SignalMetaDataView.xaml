@@ -1,0 +1,44 @@
+﻿<UserControl x:Class="Adapt.View.DataSource.SignalMetaDataView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Adapt.View.DataSource"
+             xmlns:GemstoneCommon="clr-namespace:GemstoneCommon;assembly=GemstoneCommon"
+             xmlns:AdaptModels="clr-namespace:Adapt.Models;assembly=Adapt.Models"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             mc:Ignorable="d" 
+             >
+    <UserControl.Resources>
+        <ObjectDataProvider x:Key="MeasurementTypes" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="AdaptModels:MeasurementType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <ObjectDataProvider x:Key="Phases" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="GemstoneCommon:Phase"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Label Grid.Column="0"  Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Signal Name: "/>
+        <TextBox Grid.Column="1" Margin="5,2,10,2" Height="20" Text="{Binding Path=Name}" Width="150"/>
+
+        <Label Grid.Column="2"  Margin="5,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Measurement Type:"/>
+        <ComboBox Grid.Column="3" Height="20" Margin="5,2,10,2" ItemsSource="{Binding Source={StaticResource MeasurementTypes}}" SelectedItem="{Binding Type }" Width="150"/>
+
+        <Label Grid.Column="4"  Margin="5,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Phase:"/>
+        <ComboBox Grid.Column="5" Margin="5,2,10,2" Height="20" ItemsSource="{Binding Source={StaticResource Phases}}" SelectedItem="{Binding Phase }" Width="50"/>
+        <Button Grid.Column="6" Margin="5,2,10,2" Height="20" Command="{Binding Visualize}">Inspect</Button>
+    </Grid>
+</UserControl>

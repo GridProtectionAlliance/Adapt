@@ -1,0 +1,21 @@
+﻿<Window x:Class="Adapt.View.Common.DateSelectWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Adapt.View.Common"
+        mc:Ignorable="d"
+        Title="Select a TimeWindow" Height="150" Width="500" x:Name="TimeSelectionWindow">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+        <local:DateSelect Grid.Row="0" DataContext="{Binding ViewModel}"/>
+        <StackPanel Grid.Row="1"  Margin="0,10,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Margin="10,0" Command="{Binding CancelCommand}" CommandParameter="{Binding ElementName=TimeSelectionWindow}">Cancel</Button>
+            <Button Margin="10,0" Command="{Binding ContinueCommand}" CommandParameter="{Binding ElementName=TimeSelectionWindow}">Continue</Button>
+
+        </StackPanel>
+    </Grid>
+</Window>

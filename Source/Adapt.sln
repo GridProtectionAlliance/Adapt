@@ -5,13 +5,43 @@ VisualStudioVersion = 16.0.31025.194
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Application", "Application", "{03D5D050-1027-4074-91BC-048284E3E72B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Adapt", "Application\Adapt\Adapt.csproj", "{63D56574-FEEE-4529-B000-F9809CE8CEE1}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Library", "Library", "{FB507B72-4585-4419-A6D4-E1AF1D0CEEDC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GemstoneAnalytic", "Library\GemstoneAnalytic\GemstoneAnalytic.csproj", "{B3B2836C-9B33-4B48-BAA7-CDF6923B6AD1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GemstoneAnalytic", "Library\GemstoneAnalytic\GemstoneAnalytic.csproj", "{B3B2836C-9B33-4B48-BAA7-CDF6923B6AD1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GemstonePhasorProtocolls", "Library\GemstonePhasorProtocolls\GemstonePhasorProtocolls.csproj", "{0DED0434-8982-4A1C-B569-65E0B66AA8A7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GemstonePhasorProtocolls", "Library\GemstonePhasorProtocolls\GemstonePhasorProtocolls.csproj", "{0DED0434-8982-4A1C-B569-65E0B66AA8A7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Adapt", "Application\Adapt\Adapt.csproj", "{C54355BA-D9C5-4287-9000-CB12695E3087}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Adapt.Models", "Library\Adapt.Models\Adapt.Models.csproj", "{AE6304FB-663B-4C2B-A5ED-EF1D4EFD0223}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GemstoneCommon", "Library\GemstoneCommon\GemstoneCommon.csproj", "{0128E1E6-D4EF-41AD-AF9A-55E85A88EE18}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Data", "Data", "{FE72B0B3-BC96-4496-9EBE-FA211311643D}"
+	ProjectSection(SolutionItems) = preProject
+		Application\Data\Adapt.sql = Application\Data\Adapt.sql
+		Application\Data\DataBase.db = Application\Data\DataBase.db
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencies", "{3F8161D2-38F6-4F79-B616-DB5CEB9F8C9A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Gemstone", "Gemstone", "{C98BE928-1D7D-4FAD-BE3B-23518A11E84C}"
+	ProjectSection(SolutionItems) = preProject
+		Dependencies\Gemstone\System.Data.SQLite.dll = Dependencies\Gemstone\System.Data.SQLite.dll
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Images", "Images", "{9CD53940-04FF-4790-BF5E-0B1DF633072B}"
+	ProjectSection(SolutionItems) = preProject
+		Application\Images\ADAPT Title 800.png = Application\Images\ADAPT Title 800.png
+		Application\Images\DataSource.png = Application\Images\DataSource.png
+		Application\Images\Template.png = Application\Images\Template.png
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GemstoneWPF", "Library\GemstoneWPF\GemstoneWPF.csproj", "{67A9963E-66E1-4CE3-A894-BB7997C00F06}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Adapt.DataSources", "Library\Adapt.DataSources\Adapt.DataSources.csproj", "{43A3BD4C-2D50-4FAB-B077-7E8DB7C171F4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdaptLogic", "Library\AdaptLogic\AdaptLogic.csproj", "{75C89AA8-3FD0-4A94-9E9A-39ECAE49421A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,10 +49,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{63D56574-FEEE-4529-B000-F9809CE8CEE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{63D56574-FEEE-4529-B000-F9809CE8CEE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{63D56574-FEEE-4529-B000-F9809CE8CEE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{63D56574-FEEE-4529-B000-F9809CE8CEE1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B3B2836C-9B33-4B48-BAA7-CDF6923B6AD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B3B2836C-9B33-4B48-BAA7-CDF6923B6AD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B3B2836C-9B33-4B48-BAA7-CDF6923B6AD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -31,14 +57,46 @@ Global
 		{0DED0434-8982-4A1C-B569-65E0B66AA8A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0DED0434-8982-4A1C-B569-65E0B66AA8A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0DED0434-8982-4A1C-B569-65E0B66AA8A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C54355BA-D9C5-4287-9000-CB12695E3087}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C54355BA-D9C5-4287-9000-CB12695E3087}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C54355BA-D9C5-4287-9000-CB12695E3087}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C54355BA-D9C5-4287-9000-CB12695E3087}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE6304FB-663B-4C2B-A5ED-EF1D4EFD0223}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE6304FB-663B-4C2B-A5ED-EF1D4EFD0223}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE6304FB-663B-4C2B-A5ED-EF1D4EFD0223}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE6304FB-663B-4C2B-A5ED-EF1D4EFD0223}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0128E1E6-D4EF-41AD-AF9A-55E85A88EE18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0128E1E6-D4EF-41AD-AF9A-55E85A88EE18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0128E1E6-D4EF-41AD-AF9A-55E85A88EE18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0128E1E6-D4EF-41AD-AF9A-55E85A88EE18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{67A9963E-66E1-4CE3-A894-BB7997C00F06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{67A9963E-66E1-4CE3-A894-BB7997C00F06}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{67A9963E-66E1-4CE3-A894-BB7997C00F06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{67A9963E-66E1-4CE3-A894-BB7997C00F06}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43A3BD4C-2D50-4FAB-B077-7E8DB7C171F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43A3BD4C-2D50-4FAB-B077-7E8DB7C171F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43A3BD4C-2D50-4FAB-B077-7E8DB7C171F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43A3BD4C-2D50-4FAB-B077-7E8DB7C171F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75C89AA8-3FD0-4A94-9E9A-39ECAE49421A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75C89AA8-3FD0-4A94-9E9A-39ECAE49421A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75C89AA8-3FD0-4A94-9E9A-39ECAE49421A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75C89AA8-3FD0-4A94-9E9A-39ECAE49421A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{63D56574-FEEE-4529-B000-F9809CE8CEE1} = {03D5D050-1027-4074-91BC-048284E3E72B}
 		{B3B2836C-9B33-4B48-BAA7-CDF6923B6AD1} = {FB507B72-4585-4419-A6D4-E1AF1D0CEEDC}
 		{0DED0434-8982-4A1C-B569-65E0B66AA8A7} = {FB507B72-4585-4419-A6D4-E1AF1D0CEEDC}
+		{C54355BA-D9C5-4287-9000-CB12695E3087} = {03D5D050-1027-4074-91BC-048284E3E72B}
+		{AE6304FB-663B-4C2B-A5ED-EF1D4EFD0223} = {FB507B72-4585-4419-A6D4-E1AF1D0CEEDC}
+		{0128E1E6-D4EF-41AD-AF9A-55E85A88EE18} = {FB507B72-4585-4419-A6D4-E1AF1D0CEEDC}
+		{FE72B0B3-BC96-4496-9EBE-FA211311643D} = {03D5D050-1027-4074-91BC-048284E3E72B}
+		{C98BE928-1D7D-4FAD-BE3B-23518A11E84C} = {3F8161D2-38F6-4F79-B616-DB5CEB9F8C9A}
+		{9CD53940-04FF-4790-BF5E-0B1DF633072B} = {03D5D050-1027-4074-91BC-048284E3E72B}
+		{67A9963E-66E1-4CE3-A894-BB7997C00F06} = {FB507B72-4585-4419-A6D4-E1AF1D0CEEDC}
+		{43A3BD4C-2D50-4FAB-B077-7E8DB7C171F4} = {FB507B72-4585-4419-A6D4-E1AF1D0CEEDC}
+		{75C89AA8-3FD0-4A94-9E9A-39ECAE49421A} = {FB507B72-4585-4419-A6D4-E1AF1D0CEEDC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D01B2D2C-EAE6-413C-A00D-7B85F3EDC947}

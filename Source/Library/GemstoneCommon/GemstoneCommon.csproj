@@ -9,17 +9,21 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\..\..\Build\Outputs\Debug\Library\GemstonePhasorProtocolls\</OutputPath>
+    <OutputPath>..\..\..\Build\Outputs\Debug\Library\GemstoneCommon\</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>..\..\..\Build\Outputs\Release\Library\GemstonePhasorProtocolls\</OutputPath>
+    <OutputPath>..\..\..\Build\Outputs\Release\Library\GemstoneCommon\</OutputPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Gemstone.Common" Version="1.0.65" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0-preview.1.21102.12" />
+  </ItemGroup>
 
   <ItemGroup>
     <Reference Include="PresentationCore">
       <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\PresentationCore.dll</HintPath>
     </Reference>
   </ItemGroup>
-
 </Project>

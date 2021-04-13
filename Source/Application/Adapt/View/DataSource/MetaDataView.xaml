@@ -1,0 +1,54 @@
+﻿<UserControl x:Class="Adapt.View.DataSource.MetaDataView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Adapt.View.DataSource"
+             xmlns:localvm="clr-namespace:Adapt.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <WrapPanel Grid.Row="0">
+            <TextBlock Text="DataSource "/>
+            <TextBlock Text="{Binding Name}"/>
+            <TextBlock Text=" has " />
+            <TextBlock Text="{Binding NumberPMU}" />
+            <TextBlock Text=" PMUs and " />
+            <TextBlock Text="{Binding NumberSignals}" />
+            <TextBlock Text=" Signals available" />
+        </WrapPanel>
+        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1">
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate DataType="{x:Type localvm:DeviceViewModel}" ItemsSource="{Binding Signals}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0"  Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
+                        <TextBox Grid.Column="1" Text="{Binding Path=Name}"  Width="150"/>
+                        <WrapPanel Grid.Column="2">
+                            <TextBlock Text="{Binding NSignals}" />
+                            <TextBlock Text="Signals" />
+                        </WrapPanel>
+                    </Grid>
+                    <HierarchicalDataTemplate.ItemTemplate>
+                        <DataTemplate>
+                            <local:SignalMetaDataView />
+                        </DataTemplate>
+                    </HierarchicalDataTemplate.ItemTemplate>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+
+    </Grid>
+</UserControl>

@@ -3,19 +3,74 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net5.0-windows</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
-    <Version>0.0.01</Version>
+    <UseWPF>true</UseWPF>
     <Company>Grid Protection Alliance</Company>
     <Copyright>MIT License</Copyright>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\..\..\Build\Outputs\Debug\Application\Adapt</OutputPath>
+    <OutputPath>..\..\..\Build\Outputs\Debug\Application\Adapt\</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\..\Build\Outputs\Release\Application\Adapt\</OutputPath>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Resources\DataSource.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Gemstone.Data" Version="1.0.65" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Library\Adapt.DataSources\Adapt.DataSources.csproj" />
+    <ProjectReference Include="..\..\Library\Adapt.Models\Adapt.Models.csproj" />
+    <ProjectReference Include="..\..\Library\AdaptLogic\AdaptLogic.csproj" />
+    <ProjectReference Include="..\..\Library\GemstoneAnalytic\GemstoneAnalytic.csproj" />
+    <ProjectReference Include="..\..\Library\GemstoneCommon\GemstoneCommon.csproj" />
+    <ProjectReference Include="..\..\Library\GemstonePhasorProtocolls\GemstonePhasorProtocolls.csproj" />
+    <ProjectReference Include="..\..\Library\GemstoneWPF\GemstoneWPF.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Data.SQLite">
+      <HintPath>..\..\Dependencies\Gemstone\System.Data.SQLite.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
+    <Folder Include="View\Visualization\Widgets\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\DataSource.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="View\Common\AdapterSettingParameter.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="View\DataSource\DataSourceSettingView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="View\Common\AdapterSettingParameter.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="View\DataSource\DataSourceSettingView.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="XCOPY &quot;$(SolutionDir)Application\Data\DataBase.db&quot; &quot;$(TargetDir)&quot; /E/Y/D" />
+  </Target>
 </Project>
