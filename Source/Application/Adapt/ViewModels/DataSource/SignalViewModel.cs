@@ -265,7 +265,7 @@ namespace Adapt.ViewModels
             ProcessNotificationWindow progress = new ProcessNotificationWindow();
             ProcessNotificationWindowVM progressVM = new ProcessNotificationWindowVM();
             progress.DataContext = progressVM;
-            taskProcessor.ReportProgress += (object e, ProgressArgs arg) => { progressVM.Update }
+            taskProcessor.ReportProgress += (object e, ProgressArgs arg) => { progressVM.Update(arg); };
 
 
         }
