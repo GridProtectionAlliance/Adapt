@@ -43,7 +43,8 @@ namespace Adapt.DataSources
 
         private RandomDataSettings m_settings;
         private AdaptDevice m_pmu;
-
+        private int m_nProcessed;
+        private int m_frameCount;
         public void Configure(IConfiguration config)
         {
             m_settings = new RandomDataSettings();
@@ -54,12 +55,12 @@ namespace Adapt.DataSources
         public IEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
         {
             // For now just generate a triangle wave at fps
-            int Nmeasurements = (int)Math.Floor(m_settings.FramesPerSecond * (end - start).TotalSeconds);
-            int r = 0;
+            m_frameCount = (int)Math.Floor(m_settings.FramesPerSecond * (end - start).TotalSeconds);
+            m_nProcessed = 0;
             long ticks = Ticks.PerSecond / m_settings.FramesPerSecond;
             double val = 0;
             DateTime current = start;
-            for (int i = 0; i < Nmeasurements; i++)
+            for (int i = 0; i < m_frameCount; i++)
             {
                 current = current.AddTicks(ticks);
                 val = (val+1.0D)%100.0D;
@@ -70,13 +71,18 @@ namespace Adapt.DataSources
                     Measurements = new ConcurrentDictionary<string,ITimeSeriesValue>(signals.Select(item => new KeyValuePair<string,ITimeSeriesValue>(item.ID, new AdaptValue(item.ID) { Timestamp = current, Value = val })))
 
                 };
-                r++;
+                m_nProcessed++;
             }
         }
 
         public IEnumerable<AdaptDevice> GetDevices()
         {
             return new List<AdaptDevice>() { m_pmu };
+        }
+
+        public double GetProgress()
+        {
+            return ((double)m_nProcessed / (double)m_frameCount) * 100.0D;
         }
 
         public Type GetSettingType()
@@ -117,6 +123,11 @@ namespace Adapt.DataSources
 
             return signals;
             
+        }
+
+        public bool SupportProgress()
+        {
+            return true;
         }
 
         public bool Test()

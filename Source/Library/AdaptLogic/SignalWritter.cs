@@ -78,6 +78,13 @@ namespace AdaptLogic
 
         #endregion
 
+        #region [ Properties]
+        /// <summary>
+        /// Gets the number of Frames in queue to be written to the file.
+        /// </summary>
+        public int Backlog => m_queue?.Reader?.Count ?? 0;
+        #endregion
+
         #region [ Methods ]
         private void GenerateRoot()
         {
@@ -118,6 +125,7 @@ namespace AdaptLogic
         {
             m_queue.Writer.Complete();
         }
+
 
         /// <summary>
         /// Starts the Process of writing points to Files.

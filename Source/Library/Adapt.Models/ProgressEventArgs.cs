@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PdatImport.tsx - Gbtc
+//  ProgressEventArgs.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,65 +16,50 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  03/29/2021 - C. Lackner
+//  04/13/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
 
 
-using Adapt.Models;
-using GemstoneCommon;
-using Microsoft.Extensions.Configuration;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 
-namespace Adapt.DataSources
+namespace Adapt.Models
 {
     /// <summary>
-    /// Represents a data source adapter that imports data from pdat Files.
+    /// Arguments for a Progress Change Event
     /// </summary>
-    [Description("PDAT Import: Imports data from a set of pdat files.")]
-    public class PdatImporter : IDataSource
+    public class ProgressArgs: EventArgs
     {
-        public void Configure(IConfiguration config)
-        {
-            return;
-        }
+        /// <summary>
+        /// Gets the Progress in Percent.
+        /// </summary>
+        public int Progress { get; }
 
-        public IEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
-        {
-            throw new NotImplementedException();
-        }
+        /// <summary>
+        /// A Flag indicating whether this is the last Progress update and the task is complete.
+        /// </summary>
+        public bool Complete { get; }
 
-        public IEnumerable<AdaptDevice> GetDevices()
-        {
-            return new List<AdaptDevice>();
-        }
+        /// <summary>
+        /// The Message to be displayed 
+        /// </summary>
+        public string Message { get; }
 
-        public double GetProgress()
+        /// <summary>
+        /// Creates a new <see cref="ProgressArgs"/>
+        /// </summary>
+        /// <param name="Message">The Message to be displayed.</param>
+        /// <param name="Complete"><see cref="true"/> if this is the last progress report and the Task is complete</param>
+        /// <param name="Progress"> The Progress in Percent.</param>
+        public ProgressArgs(string Message, bool Complete, int Progress)
         {
-            throw new NotImplementedException();
-        }
+            this.Progress = Progress;
+            this.Message = Message;
+            this.Complete = Complete;
 
-        public Type GetSettingType()
-        {
-            return null;
-        }
-
-        public IEnumerable<AdaptSignal> GetSignals()
-        {
-            return new List<AdaptSignal>();
-        }
-
-        public bool SupportProgress()
-        {
-            return false;
-        }
-
-        public bool Test()
-        {
-            return false;
+            if (Complete)
+                this.Progress = 100;
         }
     }
 }

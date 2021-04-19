@@ -72,5 +72,15 @@ namespace Adapt.Models
         /// <returns>A <see cref="IEnumerable{T}"/> of <see cref="IFrame"/> with the last Frame being at <see cref="end"/>. </returns>
         public IEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end);
 
+        /// <summary>
+        /// Indicates if The DataSource reports Progress of the current Query
+        /// </summary>
+        public bool SupportProgress();
+
+        /// <summary>
+        /// Gets the current Progress in Percent if <see cref="SupportProgress"/> returns <see cref="true"/>
+        /// </summary>
+        public double GetProgress();
+
     }
 }

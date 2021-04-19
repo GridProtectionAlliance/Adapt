@@ -26,6 +26,7 @@ using Gemstone;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -44,14 +45,26 @@ namespace AdaptLogic
         #region [ Members ]
         private IDataSource m_Source;
         private Channel<IFrame> m_sourceQueue;
-        private Dictionary<string, SignalWritter> m_writers;
+        private ConcurrentDictionary<string, SignalWritter> m_writers;
         private List<AdaptSignal> m_sourceSignals;
         private DateTime m_start;
         private DateTime m_end;
         private Task<bool> m_mainProcess;
 
+        private CancellationTokenSource m_cancelationSource;
+        private int m_DataSourceProgress;
         #endregion
 
+        #region [ Properties ]
+        /// <summary>
+        /// Event that Reports the Progress of Processing this Task. 
+        /// </summary>
+        /// <remarks>
+        /// Accuracy depends on DataSource implementation.
+        /// </remarks>
+        public event EventHandler<ProgressArgs> ReportProgress;
+
+        #endregion
         #region [ Constructor ]
 
         /// <summary>
@@ -63,11 +76,13 @@ namespace AdaptLogic
         public TaskProcessor(List<AdaptSignal> Signals, DataSource Source, DateTime start, DateTime end)
         {
             CreateSourceInstance(Source);
-            m_writers = Signals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal));
+            m_writers = new ConcurrentDictionary<string,SignalWritter>(Signals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
             m_sourceQueue = Channel.CreateUnbounded<IFrame>();
             m_start = start;
             m_end = end;
             m_sourceSignals = Signals;
+            m_cancelationSource = new CancellationTokenSource();
+            m_DataSourceProgress = 0;
         }
 
         #endregion
@@ -102,21 +117,19 @@ namespace AdaptLogic
 
             m_mainProcess = new Task<bool>(() =>
             {
-                CancellationTokenSource sourceCancelation = new CancellationTokenSource();
-                CancellationTokenSource resultProcessingCancelation = new CancellationTokenSource();
-                CancellationTokenSource writterCancelation = new CancellationTokenSource();
-
-                Task getData = new Task(() => GetData(sourceCancelation.Token));
-                Task writeData = new Task(() => WriteData(resultProcessingCancelation.Token));
+               
+                Task getData = new Task(() => GetData(m_cancelationSource.Token));
+                Task writeData = new Task(() => WriteData(m_cancelationSource.Token));
                 getData.Start();
                 writeData.Start();
 
-                Task[] writterTasks = m_writers.Select(item => item.Value.StartWritter(writterCancelation.Token)).ToArray();
+                Task[] writterTasks = m_writers.Select(item => item.Value.StartWritter(m_cancelationSource.Token)).ToArray();
 
                 getData.Wait();
                 writeData.Wait();
                 Task.WaitAll(writterTasks);
 
+                ReportComplete();
                 return true;
             });
 
@@ -129,11 +142,13 @@ namespace AdaptLogic
         {
             try
             {
-                int l = 0;
+                int count = 0;
                 foreach (IFrame frame in m_Source.GetData(m_sourceSignals, m_start, m_end))
                 {
                     await m_sourceQueue.Writer.WriteAsync(frame, cancelationToken);
-                    l++;
+                    count++;
+                    if (count % 1000 == 0 && m_Source.SupportProgress())
+                        ReportDatasourceProgress(m_Source.GetProgress());
                 }
             }
             finally
@@ -163,6 +178,34 @@ namespace AdaptLogic
                 m_writers.Values.ToList().ForEach(item => item.Complete());
             }
         }
+
+        /// <summary>
+        /// Cancels the Current Task.
+        /// </summary>
+        public void CancelTask()
+        {
+            m_cancelationSource.Cancel();
+        }
+
+        private void ReportComplete()
+        {
+            ProgressArgs args = new ProgressArgs("Completed Task.", true, 0);
+            ReportProgress?.Invoke(this,args);
+        }
+
+        private void ReportDatasourceProgress(double dataSourceProgress)
+        {
+            double totalProgress = dataSourceProgress* 0.5D;
+            double wFactor = 1.0D / (double)m_writers.Count()* 0.5D;
+            foreach (KeyValuePair<string,SignalWritter> writer in m_writers)
+            {
+                totalProgress += dataSourceProgress * wFactor * ((-1.0D / 10000.0D) * (double)writer.Value.Backlog + 1.0D);
+            }
+
+            ProgressArgs args = new ProgressArgs("Loading Data.", false, (int)totalProgress);
+            ReportProgress?.Invoke(this, args);
+        }
+
          #endregion
     }
 }

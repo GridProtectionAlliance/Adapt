@@ -261,6 +261,13 @@ namespace Adapt.ViewModels
             TaskProcessor taskProcessor = new TaskProcessor(new List<AdaptSignal>() { m_signal }, ds, start, end);
             taskProcessor.StartTask();
 
+
+            ProcessNotificationWindow progress = new ProcessNotificationWindow();
+            ProcessNotificationWindowVM progressVM = new ProcessNotificationWindowVM();
+            progress.DataContext = progressVM;
+            taskProcessor.ReportProgress += (object e, ProgressArgs arg) => { progressVM.Update }
+
+
         }
         #endregion
 
