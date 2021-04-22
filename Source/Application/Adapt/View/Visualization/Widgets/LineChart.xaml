@@ -1,0 +1,12 @@
+﻿<UserControl x:Class="Adapt.View.Visualization.Widgets.LineChart"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:oxy="http://oxyplot.org/wpf"
+             xmlns:local="clr-namespace:Adapt.View.Visualization.Widgets"
+             mc:Ignorable="d" 
+             >
+    <oxy:PlotView Model="{Binding PlotModel}">
+    </oxy:PlotView>
+</UserControl>

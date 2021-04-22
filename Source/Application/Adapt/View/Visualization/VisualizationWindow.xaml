@@ -6,7 +6,5 @@
         xmlns:local="clr-namespace:Adapt.View.Visualization"
         mc:Ignorable="d"
         Title="Visualization" Height="450" Width="800">
-    <Grid>
-        <local:MainVisualization />
-    </Grid>
+    <local:MainVisualization DataContext="{Binding VisualizationVM}"/>
 </Window>

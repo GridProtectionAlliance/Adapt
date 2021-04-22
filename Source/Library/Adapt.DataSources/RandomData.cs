@@ -96,30 +96,30 @@ namespace Adapt.DataSources
 
             if (m_settings.IncludeLLVoltages)
             {
-                signals.Add(new AdaptSignal("VAB-Phase", "Voltage Phase AB", m_pmu) { Phase = GemstoneCommon.Phase.AB, Type = MeasurementType.VoltagePhase});
-                signals.Add(new AdaptSignal("VAB-Mag", "Voltage Magnitude AB", m_pmu) { Phase = GemstoneCommon.Phase.AB, Type = MeasurementType.VoltageMagnitude });
-                signals.Add(new AdaptSignal("VBC-Phase", "Voltage Phase BC", m_pmu) { Phase = GemstoneCommon.Phase.BC, Type = MeasurementType.VoltagePhase });
-                signals.Add(new AdaptSignal("VBC-Mag", "Voltage Magnitude BC", m_pmu) { Phase = GemstoneCommon.Phase.BC, Type = MeasurementType.VoltageMagnitude });
+                signals.Add(new AdaptSignal("VAB-Phase", "Voltage Phase AB", m_pmu) { Phase = GemstoneCommon.Phase.AB, Type = MeasurementType.VoltagePhase, FramesPerSecond=m_settings.FramesPerSecond});
+                signals.Add(new AdaptSignal("VAB-Mag", "Voltage Magnitude AB", m_pmu) { Phase = GemstoneCommon.Phase.AB, Type = MeasurementType.VoltageMagnitude, FramesPerSecond = m_settings.FramesPerSecond });
+                signals.Add(new AdaptSignal("VBC-Phase", "Voltage Phase BC", m_pmu) { Phase = GemstoneCommon.Phase.BC, Type = MeasurementType.VoltagePhase, FramesPerSecond = m_settings.FramesPerSecond });
+                signals.Add(new AdaptSignal("VBC-Mag", "Voltage Magnitude BC", m_pmu) { Phase = GemstoneCommon.Phase.BC, Type = MeasurementType.VoltageMagnitude, FramesPerSecond = m_settings.FramesPerSecond });
 
-                signals.Add(new AdaptSignal("VCA-Phase", "Voltage Phase CA", m_pmu) { Phase = GemstoneCommon.Phase.CA, Type = MeasurementType.VoltagePhase });
-                signals.Add(new AdaptSignal("VCA-Mag", "Voltage Magnitude CA", m_pmu) { Phase = GemstoneCommon.Phase.CA, Type = MeasurementType.VoltageMagnitude });
+                signals.Add(new AdaptSignal("VCA-Phase", "Voltage Phase CA", m_pmu) { Phase = GemstoneCommon.Phase.CA, Type = MeasurementType.VoltagePhase, FramesPerSecond = m_settings.FramesPerSecond });
+                signals.Add(new AdaptSignal("VCA-Mag", "Voltage Magnitude CA", m_pmu) { Phase = GemstoneCommon.Phase.CA, Type = MeasurementType.VoltageMagnitude, FramesPerSecond = m_settings.FramesPerSecond });
 
             }
 
             if (m_settings.IncludeLNVoltages)
             {
-                signals.Add(new AdaptSignal("VA-Phase", "Voltage Phase AN", m_pmu) { Phase = GemstoneCommon.Phase.A, Type = MeasurementType.VoltagePhase });
-                signals.Add(new AdaptSignal("VA-Mag", "Voltage Magnitude AN", m_pmu) { Phase = GemstoneCommon.Phase.A, Type = MeasurementType.VoltageMagnitude });
+                signals.Add(new AdaptSignal("VA-Phase", "Voltage Phase AN", m_pmu) { Phase = GemstoneCommon.Phase.A, Type = MeasurementType.VoltagePhase, FramesPerSecond = m_settings.FramesPerSecond });
+                signals.Add(new AdaptSignal("VA-Mag", "Voltage Magnitude AN", m_pmu) { Phase = GemstoneCommon.Phase.A, Type = MeasurementType.VoltageMagnitude, FramesPerSecond = m_settings.FramesPerSecond });
 
-                signals.Add(new AdaptSignal("VB-Phase", "Voltage Phase BN", m_pmu) { Phase = GemstoneCommon.Phase.B, Type = MeasurementType.VoltagePhase });
-                signals.Add(new AdaptSignal("VB-Mag", "Voltage Magnitude BN", m_pmu) { Phase = GemstoneCommon.Phase.B, Type = MeasurementType.VoltageMagnitude });
+                signals.Add(new AdaptSignal("VB-Phase", "Voltage Phase BN", m_pmu) { Phase = GemstoneCommon.Phase.B, Type = MeasurementType.VoltagePhase, FramesPerSecond = m_settings.FramesPerSecond });
+                signals.Add(new AdaptSignal("VB-Mag", "Voltage Magnitude BN", m_pmu) { Phase = GemstoneCommon.Phase.B, Type = MeasurementType.VoltageMagnitude, FramesPerSecond = m_settings.FramesPerSecond });
 
-                signals.Add(new AdaptSignal("VC-Phase", "Voltage Phase CN", m_pmu) { Phase = GemstoneCommon.Phase.C, Type = MeasurementType.VoltagePhase });
-                signals.Add(new AdaptSignal("VC-Mag", "Voltage Magnitude CN", m_pmu) { Phase = GemstoneCommon.Phase.C, Type = MeasurementType.VoltageMagnitude });
+                signals.Add(new AdaptSignal("VC-Phase", "Voltage Phase CN", m_pmu) { Phase = GemstoneCommon.Phase.C, Type = MeasurementType.VoltagePhase, FramesPerSecond = m_settings.FramesPerSecond });
+                signals.Add(new AdaptSignal("VC-Mag", "Voltage Magnitude CN", m_pmu) { Phase = GemstoneCommon.Phase.C, Type = MeasurementType.VoltageMagnitude, FramesPerSecond = m_settings.FramesPerSecond });
 
             }
 
-            signals.Add(new AdaptSignal("Freq", "Frequency", m_pmu) { Phase = GemstoneCommon.Phase.NONE, Type = MeasurementType.Frequency });
+            signals.Add(new AdaptSignal("Freq", "Frequency", m_pmu) { Phase = GemstoneCommon.Phase.NONE, Type = MeasurementType.Frequency, FramesPerSecond = m_settings.FramesPerSecond });
 
             return signals;
             

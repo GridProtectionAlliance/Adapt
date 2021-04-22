@@ -7,8 +7,8 @@
              mc:Ignorable="d" 
              >
     <Grid>
-        <StackPanel Orientation="Horizontal">
-            <Button ToolTip="Reset Graphs to show full Dataset" Margin="2">
+        <StackPanel Orientation="Horizontal" Background="Gray">
+            <Button ToolTip="Reset Graphs to show full Dataset" Margin="10">
                 Reset
             </Button>
             <StackPanel Margin="20,2,2,2"  Orientation="Horizontal">

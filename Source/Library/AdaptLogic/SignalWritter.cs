@@ -102,10 +102,10 @@ namespace AdaptLogic
                 writer.WriteLine(signal.Name);
                 writer.WriteLine(signal.Device);
                 writer.WriteLine(signal.ID);
-                writer.WriteLine(signal.Device);
                 writer.WriteLine(signal.Description);
                 writer.WriteLine(signal.Phase);
                 writer.WriteLine(signal.Type);
+                writer.WriteLine(signal.FramesPerSecond);
             }
         }
 
@@ -134,7 +134,7 @@ namespace AdaptLogic
         /// <returns></returns>
         public Task StartWritter(CancellationToken cancellationToken)
         {
-            Task task = new Task(async () =>
+            return Task.Run(async () =>
             {
                 try
                 {
@@ -166,12 +166,10 @@ namespace AdaptLogic
                 }
                 catch (Exception ex)
                 {
-
+                    int T = 1;
                 }
             }, cancellationToken);
 
-            task.Start();
-            return task;
         }
 
         private void WriteSecond(bool forceIndexGen=false)
@@ -194,6 +192,8 @@ namespace AdaptLogic
             m_activeSummary[NLevels].Min = min;
             m_activeSummary[NLevels].N =  m_data.Count;
             m_activeSummary[NLevels].Sum = m_data.Sum(pt => pt.Value);
+            m_activeSummary[NLevels].Tmax = m_data.Max(item => item.Timestamp);
+            m_activeSummary[NLevels].Tmin = m_data.Min(item => item.Timestamp);
 
             GenerateIndex(5);
 
@@ -229,17 +229,23 @@ namespace AdaptLogic
             m_activeFolder[3] = hour;
             m_activeFolder[4] = minute;
 
-            int nSize = 1 + 8 + 8 + 8 + (8 + 8) * m_data.Count;
+            int nSize = GraphPoint.NSize + (8 + 8) * m_data.Count;
             byte[] data = new byte[nSize];
 
-            // File format version 1 is min -> avg -> max -> Data (Ticks -> Value)
-            data[0] = 0x01;
-            BitConverter.GetBytes(min).CopyTo(data, 1);
-            BitConverter.GetBytes(avg).CopyTo(data, 9);
-            BitConverter.GetBytes(max).CopyTo(data, 17);
+            // File format version 1 is GraphPoint -> Data (Ticks -> Value)
+            GraphPoint fileSummary = new GraphPoint();
+            fileSummary.N = m_data.Count();
+            fileSummary.Sum = m_data.Sum(pt => pt.Value);
+            fileSummary.Min = min;
+            fileSummary.Max = max;
+            fileSummary.Tmax = m_data.Max(item => item.Timestamp);
+            fileSummary.Tmin = m_data.Min(item => item.Timestamp);
+
+            fileSummary.ToByte().CopyTo(data, 0);
 
 
-            int j = 25;
+            int j = GraphPoint.NSize;
+
             for (int i = m_data.Count; i > 0; i--)
             {
                 BitConverter.GetBytes(m_data[i - 1].Timestamp.Value).CopyTo(data, j);
@@ -272,9 +278,9 @@ namespace AdaptLogic
 
             string path = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder.Take(activeFolderIndex + 1))}";
 
-            //write
+            //write to file
             using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{path}{Path.DirectorySeparatorChar}summary.node")))
-            {  // Writer raw data                
+            {              
                 writer.Write(m_activeSummary[activeFolderIndex].ToByte());
                 writer.Flush();
                 writer.Close();
@@ -291,7 +297,7 @@ namespace AdaptLogic
             if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].Min) || m_activeSummary[activeFolderIndex].Min < m_activeSummary[activeFolderIndex - 1].Min)
                 m_activeSummary[activeFolderIndex - 1].Min = m_activeSummary[activeFolderIndex].Min;
             if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].Max) || m_activeSummary[activeFolderIndex].Max > m_activeSummary[activeFolderIndex - 1].Max)
-                m_activeSummary[activeFolderIndex - 1].Min = m_activeSummary[activeFolderIndex - 1].Min;
+                m_activeSummary[activeFolderIndex - 1].Max = m_activeSummary[activeFolderIndex - 1].Max;
 
             if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].Sum))
                 m_activeSummary[activeFolderIndex - 1].Sum = 0.0D;
@@ -301,6 +307,13 @@ namespace AdaptLogic
 
             m_activeSummary[activeFolderIndex - 1].N += m_activeSummary[activeFolderIndex].N;
             m_activeSummary[activeFolderIndex - 1].Sum += m_activeSummary[activeFolderIndex].Sum;
+
+
+            if (m_activeSummary[activeFolderIndex].Tmin < m_activeSummary[activeFolderIndex - 1].Tmin)
+                m_activeSummary[activeFolderIndex - 1].Tmin = m_activeSummary[activeFolderIndex].Tmin;
+
+            if (m_activeSummary[activeFolderIndex].Tmax > m_activeSummary[activeFolderIndex - 1].Tmax)
+                m_activeSummary[activeFolderIndex - 1].Tmax = m_activeSummary[activeFolderIndex].Tmax;
         }
         #endregion
 
@@ -308,6 +321,13 @@ namespace AdaptLogic
 
         private static readonly string DataPath = $"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{Path.DirectorySeparatorChar}ADAPT{Path.DirectorySeparatorChar}dataTree{Path.DirectorySeparatorChar}";
         
+        /// <summary>
+        /// Removes all Signal data from <see cref="DataPath"/>
+        /// </summary>
+        public static void CleanAppData() 
+        {
+            Directory.Delete(DataPath, true);
+        }
         #endregion
     }
 }

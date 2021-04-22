@@ -35,41 +35,72 @@ namespace Adapt.Models
     /// </summary>
     public class GraphPoint
     {
+        #region [ Properties ]
         public double Min { get; set; }
         public double Max { get; set; }
-        public double Avg => (double.IsNaN(Sum)? Sum / (double)N : double.NaN);
+        public double Avg => (!double.IsNaN(Sum)? Sum / (double)N : double.NaN);
     
         public int N { get; set; }
 
         public double Sum { get; set; }
-        public GraphPoint(byte[] data)
-        {
 
-        }
+        public DateTime Tmin { get; set; }
+        public DateTime Tmax { get; set; }
 
+        #endregion 
+
+        #region [ Constructors ]
         public GraphPoint()
         {
             Min = double.NaN;
             Max = double.NaN;
             Sum = double.NaN;
+            Tmin = DateTime.MaxValue;
+            Tmax = DateTime.MinValue;
             N = 0;
         }
 
+        /// <summary>
+        /// Generates a new <see cref="GraphPoint"/> from a Byte array.
+        /// </summary>
+        /// <param name="data"></param>
+        public GraphPoint(byte[] data)
+        {
+            if (data[0] != 0x01)
+                throw new Exception("Invalid Summary File Format");
+            
+            Min = BitConverter.ToDouble(data, 1);
+            N = BitConverter.ToInt32(data, 9);
+            Sum = BitConverter.ToDouble(data, 13);
+            Max = BitConverter.ToDouble(data, 13 + 8);
+
+            Tmin = DateTime.FromBinary(BitConverter.ToInt64(data, 13 + 8 + 8));
+            Tmax = DateTime.FromBinary(BitConverter.ToInt64(data, 13 + 8 + 8 + 8));
+
+        }
+
+        #endregion
+
+        #region [ Methods ]
         public byte[] ToByte()
         {
-            byte[] data = new byte[1+8+4+8+8];
+            byte[] data = new byte[NSize];
 
-            // File format version 1 is min -> N -> Sum -> max
+            // File format version 1 is min -> N -> Sum -> max -> Tmin ->  Tmax
             data[0] = 0x01;
             BitConverter.GetBytes(Min).CopyTo(data, 1);
             BitConverter.GetBytes(N).CopyTo(data, 9);
             BitConverter.GetBytes(Sum).CopyTo(data, 13);
             BitConverter.GetBytes(Max).CopyTo(data, 13+8);
-
+            BitConverter.GetBytes(Tmin.ToBinary()).CopyTo(data, 13 + 8+ 8);
+            BitConverter.GetBytes(Tmax.ToBinary()).CopyTo(data, 13 + 8 + 8 + 8);
             return data;
         }
 
+        #endregion
 
-     
+        #region [ static ] 
+        public static int NSize => 13 + 8 + 8 + 8 + 8;
+        #endregion
     }
 }

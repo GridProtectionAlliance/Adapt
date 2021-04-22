@@ -22,7 +22,9 @@
 // ******************************************************************************************************
 using Adapt.Models;
 using Adapt.View.Common;
+using Adapt.View.Visualization;
 using Adapt.ViewModels.Common;
+using Adapt.ViewModels.Vizsalization;
 using AdaptLogic;
 using Gemstone.Data;
 using Gemstone.Data.Model;
@@ -33,7 +35,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace Adapt.ViewModels
 {
@@ -265,10 +269,28 @@ namespace Adapt.ViewModels
             ProcessNotificationWindow progress = new ProcessNotificationWindow();
             ProcessNotificationWindowVM progressVM = new ProcessNotificationWindowVM();
             progress.DataContext = progressVM;
-            taskProcessor.ReportProgress += (object e, ProgressArgs arg) => { progressVM.Update(arg); };
+            progress.Show();
+
+            taskProcessor.ReportProgress += (object e, ProgressArgs arg) => {  
+                if(arg.Complete)
+                {
+                    progress.Dispatcher.Invoke(DispatcherPriority.Normal, new ThreadStart(() =>
+                    {
+                        progress.Close();
+                        VisualizationWindow visWindow = new VisualizationWindow();
+                        visWindow.DataContext = new VisualizationWindowVM(start, end);
+
+                        visWindow.Show();
+                    }));
+                }
+                else
+                    progressVM.Update(arg); 
+            };
 
 
         }
+
+       
         #endregion
 
         #region [ Static ]

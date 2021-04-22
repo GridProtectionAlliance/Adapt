@@ -4,13 +4,21 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.Visualization"
+             xmlns:widgets="clr-namespace:Adapt.View.Visualization.Widgets"
              mc:Ignorable="d"
              >
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto" />
+            <RowDefinition  Height="auto" />
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
         <local:VisToolBar Grid.Row="0" />
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="1" Width="Auto" Height="300">
+            <!--<StackPanel VerticalAlignment="Top"  HorizontalAlignment="left" Width="Auto" Height="300">-->
+            <widgets:LineChart DataContext="{Binding LineChart}" Height="300" Width="Auto"/>
+            <!-- </StackPanel>-->
+        </ScrollViewer>
+
+
     </Grid>
 </UserControl>

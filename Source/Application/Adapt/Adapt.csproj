@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <PackageReference Include="Gemstone.Data" Version="1.0.65" />
+    <PackageReference Include="OxyPlot.Wpf" Version="2.1.0-Preview1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,7 +44,6 @@
 
   <ItemGroup>
     <Folder Include="Properties\" />
-    <Folder Include="View\Visualization\Widgets\" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  MainVisualizationViewModel.tsx - Gbtc
+//  VisualizationWindowViewModel.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -34,50 +34,30 @@ namespace Adapt.ViewModels.Vizsalization
     /// <summary>
     /// Primary ViewModel for <see cref="Adapt.View.Visualization.MainVisualization"/>
     /// </summary>
-    public class MainVisualizationVM : ViewModelBase
+    public class VisualizationWindowVM : ViewModelBase
     {
         #region [ Members ]
-        private DateTime m_start;
-        private DateTime m_end;
-        private LineChartVM m_lineChart;
+        MainVisualizationVM m_vieModel;
         #endregion
 
         #region[ Properties ]
 
-        public DateTime DataStart
-        {
-            get => m_start;
-        }
 
-        public DateTime DataEnd
+        public MainVisualizationVM VisualizationVM
         {
-            get => m_end;
-        }
-
-        /// <summary>
-        /// Note that this will need to change to an Interface to support different Plot Types down the road.
-        /// </summary>
-        public LineChartVM LineChart
-        {
-            get { return m_lineChart; }
-            set
+            get { return m_vieModel; }
+            set 
             {
-                m_lineChart = value;
+                m_vieModel = value;
                 OnPropertyChanged();
             }
         }
-
-        public string Test => "Yes";
         #endregion
 
         #region[ Constructor]
-        public MainVisualizationVM(DateTime start, DateTime end)
+        public VisualizationWindowVM(DateTime start, DateTime end)
         {
-            m_start = start;
-            m_end = end;
-            List<SignalReader> readers = SignalReader.GetAvailableReader();
-            if (readers.Count > 0)
-                LineChart = new LineChartVM(readers.First(), start, end);
+            VisualizationVM = new MainVisualizationVM(start, end);
         }
 
         #endregion

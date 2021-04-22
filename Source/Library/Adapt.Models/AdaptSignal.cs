@@ -129,6 +129,20 @@ namespace Adapt.Models
             m_Key = Key;
             m_description = "";
         }
+
+        /// <summary>
+        /// Creates a new <see cref="AdaptSignal"/> attached to a Device.
+        /// </summary>
+        /// <param name="Name">The Name of the new Signal</param>
+        /// <param name="DeviceID">The Device ID the Signal is attached to</param>
+        /// <param name="Key">The Unique Identifier for this Channel.</param>
+        public AdaptSignal(string Key, string Name, string DeviceID)
+        {
+            m_Name = Name;
+            m_DeviceKey = DeviceID;
+            m_Key = Key;
+            m_description = "";
+        }
         #endregion
     }
 }

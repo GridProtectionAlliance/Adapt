@@ -49,7 +49,7 @@ namespace AdaptLogic
         private List<AdaptSignal> m_sourceSignals;
         private DateTime m_start;
         private DateTime m_end;
-        private Task<bool> m_mainProcess;
+        private Task m_mainProcess;
 
         private CancellationTokenSource m_cancelationSource;
         private int m_DataSourceProgress;
@@ -75,6 +75,7 @@ namespace AdaptLogic
         /// <param name="Source"> The <see cref="DataSource"/> used to get the Data</param>
         public TaskProcessor(List<AdaptSignal> Signals, DataSource Source, DateTime start, DateTime end)
         {
+            SignalWritter.CleanAppData();
             CreateSourceInstance(Source);
             m_writers = new ConcurrentDictionary<string,SignalWritter>(Signals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
             m_sourceQueue = Channel.CreateUnbounded<IFrame>();
@@ -109,19 +110,17 @@ namespace AdaptLogic
         /// <summary>
         /// Starts the Task
         /// </summary>
-        /// <returns>A Task returning <see cref="true"/> if the Task was run successfully and <see cref="false"/> if it failed</returns>
-        public Task<bool> StartTask()
+        /// <returns> A Task</returns>
+        public Task StartTask()
         {
             if (m_Source == null)
                 return new Task<bool>(() => false);
 
-            m_mainProcess = new Task<bool>(() =>
+            m_mainProcess = Task.Run(() =>
             {
-               
-                Task getData = new Task(() => GetData(m_cancelationSource.Token));
-                Task writeData = new Task(() => WriteData(m_cancelationSource.Token));
-                getData.Start();
-                writeData.Start();
+
+                Task getData = Task.Run(() => GetData(m_cancelationSource.Token));
+                Task writeData = Task.Run(() => WriteData(m_cancelationSource.Token));
 
                 Task[] writterTasks = m_writers.Select(item => item.Value.StartWritter(m_cancelationSource.Token)).ToArray();
 
@@ -130,11 +129,9 @@ namespace AdaptLogic
                 Task.WaitAll(writterTasks);
 
                 ReportComplete();
-                return true;
             });
 
-            m_mainProcess.Start();
-
+          
             return m_mainProcess;
         }
 
