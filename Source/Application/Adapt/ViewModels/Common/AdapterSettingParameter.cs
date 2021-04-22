@@ -323,7 +323,7 @@ namespace Adapt.ViewModels.Common
                 return "";
 
             ConnectionStringParser connectionStringParser = new ConnectionStringParser();
-            return connectionStringParser.ComposeConnectionstring(parameters.Select(item => new KeyValuePair<string, string>(item.ConnectionStringNames.First(), item.Value?.ToString() ?? "")).ToList());
+            return connectionStringParser.ComposeConnectionstring(parameters.Select(item => new KeyValuePair<string, string>(item.Name, item.Value?.ToString() ?? "")).ToList());
             
             
         }
@@ -349,7 +349,7 @@ namespace Adapt.ViewModels.Common
             string value = null;
             string description = null;
 
-            string[] Names = info.TryGetAttribute(out settingNameAttribute) ? settingNameAttribute.Names : new[] { info.Name };
+            string[] Names = info.TryGetAttribute(out settingNameAttribute) ? settingNameAttribute.Names.Concat(new[] { info.Name }).ToArray() : new[] { info.Name };
             Names.FirstOrDefault(name => settingsObject.TryGetValue(name, out value));
 
             // These are different cases, but we need to extract the description
