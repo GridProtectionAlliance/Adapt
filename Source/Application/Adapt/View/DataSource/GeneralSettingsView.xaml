@@ -4,8 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.DataSource"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             mc:Ignorable="d" >
     <UserControl.Resources>
         <CollectionViewSource Source="{Binding Path=DataSourceTypes}" x:Key="DataSourceTypes" />
     </UserControl.Resources>
@@ -13,24 +12,16 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        <Grid Grid.Column="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Label Grid.Row="0" Grid.Column="0" Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Name"/>
-            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Name}">
+        <StackPanel Grid.Column="0" Orientation="Horizontal">
+            <Label Margin="0,2" Width="60" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Name:"/>
+            <TextBox Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Name}">
             </TextBox>
-        </Grid>
-        <Grid Grid.Column="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Label Grid.Row="0" Grid.Column="0" Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Left" Content="DataSource Type"/>
-            <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" ItemsSource="{Binding Source={StaticResource DataSourceTypes}}" SelectedIndex="{Binding Mode=TwoWay, Path=AdapterTypeSelectedIndex}">
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="100,0,0,0">
+            <Label Margin="100,2,0,0" Width="120" VerticalAlignment="Center" HorizontalAlignment="Left" Content="DataSource Type:"/>
+            <ComboBox Margin="0,2" Width="300" VerticalAlignment="Center" HorizontalAlignment="Center" ItemsSource="{Binding Source={StaticResource DataSourceTypes}}" SelectedIndex="{Binding Mode=TwoWay, Path=AdapterTypeSelectedIndex}">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
                         <Border Padding="5">
@@ -43,6 +34,7 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
-        </Grid>
+        </StackPanel>
+        
     </Grid>
 </UserControl>

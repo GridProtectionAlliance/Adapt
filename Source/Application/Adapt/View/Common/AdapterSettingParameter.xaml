@@ -5,42 +5,34 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.DataSource"
              xmlns:localcv="clr-namespace:Adapt.Converter"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             mc:Ignorable="d" >
     <UserControl.Resources>
         <CollectionViewSource Source="{Binding Path=DataSourceTypes}" x:Key="DataSourceTypes" />
         <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
     </UserControl.Resources>
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
 
-        <Label Grid.Row="0" Grid.Column="0" Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Name}"/>
+    <StackPanel Orientation="Horizontal" Margin="10,0,0,0">
+        <Label Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Name}"/>
         <StackPanel Margin="5" Width="200" Grid.Column="1"
-            Visibility="{Binding Path=IsBoolean, Converter={StaticResource ObjectToVisibility}}">
+                Visibility="{Binding Path=IsBoolean, Converter={StaticResource ObjectToVisibility}}">
             <RadioButton Content="True" IsChecked="{Binding Path=Value}" />
             <RadioButton Content="False" IsChecked="{Binding Mode=OneWay, Path=IsFalseChecked}" />
         </StackPanel>
-        <StackPanel Margin="5" Grid.Column="1" Visibility="{Binding Path=IsEnum, Converter={StaticResource ObjectToVisibility}}">
+        <StackPanel Margin="5" Visibility="{Binding Path=IsEnum, Converter={StaticResource ObjectToVisibility}}">
             <StackPanel.Resources>
                 <CollectionViewSource Source="{Binding Path=EnumValues}" x:Key="EnumValues" />
             </StackPanel.Resources>
             <ComboBox Width="200" ItemsSource="{Binding Source={StaticResource EnumValues}}" SelectedItem="{Binding Path=Value}" />
         </StackPanel>
-        <StackPanel Margin="5"  Grid.Column="1" Visibility="{Binding Path=IsOther, Converter={StaticResource ObjectToVisibility}}">
+        <StackPanel Margin="5"  Visibility="{Binding Path=IsOther, Converter={StaticResource ObjectToVisibility}}">
             <TextBox Width="200" Text="{Binding Path=Value}" TextWrapping="Wrap"
-                                  VerticalScrollBarVisibility="Auto"/>
+                                      VerticalScrollBarVisibility="Auto"/>
         </StackPanel>
-        <StackPanel Width="200" Margin="5" Grid.Column="1" Visibility="{Binding Path=IsText, Converter={StaticResource ObjectToVisibility}}">
+        <StackPanel Width="200" Margin="5" Visibility="{Binding Path=IsText, Converter={StaticResource ObjectToVisibility}}">
             <TextBox Text="{Binding Path=Value}" />
         </StackPanel>
-        <StackPanel Width="200" Margin="5" Grid.Column="1" Visibility="{Binding Path=IsNumeric, Converter={StaticResource ObjectToVisibility}}">
+        <StackPanel Width="200" Margin="5" Visibility="{Binding Path=IsNumeric, Converter={StaticResource ObjectToVisibility}}">
             <TextBox Text="{Binding Path=Value}" />
         </StackPanel>
-
-
-
-    </Grid>
+    </StackPanel>
 </UserControl>
