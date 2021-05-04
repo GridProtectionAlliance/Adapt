@@ -1,7 +1,7 @@
 ﻿//******************************************************************************************************
-//  ITimeSeriesValue.cs - Gbtc
+//  ICommonHeader.cs - Gbtc
 //
-//  Copyright © 2012, Grid Protection Alliance.  All Rights Reserved.
+//  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
 //  Licensed to the Grid Protection Alliance (GPA) under one or more contributor license agreements. See
 //  the NOTICE file distributed with this work for additional information regarding copyright ownership.
@@ -16,58 +16,40 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  06/29/2011 - J. Ritchie Carroll
+//  11/17/2008 - J. Ritchie Carroll
 //       Generated original version of source code.
-//  12/20/2012 - Starlynn Danyelle Gilliam
+//  09/14/2009 - Stephen C. Wills
+//       Added new header and license agreement.
+//  12/14/2012 - Starlynn Danyelle Gilliam
 //       Modified Header.
-//  04/01/2021 - C. Lackner
-//       Moved to .NET Core.
+//  04/26/2021 - C. Lackner
+//       moved to .net core for ADAPT.
 //
 //******************************************************************************************************
 
 using Gemstone;
 using System;
 
-namespace GemstoneCommon
+namespace GemstoneParser
 {
+
     /// <summary>
-    /// Represents the interface for a time-series value.
+    /// Defines the common header of a frame image for a set of parsed types, consisting at least of a type ID.
     /// </summary>
-    public interface ITimeSeriesValue
+    /// <remarks>
+    /// Header implementations can extend this interface as necessary to accommodate protocol specific header images.
+    /// </remarks>
+    /// <typeparam name="TTypeIdentifier">Type of identifier used to distinguish output types.</typeparam>
+    public interface ICommonHeader<out TTypeIdentifier>
     {
         /// <summary>
-        /// Gets or sets the <see cref="string"/> based signal ID of this <see cref="ITimeSeriesValue"/>.
+        /// Gets or sets the identifier used for identifying the <see cref="Type"/> to be parsed.
         /// </summary>
-        /// <remarks>
-        /// This is the fundamental identifier of the <see cref="ITimeSeriesValue"/>.
-        /// </remarks>
-        string ID
-        {
-            get;
-        }
+        TTypeIdentifier TypeID { get; }
 
         /// <summary>
-        /// Gets or sets the Value of this <see cref="ITimeSeriesValue"/>.
+        /// Gets or sets any additional state information that might be needed for parsing.
         /// </summary>
-        double Value
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Gets or sets exact timestamp, in ticks, of the data represented by this <see cref="ITimeSeriesValue{T}"/>.
-        /// </summary>
-        /// <remarks>
-        /// The value of this property represents the number of 100-nanosecond intervals that have elapsed since 12:00:00 midnight, January 1, 0001.
-        /// </remarks>
-        Ticks Timestamp
-        {
-            get;
-            set;
-        }
-
-
-
+        object State { get; set; }
     }
 }

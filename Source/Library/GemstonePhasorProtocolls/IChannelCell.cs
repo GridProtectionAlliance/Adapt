@@ -1,5 +1,5 @@
 ﻿//******************************************************************************************************
-//  ITimeSeriesValue.cs - Gbtc
+//  IChannelCell.cs - Gbtc
 //
 //  Copyright © 2012, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,58 +16,65 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  06/29/2011 - J. Ritchie Carroll
+//  02/18/2005 - J. Ritchie Carroll
 //       Generated original version of source code.
-//  12/20/2012 - Starlynn Danyelle Gilliam
+//  09/15/2009 - Stephen C. Wills
+//       Added new header and license agreement.
+//  10/5/2012 - Gavin E. Holden
+//       Added new header and license agreement.
+//  12/17/2012 - Starlynn Danyelle Gilliam
 //       Modified Header.
-//  04/01/2021 - C. Lackner
-//       Moved to .NET Core.
+//  04/23/2021 - C. Lackner
+//       moved to .net core for ADAPT.
 //
 //******************************************************************************************************
 
-using Gemstone;
+using Gemstone.IO.Parsing;
 using System;
+using System.Collections.Generic;
+using System.Runtime.Serialization;
 
-namespace GemstoneCommon
+namespace GemstonePhasorProtocolls
 {
     /// <summary>
-    /// Represents the interface for a time-series value.
+    /// Represents a protocol independent interface representation of any kind of <see cref="IChannelFrame"/> cell.
     /// </summary>
-    public interface ITimeSeriesValue
+    /// <remarks>
+    /// This phasor protocol implementation defines a "cell" as a portion of a "frame", i.e., a logical unit of data.
+    /// For example, a <see cref="IDataCell"/> (derived from <see cref="IChannelCell"/>) could be defined as a PMU
+    /// within a frame of data, a <see cref="IDataFrame"/>, that contains multiple PMU's coming from a PDC.
+    /// </remarks>
+    public interface IChannelCell : IChannel, ISerializable
     {
         /// <summary>
-        /// Gets or sets the <see cref="string"/> based signal ID of this <see cref="ITimeSeriesValue"/>.
+        /// Gets a reference to the parent <see cref="IChannelFrame"/> for this <see cref="IChannelCell"/>.
         /// </summary>
-        /// <remarks>
-        /// This is the fundamental identifier of the <see cref="ITimeSeriesValue"/>.
-        /// </remarks>
-        string ID
-        {
-            get;
-        }
-
-        /// <summary>
-        /// Gets or sets the Value of this <see cref="ITimeSeriesValue"/>.
-        /// </summary>
-        double Value
+        IChannelFrame Parent
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Gets or sets exact timestamp, in ticks, of the data represented by this <see cref="ITimeSeriesValue{T}"/>.
+        /// Gets or sets the parsing state for the this <see cref="ChannelCellBase"/>.
         /// </summary>
-        /// <remarks>
-        /// The value of this property represents the number of 100-nanosecond intervals that have elapsed since 12:00:00 midnight, January 1, 0001.
-        /// </remarks>
-        Ticks Timestamp
+        new IChannelCellParsingState State
         {
             get;
             set;
         }
 
-
-
+        /// <summary>
+        /// Gets the numeric ID code for this <see cref="IChannelCell"/>.
+        /// </summary>
+        /// <remarks>
+        /// Most phasor measurement devices define some kind of numeric identifier (e.g., a hardware identifier coded into the device ROM); this is the
+        /// abstract representation of this identifier.
+        /// </remarks>
+        ushort IDCode
+        {
+            get;
+            set;
+        }
     }
 }

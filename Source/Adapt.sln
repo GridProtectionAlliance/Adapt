@@ -41,7 +41,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GemstoneWPF", "Library\Gems
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Adapt.DataSources", "Library\Adapt.DataSources\Adapt.DataSources.csproj", "{43A3BD4C-2D50-4FAB-B077-7E8DB7C171F4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdaptLogic", "Library\AdaptLogic\AdaptLogic.csproj", "{75C89AA8-3FD0-4A94-9E9A-39ECAE49421A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdaptLogic", "Library\AdaptLogic\AdaptLogic.csproj", "{75C89AA8-3FD0-4A94-9E9A-39ECAE49421A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
