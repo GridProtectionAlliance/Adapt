@@ -36,6 +36,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 
 
@@ -59,9 +60,20 @@ namespace Adapt.ViewModels.Common
         private object m_value;
         private object m_defaultValue;
         private bool m_isRequired;
+        private bool m_customPopUpOpen;
+        private RelayCommand m_customButtonCmd;
+        private UIElement m_customPopup;
+
         private string[] m_ConnectionSTringNames;
         #endregion
 
+        #region [ COnstructor ]
+
+        public AdapterSettingParameterVM()
+        {
+            m_customButtonCmd = new RelayCommand(OpenCustom, () => true);
+        }
+        #endregion
         #region [ Properties ]
 
         /// <summary>
@@ -215,7 +227,7 @@ namespace Adapt.ViewModels.Common
         {
             get
             {
-                return (m_info != null) && (m_info.PropertyType == typeof(bool));
+                return (m_info != null) && (m_info.PropertyType == typeof(bool)) && !IsCustom;
             }
         }
 
@@ -228,7 +240,7 @@ namespace Adapt.ViewModels.Common
         {
             get
             {
-                return (m_info != null) && m_info.PropertyType.IsEnum;
+                return (m_info != null) && m_info.PropertyType.IsEnum && !IsCustom;
             }
         }
 
@@ -241,7 +253,7 @@ namespace Adapt.ViewModels.Common
         {
             get
             {
-                return (m_info != null) && m_info.PropertyType == typeof(string);
+                return (m_info != null) && m_info.PropertyType == typeof(string) && !IsCustom;
             }
         }
 
@@ -254,9 +266,57 @@ namespace Adapt.ViewModels.Common
         {
             get
             {
-                return (m_info != null) && (m_info.PropertyType == typeof(int) || m_info.PropertyType == typeof(double) || m_info.PropertyType == typeof(float));
+                return (m_info != null) && !IsCustom && (m_info.PropertyType == typeof(int) || m_info.PropertyType == typeof(double) || m_info.PropertyType == typeof(float));
             }
         }
+
+        /// <summary>
+        /// Gets a value that indicates whether the value of this parameter can be configured via a
+        /// custom control. This determines whether the hyper-link that links to the custom configuration
+        /// pop-up is visible.
+        /// </summary>
+        public bool IsCustom
+        {
+            get
+            {
+                try
+                {
+                    return !(m_info?.GetCustomAttribute<CustomConfigurationEditorAttribute>() is null);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets a value that indicates whether custom setting popup control is visible.
+        /// </summary>
+        public bool CustomPopupOpen
+        {
+            get
+            {
+                return IsCustom && m_customPopUpOpen;
+            }
+            set
+            {
+                m_customPopUpOpen = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public UIElement CustomPopup
+        { 
+            get { return m_customPopup; }
+            set
+            {
+                m_customPopup = value;
+                OnPropertyChanged();
+            }
+        }
+        public ICommand OpenCustomPopup => m_customButtonCmd;
+      
 
         /// <summary>
         /// Gets a value that indicates whether the type of this <see cref="AdapterSettingParameter"/>
@@ -268,9 +328,10 @@ namespace Adapt.ViewModels.Common
         {
             get
             {
-                return!IsBoolean && !IsEnum && !IsText && !IsNumeric;
+                return!IsBoolean && !IsEnum && !IsText && !IsNumeric && !IsCustom;
             }
         }
+
 
         /// <summary>
         /// Gets or Sets the Names used in the Connectionstring. This can be different then <see cref="Name"/>
@@ -279,6 +340,40 @@ namespace Adapt.ViewModels.Common
         {
             get => m_ConnectionSTringNames;
             set => m_ConnectionSTringNames = value;
+        }
+        #endregion
+
+        #region[ Methods ]
+        public void OpenCustom()
+        {
+            try
+            { 
+                CustomConfigurationEditorAttribute customConfigurationEditorAttribute = Info.GetCustomAttribute<CustomConfigurationEditorAttribute>();
+
+                if (customConfigurationEditorAttribute is null)
+                    return;
+
+                Action<object> complete = new Action<object>((object val) => {
+                    m_customPopUpOpen = false;
+                    OnPropertyChanged(nameof(CustomPopupOpen));
+                    Value = val;
+                });
+
+                if (customConfigurationEditorAttribute.ConnectionString is null)
+                    CustomPopup = Activator.CreateInstance(customConfigurationEditorAttribute.EditorType, Name, Value, complete) as UIElement;
+                else
+                    CustomPopup = Activator.CreateInstance(customConfigurationEditorAttribute.EditorType, Name, Value, complete, customConfigurationEditorAttribute.ConnectionString) as UIElement;
+
+                if (m_customPopup is null)
+                    return;
+
+                CustomPopupOpen = true;
+            }
+            catch (Exception ex)
+            {
+                    string message = $"Unable to open custom configuration control due to exception: {ex.Message}";
+                    Popup(message, "Custom Configuration Error", MessageBoxImage.Error);
+            }
         }
         #endregion
 

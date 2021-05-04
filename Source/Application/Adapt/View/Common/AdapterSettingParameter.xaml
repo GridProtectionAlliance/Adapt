@@ -34,5 +34,16 @@
         <StackPanel Width="200" Margin="5" Visibility="{Binding Path=IsNumeric, Converter={StaticResource ObjectToVisibility}}">
             <TextBox Text="{Binding Path=Value}" />
         </StackPanel>
+        <StackPanel Width="200" Margin="5" Visibility="{Binding Path=IsCustom, Converter={StaticResource ObjectToVisibility}}">
+            <StackPanel  Margin="0,0" Orientation="Horizontal">
+                <TextBox Text="{Binding Path=Value}" IsReadOnly="True" Width="100" Height="18"/>
+                <Button Width="80" Height="20" Margin="10,2" Command="{Binding OpenCustomPopup}" >Edit</Button>
+                <Popup x:Name="CustomConfigurationPopup" Placement="Center" Visibility="Collapsed" IsOpen="{Binding Path=CustomPopupOpen}">
+                    <Border CornerRadius="5" BorderThickness="2" Background="White" BorderBrush="Blue">
+                        <ContentPresenter x:Name="ContentCustomPopup" Content="{Binding Path=CustomPopup}" />
+                    </Border>
+                </Popup>
+            </StackPanel>
+        </StackPanel>
     </StackPanel>
 </UserControl>
