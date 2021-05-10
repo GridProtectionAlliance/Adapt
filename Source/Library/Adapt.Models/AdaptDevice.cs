@@ -55,6 +55,17 @@ namespace Adapt.Models
             m_Guid = key;
         }
 
+        /// <summary>
+        /// Generates a New <see cref="AdaptDevice"/>
+        /// </summary>
+        /// <param name="key">The Key uniquely identifying this Device</param
+        /// <param name="name">The human readbale name of this Device</param>
+        public AdaptDevice(string key, string name)
+        {
+            m_Name = name;
+            m_Guid = key;
+        }
+
         public bool Equals(AdaptDevice other)
         {
             return m_Guid == other.ID;

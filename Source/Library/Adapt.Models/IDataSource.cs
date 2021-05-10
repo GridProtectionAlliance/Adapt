@@ -70,7 +70,7 @@ namespace Adapt.Models
         /// <param name="start"> The start</param>
         /// <param name="end">The End</param>
         /// <returns>A <see cref="IEnumerable{T}"/> of <see cref="IFrame"/> with the last Frame being at <see cref="end"/>. </returns>
-        public IEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end);
+        public IAsyncEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end);
 
         /// <summary>
         /// Indicates if The DataSource reports Progress of the current Query
