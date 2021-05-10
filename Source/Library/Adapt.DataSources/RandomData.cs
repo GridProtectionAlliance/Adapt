@@ -24,6 +24,8 @@
 
 using Adapt.Models;
 using Gemstone;
+using Gemstone.Numeric.EE;
+using Gemstone.Units;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -45,34 +47,115 @@ namespace Adapt.DataSources
         private AdaptDevice m_pmu;
         private int m_nProcessed;
         private int m_frameCount;
+        private Random m_random;
         public void Configure(IConfiguration config)
         {
             m_settings = new RandomDataSettings();
             config.Bind(m_settings);
             m_pmu = new AdaptDevice(m_settings.PMUName);
+
+            m_random = new Random();
         }
 
-        public IEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
+        public async IAsyncEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
         {
             // For now just generate a triangle wave at fps
             m_frameCount = (int)Math.Floor(m_settings.FramesPerSecond * (end - start).TotalSeconds);
             m_nProcessed = 0;
             long ticks = Ticks.PerSecond / m_settings.FramesPerSecond;
-            double val = 0;
             DateTime current = start;
+
             for (int i = 0; i < m_frameCount; i++)
             {
                 current = current.AddTicks(ticks);
-                val = (val+1.0D)%100.0D;
-                yield return new Frame()
-                {
-                    Published = true,
-                    Timestamp = current,
-                    Measurements = new ConcurrentDictionary<string,ITimeSeriesValue>(signals.Select(item => new KeyValuePair<string,ITimeSeriesValue>(item.ID, new AdaptValue(item.ID) { Timestamp = current, Value = val })))
-
-                };
+                yield return GenerateFrame(current, signals);
                 m_nProcessed++;
             }
+        }
+
+        private IFrame GenerateFrame(Ticks Time, List<AdaptSignal> signals)
+        {
+            List<ITimeSeriesValue> values = new List<ITimeSeriesValue>();
+
+            Phasor Va, Vb, Vc, Vn;
+            Phasor Ia, Ib, Ic, In;
+            double f;
+
+
+            f = GetRandom(m_settings.NominalFrequency, m_settings.FreqStandardDev);
+            Va = new Phasor(PhasorType.Voltage,Angle.FromDegrees(GetRandom(0, 5)),GetRandom(m_settings.LLBaseVoltage / Math.Sqrt(3), m_settings.VoltageStandardDev));
+            Vc = new Phasor(PhasorType.Voltage, Angle.FromDegrees(GetRandom(120.0, 5)), GetRandom(m_settings.LLBaseVoltage / Math.Sqrt(3), m_settings.VoltageStandardDev));
+            Vb = new Phasor(PhasorType.Voltage, Angle.FromDegrees(GetRandom(240.0, 5)), GetRandom(m_settings.LLBaseVoltage / Math.Sqrt(3), m_settings.VoltageStandardDev));
+            Vn = new Phasor(PhasorType.Voltage, Angle.FromDegrees(GetRandom(0, 5)), GetRandom(0.0D, m_settings.VoltageStandardDev));
+
+            Ia = new Phasor(PhasorType.Current, Angle.FromDegrees(GetRandom(15, 10)), GetRandom(m_settings.CurrentAvg, m_settings.CurrentStandardDev));
+            Ib = new Phasor(PhasorType.Current, Angle.FromDegrees(GetRandom(135, 10)), GetRandom(m_settings.CurrentAvg, m_settings.CurrentStandardDev));
+            Ic = new Phasor(PhasorType.Current, Angle.FromDegrees(GetRandom(255, 10)), GetRandom(m_settings.CurrentAvg, m_settings.CurrentStandardDev));
+
+            In = Ia + Ib + Ic;
+
+            foreach (AdaptSignal s in signals)
+            {
+                switch (s.ID)
+                {
+                    case ("Freq"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = f });
+                        break;
+                    case ("VA-Phase"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = Va.Value.Phase*180.0D/Math.PI });
+                        break;
+                    case ("VB-Phase"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = Vb.Value.Phase * 180.0D / Math.PI });
+                        break;
+                    case ("VC-Phase"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = Vc.Value.Phase * 180.0D / Math.PI });
+                        break;
+                    case ("VAB-Phase"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = (Vb - Va).Value.Phase * 180.0D / Math.PI });
+                        break;
+                    case ("VBC-Phase"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = (Vc - Vb).Value.Phase * 180.0D / Math.PI });
+                        break;
+                    case ("VCA-Phase"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = (Va - Vc).Value.Phase * 180.0D / Math.PI });
+                        break;
+                    case ("VA-Mag"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = Va.Value.Magnitude });
+                        break;
+                    case ("VB-Mag"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = Vb.Value.Magnitude });
+                        break;
+                    case ("VC-Mag"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = Vc.Value.Magnitude });
+                        break;
+                    case ("VAB-Mag"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = (Vb - Va).Value.Magnitude });
+                        break;
+                    case ("VBC-Mag"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = (Vc - Vb).Value.Magnitude });
+                        break;
+                    case ("VCA-Mag"):
+                        values.Add(new AdaptValue(s.ID) { Timestamp = Time, Value = (Va - Vc).Value.Magnitude });
+                        break;
+
+                }
+            }
+
+            return new Frame()
+            {
+                Published = true,
+                Timestamp = Time,
+                Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(values.Select(v => new KeyValuePair<string,ITimeSeriesValue>(v.ID,v)))
+
+            };
+        }
+
+        private double GetRandom(double mean, double stdev)
+        {
+            double u1 = 1.0 - m_random.NextDouble();
+            double u2 = 1.0 - m_random.NextDouble();
+            double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
+            return mean + randStdNormal * stdev;
         }
 
         public IEnumerable<AdaptDevice> GetDevices()

@@ -51,5 +51,23 @@ namespace Adapt.DataSources
         [DefaultValue(15)]
         public int FramesPerSecond { get; set; }
 
+        [DefaultValue(345)]
+        public double LLBaseVoltage { get; set; }
+
+        [DefaultValue(20)]
+        public double CurrentAvg { get; set; }
+
+        [DefaultValue(12)]
+        public double VoltageStandardDev { get; set; }
+
+        [DefaultValue(0.05)]
+        public double CurrentStandardDev { get; set; }
+
+        [DefaultValue(0.05)]
+        public double FreqStandardDev { get; set; }
+
+        [DefaultValue(60.0)]
+        public double NominalFrequency { get; set; }
+
     }
 }
