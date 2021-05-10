@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Adapt.View.Common"
         mc:Ignorable="d"
-        Title="Select a TimeWindow" Height="150" Width="500" x:Name="TimeSelectionWindow">
+        Title="Select a TimeWindow" Height="150" Width="400" x:Name="TimeSelectionWindow">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>

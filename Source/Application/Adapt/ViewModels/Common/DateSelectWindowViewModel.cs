@@ -78,7 +78,7 @@ namespace Adapt.ViewModels.Common
         public DateSelectindowVM(Action<DateTime,DateTime> ConfirmTimeRange)
         {
             m_ViewModel = new DateSelectVM();
-            m_ContinueCommand = new RelayCommand(new Action<object>(Confirm), (object w) => true);
+            m_ContinueCommand = new RelayCommand(new Action<object>(Confirm), CanConfirm);
             m_CancelCommand = new RelayCommand(new Action<object>(Cancel), (object w) => true);
             m_Confirm = ConfirmTimeRange;
         }
@@ -105,6 +105,10 @@ namespace Adapt.ViewModels.Common
 
         }
 
+        public bool CanConfirm(object window)
+        {
+            return ViewModel.Start < ViewModel.End;
+        }
         #endregion
     }
 }

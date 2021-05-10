@@ -22,7 +22,7 @@
             <TextBlock Text="{Binding NumberSignals}" />
             <TextBlock Text=" Signals available" />
         </WrapPanel>
-        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1">
+        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" >
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate DataType="{x:Type localvm:DeviceViewModel}" ItemsSource="{Binding Signals}">
                     <StackPanel Grid.Column="0" Orientation="Horizontal">
@@ -30,7 +30,7 @@
                         <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
                         <WrapPanel Margin="100,0">
                             <TextBlock Text="{Binding NSignals}" />
-                            <TextBlock Text="Signals" />
+                            <TextBlock Text=" Signals" />
                         </WrapPanel>
                     </StackPanel>
 

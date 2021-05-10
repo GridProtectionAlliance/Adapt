@@ -8,20 +8,24 @@
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
+            <RowDefinition Height="15*" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TabControl TabStripPlacement="Top" Grid.Row="0">
+        <TabControl TabStripPlacement="Top" Grid.Row="0" >
             <TabItem Header="Settings">
-                <local:SettingsView/>
+                <ScrollViewer>
+                    <local:SettingsView/>
+                </ScrollViewer>
             </TabItem>
             <TabItem Header="General MetaData">
-                <local:MetaDataView/>
+                <ScrollViewer>
+                    <local:MetaDataView/>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
-        <StackPanel Grid.Row="1"  Orientation="Horizontal" HorizontalAlignment="Left">
-            <Button Margin="10,0" Command="{Binding SaveCommand}">Save Changes</Button>
-            <Button Margin="10,0" Command="{Binding TestCommand}">Test Data Source</Button>
+        <StackPanel Grid.Row="1"  Orientation="Horizontal" HorizontalAlignment="Left" >
+            <Button Margin="10,0" Height="20" Command="{Binding SaveCommand}">Save Changes</Button>
+            <Button Margin="10,0" Height="20" Command="{Binding TestCommand}">Test Data Source</Button>
 
         </StackPanel>
     </Grid>

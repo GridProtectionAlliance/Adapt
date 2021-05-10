@@ -72,6 +72,6 @@
                 <TextBox TextWrapping="Wrap" Text="{Binding EndSecond}" TextAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
         </Grid>
-        <TextBlock Grid.Column="0" Grid.Row="2" VerticalAlignment="Center" Text="{Binding Duration}"/>
+        <TextBlock Grid.ColumnSpan="3" Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Duration}"/>
     </Grid>
 </UserControl>
