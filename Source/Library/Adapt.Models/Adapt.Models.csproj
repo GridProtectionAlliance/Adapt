@@ -17,8 +17,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gemstone.Common" Version="1.0.65" />
-    <PackageReference Include="Gemstone.Data" Version="1.0.65" />
+    <PackageReference Include="Gemstone.Common" Version="1.0.67" />
+    <PackageReference Include="Gemstone.Data" Version="1.0.67" />
   </ItemGroup>
 
   <ItemGroup>
