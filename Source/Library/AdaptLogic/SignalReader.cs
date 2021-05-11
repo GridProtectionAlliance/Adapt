@@ -170,6 +170,21 @@ namespace AdaptLogic
             
         }
 
+        /// <summary>
+        /// Gets the Summary of this SIgnal for a specified Time range.
+        /// </summary>
+        /// <param name="start">The startTime.</param>
+        /// <param name="end">The endTime.</param>
+        /// <returns>An <see cref="AdaptPoint"/> specifying Min, Max and Avg</returns>
+        public AdaptPoint GetStatistics(DateTime start, DateTime end)
+        {
+            List<GraphPoint> point = GetPoints(m_rootFolder, 0, 0, start, end);
+            if (point.Count == 0)
+                return new AdaptPoint(Signal.ID, double.NaN, start.Add(end - start), double.NaN, double.NaN);
+
+            return new AdaptPoint(Signal.ID, point.First().Avg, start.Add(end - start), point.First().Min, point.First().Max);
+        }
+
         private List<GraphPoint> GetPoints(string root, int depth, int currentLevel, DateTime start, DateTime end)
         {
             List< GraphPoint> results = new List<GraphPoint>();
