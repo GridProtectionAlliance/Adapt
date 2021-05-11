@@ -1,0 +1,20 @@
+﻿<Window x:Class="Adapt.View.NewDataSourceWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Adapt.View.DataSource" x:Name="AddDataSourceWindow"
+        mc:Ignorable="d"
+        Title="New DataSource" Height="200" Width="780">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <local:GeneralSettingsView Grid.Row="0"/>
+        <StackPanel Grid.Row="1"  Orientation="Horizontal" HorizontalAlignment="Right" >
+            <Button Margin="10,0" Height="20" Command="{Binding SaveCommand}">Add New Data Source</Button>
+            <Button Margin="10,0" Height="20" Command="{Binding CancelCommand}" CommandParameter="{Binding ElementName=AddDataSourceWindow}">Cancel</Button>
+        </StackPanel>
+    </Grid>
+</Window>

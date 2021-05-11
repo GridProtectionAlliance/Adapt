@@ -19,8 +19,8 @@
             </TextBox>
         </StackPanel>
 
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="100,0,0,0">
-            <Label Margin="100,2,0,0" Width="120" VerticalAlignment="Center" HorizontalAlignment="Left" Content="DataSource Type:"/>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="50,0,0,0">
+            <Label Margin="0,2,0,0" Width="120" VerticalAlignment="Center" HorizontalAlignment="Left" Content="DataSource Type:"/>
             <ComboBox Margin="0,2" Width="300" VerticalAlignment="Center" HorizontalAlignment="Center" ItemsSource="{Binding Source={StaticResource DataSourceTypes}}" SelectedIndex="{Binding Mode=TwoWay, Path=AdapterTypeSelectedIndex}">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>

@@ -21,6 +21,7 @@
 //
 // ******************************************************************************************************
 using Adapt.Models;
+using Adapt.View;
 using Gemstone.Data;
 using Gemstone.Data.Model;
 using Gemstone.IO;
@@ -28,6 +29,9 @@ using GemstoneWPF;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace Adapt.ViewModels
 {
@@ -63,14 +67,18 @@ namespace Adapt.ViewModels
             {
                 m_selectedIndex = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedID));
             }
         }
-            
+
+        public ICommand AddNewCommand { get; set; }
+
         #endregion
 
         #region [ Constructor ]
         public DataSourceListViewModel()
         {
+            AddNewCommand = new RelayCommand(AddNewDataSource, () => true);
             Load();
         }
 
@@ -78,15 +86,34 @@ namespace Adapt.ViewModels
 
         #region [ Methods ]
 
-        public void Load()
+        public void Load(int Id=-1)
         {
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 m_dataSources = new TableOperations<DataSource>(connection).QueryRecords().ToList();
 
-            if (m_dataSources.Count > 0 && m_selectedIndex == -1)
+            if (m_dataSources.Count > 0 && m_selectedIndex == -1 && Id == -1)
                 m_selectedIndex = 0;
+            else if (Id != -1)
+                m_selectedIndex = m_dataSources.FindIndex(ds => ds.ID == Id);
             else
                 m_selectedIndex = -1;
+        }
+
+        public void AddNewDataSource()
+        {
+            NewDataSourceWindow window = new NewDataSourceWindow();
+            NewDataSourceWindowVM vm = new NewDataSourceWindowVM();
+            window.DataContext = vm;
+            vm.AddedDataSource += (object sender, DataSourceAddedArgs arg) =>
+            {
+                Load(arg.ID);
+                window.Dispatcher.Invoke(DispatcherPriority.Normal, new ThreadStart(() =>
+                {
+                    window.Close();
+                }));
+            };
+
+            window.Show();
         }
         #endregion
 
