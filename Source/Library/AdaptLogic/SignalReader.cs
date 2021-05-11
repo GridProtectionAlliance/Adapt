@@ -125,8 +125,9 @@ namespace AdaptLogic
         /// </summary>
         /// <param name="start">the start Time of the Series.</param>
         /// <param name="end">The end time of the Series.</param>
+        /// <param name="points"> The minimum number of points requested.</param>
         /// <returns></returns>
-        public IEnumerable<ITimeSeriesValue> GetTrend(DateTime start, DateTime end)
+        public IEnumerable<ITimeSeriesValue> GetTrend(DateTime start, DateTime end, int points=NPoints)
         {
             // Estimate how many levels we need to go down to get as many points as required
             double seconds = (end - start).TotalSeconds;
@@ -136,32 +137,32 @@ namespace AdaptLogic
                 pointsPerLevel = 30;
             int requiredLevels = NLevels + 1;
 
-            if (nPoints > (pointsPerLevel* NPoints))
+            if (nPoints > (pointsPerLevel* points))
                 requiredLevels--;
 
             nPoints = (int)Math.Floor(seconds);
             pointsPerLevel = 60;
-            if (nPoints > (pointsPerLevel * NPoints))
+            if (nPoints > (pointsPerLevel * points))
                 requiredLevels--;
 
             nPoints = (int)Math.Floor((end - start).TotalMinutes);
             pointsPerLevel = 60;
-            if (nPoints > (pointsPerLevel * NPoints))
+            if (nPoints > (pointsPerLevel * points))
                 requiredLevels--;
 
             nPoints = (int)Math.Floor((end - start).TotalHours);
             pointsPerLevel = 24;
-            if (nPoints > (pointsPerLevel * NPoints))
+            if (nPoints > (pointsPerLevel * points))
                 requiredLevels--;
 
             nPoints = (int)Math.Floor((end - start).TotalDays);
             pointsPerLevel = 30;
-            if (nPoints > (pointsPerLevel * NPoints))
+            if (nPoints > (pointsPerLevel * points))
                 requiredLevels--;
 
             nPoints = (int)Math.Floor((end - start).TotalDays / 30.0);
             pointsPerLevel = 12;
-            if (nPoints > (pointsPerLevel * NPoints))
+            if (nPoints > (pointsPerLevel * points))
                 requiredLevels--;
 
 
@@ -248,9 +249,9 @@ namespace AdaptLogic
                 if (pt.Tmax < start)
                     continue;
 
-                if ((pt.Tmin <= start && pt.Tmax >= end)  && nextLevel == depth)
+                if ((pt.Tmin >= start && pt.Tmax <= end)  && currentLevel == depth)
                     results.Add(pt);
-                else if (nextLevel > depth)
+                else if (currentLevel >= depth)
                     results.Add( Aggregate(GetPoints(folder, NLevels+1, nextLevel, start, end)));
                 else 
                     results.AddRange(GetPoints(folder, depth, nextLevel, start, end));
