@@ -23,11 +23,21 @@
 
 
 using Adapt.Models;
+using Gemstone;
 using GemstoneCommon;
+using GemstonePhasorProtocolls;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 
 namespace Adapt.DataSources
 {
@@ -37,19 +47,182 @@ namespace Adapt.DataSources
     [Description("PDAT Import: Imports data from a set of pdat files.")]
     public class PdatImporter : IDataSource
     {
+        
+        #region [ Members ]
+        private PdatSettings m_settings;
+        private Dictionary<DateTime, string> m_Files = new Dictionary<DateTime, string>();
+        private IConfigurationFrame m_configurationFrame;
+        private ManualResetEvent m_configurationWaitHandle;
+        private Channel<IDataFrame> m_dataQueue;
+
+        #endregion
+
+        #region [ Constructor ]
+
+        public PdatImporter()
+        {
+            m_configurationWaitHandle = new ManualResetEvent(false);
+
+        }
+        #endregion
+        #region [ Methods ]
         public void Configure(IConfiguration config)
         {
-            return;
+            m_settings = new PdatSettings();
+            config.Bind(m_settings);
+
+            m_Files = new Dictionary<DateTime, string>();
+
+            // Find all Files and parse into dateTime
+            if (!Directory.Exists(m_settings.RootFolder))
+                return;
+
+            List <string> files = Directory.GetFiles(m_settings.RootFolder,"*.pdat",SearchOption.AllDirectories).ToList();
+
+            //Parse these Files into DateTime and File Path
+            foreach (string path in files)
+            {
+                FileInfo fileInfo = new FileInfo(path);
+                MatchCollection matches = m_DateTimeParsing.Matches(fileInfo.Name);
+
+                if (matches.Count == 0)
+                    continue;
+
+                string date = matches[0].Groups[1].ToString();
+                string time = matches[0].Groups[2].ToString();
+                DateTime dateTime;
+
+                try
+                {
+                    dateTime = DateTime.ParseExact((date + "-" + time), "yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+                }
+                catch (Exception ex)
+                {
+                    continue;
+                }
+
+                m_Files.Add(dateTime, fileInfo.FullName);
+            }
+
+            GetConfigFrame();
         }
 
-        public IEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
+        public async IAsyncEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
         {
-            throw new NotImplementedException();
+            //Create List of Relevant Files
+            List<DateTime> files = m_Files.Keys.Where(k => k < end && k > start).ToList();
+
+            if (m_Files.Keys.Where(k => k < start).Count() > 0)
+            {
+                DateTime initial = start - m_Files.Keys.Where(k => k < start).Min(k => (start - k));
+
+                files.Add(initial);
+            }
+
+            if (files.Count() == 0)
+                yield break;
+
+            //Start File Read Process
+            m_dataQueue = Channel.CreateUnbounded<IDataFrame>();
+
+            CancellationTokenSource tokenSource = new CancellationTokenSource();
+            ReadFile(files, tokenSource.Token).Start();
+
+            await foreach(IDataFrame frame in m_dataQueue.Reader.ReadAllAsync())
+            {
+                if (frame.Timestamp < new Ticks(start))
+                    continue;
+                if (frame.Timestamp > new Ticks(end))
+                    continue;
+
+                IEnumerable<ITimeSeriesValue> magnitudes = frame.Cells.SelectMany(item => item.PhasorValues)
+                    .Select(item => new Tuple<int, IPhasorValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label + "-Mag"),item))
+                    .Where(item => item.Item1 != -1)
+                    .Select(item => new AdaptValue(signals[item.Item1].ID) { 
+                        Value=item.Item2.Magnitude,
+                        Timestamp=frame.Timestamp,
+                    });
+
+                IEnumerable<ITimeSeriesValue> phases = frame.Cells.SelectMany(item => item.PhasorValues)
+                    .Select(item => new Tuple<int, IPhasorValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label + "-Ph"), item))
+                    .Where(item => item.Item1 != -1)
+                    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                    {
+                        Value = item.Item2.Angle.ToDegrees(),
+                        Timestamp = frame.Timestamp,
+                    });
+
+                IEnumerable<ITimeSeriesValue> analogs = frame.Cells.SelectMany(item => item.AnalogValues)
+                    .Select(item => new Tuple<int, IAnalogValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label), item))
+                    .Where(item => item.Item1 != -1)
+                    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                    {
+                        Value = item.Item2.Value,
+                        Timestamp = frame.Timestamp,
+                    });
+
+                IEnumerable<ITimeSeriesValue> frequencies = frame.Cells.Select(item => item.FrequencyValue)
+                    .Select(item => new Tuple<int, IFrequencyValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Parent.IDCode.ToString() + item.Label ), item))
+                    .Where(item => item.Item1 != -1)
+                    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                    {
+                        Value = item.Item2.Frequency,
+                        Timestamp = frame.Timestamp,
+                    }); ;
+
+                IEnumerable<ITimeSeriesValue> digitals = frame.Cells.SelectMany(item => item.DigitalValues)
+                    .Select(item => new Tuple<int, IDigitalValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label), item))
+                    .Where(item => item.Item1 != -1)
+                    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                    {
+                        Value = item.Item2.Value,
+                        Timestamp = frame.Timestamp,
+                    });
+
+                IFrame outFrame = new Frame()
+                {
+                    Published = true,
+                    Timestamp = frame.Timestamp,
+                    Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(phases.Concat(magnitudes).Concat(analogs).Concat(digitals).Concat(frequencies).Select(item => new KeyValuePair<string, ITimeSeriesValue>(item.ID, item)))
+                };
+
+                yield return outFrame;
+
+            }
+
+
+        }
+
+        public Task ReadFile(List<DateTime> files, CancellationToken cancellationToken)
+        {
+            return new Task(() => {
+                for (int i = 0; i < files.Count; i++)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+                    MultiProtocolFrameParser parser = new MultiProtocolFrameParser();
+                    ManualResetEvent reset = new ManualResetEvent(false);
+                    parser.PhasorProtocol = PhasorProtocol.IEEEC37_118V2;
+                    parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
+                    parser.ConnectionString = $"file={m_Files[files[i]]}";
+
+                    parser.ReceivedDataFrame += RecievedDataFrame;
+
+                    parser.Start();
+                    reset.WaitOne(10000);
+                    parser.Stop();
+                }
+
+                m_dataQueue.Writer.Complete();
+            }, cancellationToken);
         }
 
         public IEnumerable<AdaptDevice> GetDevices()
         {
-            return new List<AdaptDevice>();
+            if (m_configurationFrame == null)
+                return new List<AdaptDevice>();
+
+            return m_configurationFrame.Cells.Select(cell => new AdaptDevice(cell.IDCode.ToString(),cell.StationName)).ToList();
         }
 
         public double GetProgress()
@@ -59,12 +232,53 @@ namespace Adapt.DataSources
 
         public Type GetSettingType()
         {
-            return null;
+            return typeof(PdatSettings);
         }
 
         public IEnumerable<AdaptSignal> GetSignals()
         {
-            return new List<AdaptSignal>();
+            if (m_configurationFrame == null)
+                return new List<AdaptSignal>();
+
+            IEnumerable<AdaptSignal> analogs = m_configurationFrame.Cells.SelectMany(cell => cell.AnalogDefinitions
+                .Select(aD => new AdaptSignal(aD.Label, aD.Label, cell.IDCode.ToString())
+                    {
+                        FramesPerSecond = cell.FrameRate,
+                        Phase = Phase.NONE,
+                        Type = MeasurementType.Analog
+                    }));
+
+            IEnumerable<AdaptSignal> digitals = m_configurationFrame.Cells.SelectMany(cell => cell.DigitalDefinitions
+                .Select(aD => new AdaptSignal(aD.Label, aD.Label, cell.IDCode.ToString())
+                {
+                    FramesPerSecond = cell.FrameRate,
+                    Phase = Phase.NONE,
+                    Type = MeasurementType.Digital
+                }));
+
+            IEnumerable<AdaptSignal> phases = m_configurationFrame.Cells.SelectMany(cell => cell.PhasorDefinitions
+                .Select(aD => new AdaptSignal(aD.Label + "-Ph", aD.Label + " Phase", cell.IDCode.ToString())
+                {
+                    FramesPerSecond = cell.FrameRate,
+                    Phase = Phase.NONE,
+                    Type = aD.PhasorType == Gemstone.Numeric.EE.PhasorType.Current? MeasurementType.CurrentPhase : MeasurementType.VoltagePhase
+                }));
+            IEnumerable<AdaptSignal> magnitudes = m_configurationFrame.Cells.SelectMany(cell => cell.PhasorDefinitions
+            .Select(aD => new AdaptSignal(aD.Label + "-Mag", aD.Label + " Magnitude", cell.IDCode.ToString()) 
+            {
+                FramesPerSecond = cell.FrameRate,
+                Phase = Phase.NONE,
+                Type = aD.PhasorType == Gemstone.Numeric.EE.PhasorType.Current ? MeasurementType.CurrentMagnitude : MeasurementType.VoltageMagnitude
+            }));
+
+            IEnumerable<AdaptSignal> frequency = m_configurationFrame.Cells.Select( cell => new AdaptSignal(cell.IDCode.ToString() + cell.FrequencyDefinition.Label, cell.FrequencyDefinition.Label ?? "Frequency", cell.IDCode.ToString())
+               {
+                   FramesPerSecond = cell.FrameRate,
+                   Phase = Phase.NONE,
+                   Type =MeasurementType.Frequency,
+               });
+
+            return magnitudes.Concat(phases).Concat(digitals).Concat(analogs).Concat(frequency);
         }
 
         public bool SupportProgress()
@@ -74,7 +288,52 @@ namespace Adapt.DataSources
 
         public bool Test()
         {
-            return false;
+            if (!Directory.Exists(m_settings.RootFolder))
+                return false;
+
+            return m_Files.Count > 0;
         }
+
+        private async void GetConfigFrame()
+        {
+            if (m_Files.Count == 0)
+                return;
+
+            MultiProtocolFrameParser parser = new MultiProtocolFrameParser();
+            parser.PhasorProtocol = PhasorProtocol.IEEEC37_118V2;
+            parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
+            parser.ConnectionString = $"file={m_Files.First().Value}";
+
+            parser.ReceivedConfigurationFrame += RecievedConfigFrame;
+            parser.ConnectionTerminated += ConnectionTerminated;
+
+            parser.Start();
+            m_configurationWaitHandle.WaitOne(10000);
+            parser.Stop();
+        }
+
+        private void RecievedConfigFrame(object sender, EventArgs<IConfigurationFrame> conf)
+        {
+            m_configurationFrame = conf.Argument;
+            m_configurationWaitHandle.Set();
+
+        }
+
+        private void ConnectionTerminated(object sender, EventArgs e)
+        {
+            // Clear wait handle
+            m_configurationWaitHandle.Set();
+        }
+
+        private void RecievedDataFrame(object sender, EventArgs<IDataFrame> conf)
+        {
+            m_dataQueue.Writer.TryWrite(conf.Argument);
+        }
+
+        #endregion
+
+        #region [ static ]
+        private static Regex m_DateTimeParsing = new Regex(@"_([0-9]{8})_([0-9]{6})\.pdat$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        #endregion
     }
 }
