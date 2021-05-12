@@ -49,7 +49,6 @@ namespace Adapt.ViewModels
 
         private DataSource m_dataSource;
         private RelayCommand m_saveCommand;
-        private RelayCommand m_cancelCommand;
 
         private List<DataSourceTypeDescription> m_dataSourceTypes;
         
@@ -127,9 +126,6 @@ namespace Adapt.ViewModels
         
         
         public ICommand SaveCommand => m_saveCommand;
-
-        public ICommand CancelCommand => m_cancelCommand;
-       
         public bool CanSave => ValidConfig();
 
         #endregion
@@ -145,8 +141,7 @@ namespace Adapt.ViewModels
             };
 
             m_saveCommand = new RelayCommand(Save, () => CanSave);
-            m_cancelCommand = new RelayCommand(new Action<object>(Cancel), (object w) => true);
-            
+                        
             m_dataSourceTypes = DataSourceTypeDescription.LoadDataSourceTypes(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar));
 
         }
@@ -191,10 +186,6 @@ namespace Adapt.ViewModels
             }
         }
 
-        public void Cancel(object window)
-        {
-            ((NewDataSourceWindow)window).Close();
-        }
 
         private bool ValidConfig()
         {

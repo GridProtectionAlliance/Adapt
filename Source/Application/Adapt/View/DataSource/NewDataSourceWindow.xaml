@@ -12,9 +12,8 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <local:GeneralSettingsView Grid.Row="0"/>
-        <StackPanel Grid.Row="1"  Orientation="Horizontal" HorizontalAlignment="Right" >
+        <StackPanel Grid.Row="1"  Orientation="Horizontal" HorizontalAlignment="Left" >
             <Button Margin="10,0" Height="20" Command="{Binding SaveCommand}">Add New Data Source</Button>
-            <Button Margin="10,0" Height="20" Command="{Binding CancelCommand}" CommandParameter="{Binding ElementName=AddDataSourceWindow}">Cancel</Button>
         </StackPanel>
     </Grid>
 </Window>
