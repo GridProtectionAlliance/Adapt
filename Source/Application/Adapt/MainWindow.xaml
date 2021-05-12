@@ -13,6 +13,7 @@
     </Window.DataContext>
     <Window.Resources>
         <localcv:ExpanderToBoolean x:Key="ExpanderToBoolean" />
+        <localcv:ExpanderToVisibility x:Key="ExpanderToVisibility" />
         <DataTemplate DataType="{x:Type localvm:DataSourceViewModel}">
             <localv:DataSourceView/>
         </DataTemplate>
@@ -20,6 +21,7 @@
     
     <Grid>
         <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
@@ -30,9 +32,8 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Expander Grid.RowSpan="4" ExpandDirection="right" Grid.Column="0" Grid.Row="0" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=1}">
-            <localv:DataSourceListView VerticalAlignment="top" DataContext="{Binding DataSourceList}" Height="{Binding Height, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}"/>
-            <Expander.Header>
+        <Expander ExpandDirection="right" Grid.Column="0" Grid.Row="0" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=1}">
+           <Expander.Header>
                 <TextBlock Text="Data Sources" FontSize="16">
                     <TextBlock.LayoutTransform>
                         <RotateTransform Angle="-90"/>
@@ -41,8 +42,12 @@
             </Expander.Header>
             
         </Expander>
-        <Expander Grid.RowSpan="4" ExpandDirection="Right" Grid.Column="0"  Grid.Row="1" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=2}">
-            <TextBlock Text="To Be Implemented" FontSize="16"/>
+
+        <StackPanel Grid.RowSpan="4" Grid.Column="1" Visibility="{Binding ActiveExpander, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=1}" >
+            <localv:DataSourceListView  VerticalAlignment="top" DataContext="{Binding DataSourceList}" Height="{Binding Height, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}"/>
+        </StackPanel>
+
+        <Expander ExpandDirection="Right" Grid.Column="0"  Grid.Row="1" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=2}">
             <Expander.Header>
                 <TextBlock Text="Templates" FontSize="16">
                     <TextBlock.LayoutTransform>
@@ -51,8 +56,12 @@
                 </TextBlock>
             </Expander.Header>
         </Expander>
-        <Expander Grid.RowSpan="4" ExpandDirection="Right" Grid.Column="0"  Grid.Row="2" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=3}">
+
+        <StackPanel Grid.RowSpan="4" Grid.Column="1" Visibility="{Binding ActiveExpander, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=2}" >
             <TextBlock Text="To Be Implemented" FontSize="16"/>
+        </StackPanel>
+
+        <Expander ExpandDirection="Right" Grid.Column="0"  Grid.Row="2" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=3}">
             <Expander.Header>
                 <TextBlock Text="Tasks" FontSize="16">
                     <TextBlock.LayoutTransform>
@@ -61,8 +70,12 @@
                 </TextBlock>
             </Expander.Header>
         </Expander>
-        <Expander Grid.RowSpan="4" ExpandDirection="Right" Grid.Column="0"  Grid.Row="3" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=4}">
+
+        <StackPanel Grid.RowSpan="4" Grid.Column="1" Visibility="{Binding ActiveExpander, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=3}" >
             <TextBlock Text="To Be Implemented" FontSize="16"/>
+        </StackPanel>
+
+        <Expander ExpandDirection="Right" Grid.Column="0"  Grid.Row="3" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=4}">
             <Expander.Header>
                 <TextBlock Text="Results" FontSize="16">
                     <TextBlock.LayoutTransform>
@@ -71,7 +84,12 @@
                 </TextBlock>
             </Expander.Header>
         </Expander>
-        <GridSplitter Grid.Column="1" Width="5" VerticalAlignment="Stretch" ResizeBehavior="PreviousAndNext" HorizontalAlignment="Center" Grid.RowSpan="4"/>
-        <ContentPresenter Content="{Binding CurrentView}" Grid.Column="2" Grid.RowSpan="4"/>
+
+        <StackPanel Grid.RowSpan="4" Grid.Column="1" Visibility="{Binding ActiveExpander, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=4}" >
+            <TextBlock Text="To Be Implemented" FontSize="16"/>
+        </StackPanel>
+        
+        <GridSplitter Grid.Column="2" Width="5" VerticalAlignment="Stretch" ResizeBehavior="PreviousAndNext" HorizontalAlignment="Center" Grid.RowSpan="4"/>
+        <ContentPresenter Content="{Binding CurrentView}" Grid.Column="3" Grid.RowSpan="4"/>
     </Grid>
 </Window>
