@@ -46,6 +46,7 @@ namespace Adapt.ViewModels.Common
     {
         #region [ Members ]
 
+        private ProcessNotificationVM m_vieModel;
         #endregion
 
         #region [ Properties ]
@@ -53,7 +54,14 @@ namespace Adapt.ViewModels.Common
         /// <summary>
         /// Gets the ViewModel
         /// </summary>
-        public ProcessNotificationVM ViewModel;
+        public ProcessNotificationVM ViewModel {
+            get { return m_vieModel; }
+            set
+            {
+                m_vieModel = value;
+                OnPropertyChanged();
+            }
+        }
         
         #endregion
 
