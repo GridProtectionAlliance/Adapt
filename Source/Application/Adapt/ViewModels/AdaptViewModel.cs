@@ -96,7 +96,8 @@ namespace Adapt.ViewModels
         {
             if (e.PropertyName == "SelectedIndex")
             {
-                m_dataSource.ID = m_dataSourceList.SelectedID;
+                if (m_dataSource.ID != m_dataSourceList.SelectedID)
+                    m_dataSource.ID = m_dataSourceList.SelectedID;
             }
         }
 
@@ -104,7 +105,8 @@ namespace Adapt.ViewModels
         {
             if (e.PropertyName == "DataSource")
             {
-                m_dataSourceList.Load();
+                if (m_dataSource.ID != m_dataSourceList.SelectedID)
+                    m_dataSourceList.Load(m_dataSource.ID);
             }
         }
         #endregion

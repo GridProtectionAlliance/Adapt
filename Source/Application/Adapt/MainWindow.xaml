@@ -30,8 +30,8 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Expander ExpandDirection="right" Grid.Column="0" Grid.Row="0" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=1}">
-            <localv:DataSourceListView DataContext="{Binding DataSourceList}" Height="{Binding Height, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}"/>
+        <Expander Grid.RowSpan="4" ExpandDirection="right" Grid.Column="0" Grid.Row="0" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=1}">
+            <localv:DataSourceListView VerticalAlignment="top" DataContext="{Binding DataSourceList}" Height="{Binding Height, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}"/>
             <Expander.Header>
                 <TextBlock Text="Data Sources" FontSize="16">
                     <TextBlock.LayoutTransform>
@@ -41,7 +41,7 @@
             </Expander.Header>
             
         </Expander>
-        <Expander ExpandDirection="Right" Grid.Column="0"  Grid.Row="1" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=2}">
+        <Expander Grid.RowSpan="4" ExpandDirection="Right" Grid.Column="0"  Grid.Row="1" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=2}">
             <TextBlock Text="To Be Implemented" FontSize="16"/>
             <Expander.Header>
                 <TextBlock Text="Templates" FontSize="16">
@@ -51,7 +51,7 @@
                 </TextBlock>
             </Expander.Header>
         </Expander>
-        <Expander ExpandDirection="Right" Grid.Column="0"  Grid.Row="2" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=3}">
+        <Expander Grid.RowSpan="4" ExpandDirection="Right" Grid.Column="0"  Grid.Row="2" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=3}">
             <TextBlock Text="To Be Implemented" FontSize="16"/>
             <Expander.Header>
                 <TextBlock Text="Tasks" FontSize="16">
@@ -61,7 +61,7 @@
                 </TextBlock>
             </Expander.Header>
         </Expander>
-        <Expander ExpandDirection="Right" Grid.Column="0"  Grid.Row="3" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=4}">
+        <Expander Grid.RowSpan="4" ExpandDirection="Right" Grid.Column="0"  Grid.Row="3" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=4}">
             <TextBlock Text="To Be Implemented" FontSize="16"/>
             <Expander.Header>
                 <TextBlock Text="Results" FontSize="16">

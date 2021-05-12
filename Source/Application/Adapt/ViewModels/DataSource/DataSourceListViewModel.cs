@@ -65,6 +65,8 @@ namespace Adapt.ViewModels
             get => m_selectedIndex;
             set
             {
+                if (m_selectedIndex == value)
+                    return;
                 m_selectedIndex = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(SelectedID));
@@ -92,11 +94,13 @@ namespace Adapt.ViewModels
                 m_dataSources = new TableOperations<DataSource>(connection).QueryRecords().ToList();
 
             if (m_dataSources.Count > 0 && m_selectedIndex == -1 && Id == -1)
-                m_selectedIndex = 0;
+                SelectedIndex = 0;
             else if (Id != -1)
-                m_selectedIndex = m_dataSources.FindIndex(ds => ds.ID == Id);
+                SelectedIndex = m_dataSources.FindIndex(ds => ds.ID == Id);
             else
-                m_selectedIndex = -1;
+                SelectedIndex = -1;
+
+            OnPropertyChanged(nameof(DataSource));
         }
 
         public void AddNewDataSource()
