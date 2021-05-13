@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -24,5 +25,24 @@ namespace Adapt.View.Visualization
         {
             InitializeComponent();
         }
+
+        private void btnAddPanel_Click(object sender, RoutedEventArgs arg)
+        {
+            addPanel.IsOpen = true;
+            addPanel.Closed += (sender, arg) =>
+            {
+                btnAddPanel.IsChecked = false;
+            };
+        }
+
+        private void addPanel_Click(object sender, RoutedEventArgs arg)
+        {
+            Popup popUp = (Popup)sender;
+
+            if (popUp != null)
+                popUp.IsOpen = false;
+           
+        }
+
     }
 }

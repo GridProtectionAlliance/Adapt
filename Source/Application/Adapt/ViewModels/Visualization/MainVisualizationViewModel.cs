@@ -37,21 +37,55 @@ namespace Adapt.ViewModels.Vizsalization
     public class MainVisualizationVM : ViewModelBase
     {
         #region [ Members ]
-        private DateTime m_start;
-        private DateTime m_end;
+        private DateTime m_startAvailable;
+        private DateTime m_endAvailable;
+        private DateTime m_startVisualization;
+        private DateTime m_endVisualization;
+
+        private List<SignalReader> m_reader;
         private LineChartVM m_lineChart;
         #endregion
 
         #region[ Properties ]
 
-        public DateTime DataStart
+        /// <summary>
+        /// Start of Data availability - This is dependent on the Task/Timeframe selected
+        /// </summary>
+        public DateTime DataAvailabilityStart
         {
-            get => m_start;
+            get => m_startAvailable;
         }
 
-        public DateTime DataEnd
+        /// <summary>
+        /// End of Data availability - This is dependent on the Task/Timeframe selected
+        /// </summary>
+        public DateTime DataAvailabilityEnd
         {
-            get => m_end;
+            get => m_endAvailable;
+        }
+
+        /// <summary>
+        /// Start of the Currently visualized Data
+        /// </summary>
+        public DateTime VisualizationStart
+        {
+            get => m_startVisualization;
+        }
+
+        /// <summary>
+        /// End of the Currently visualized Data
+        /// </summary>
+        public DateTime VisializationEnd
+        {
+            get => m_endVisualization;
+        }
+
+        /// <summary>
+        /// Number of loaded <see cref="SignalReader"/>
+        /// </summary>
+        public int Nreaders
+        {
+            get => m_reader.Count();
         }
 
         /// <summary>
@@ -67,17 +101,19 @@ namespace Adapt.ViewModels.Vizsalization
             }
         }
 
-        public string Test => "Yes";
         #endregion
 
         #region[ Constructor]
         public MainVisualizationVM(DateTime start, DateTime end)
         {
-            m_start = start;
-            m_end = end;
-            List<SignalReader> readers = SignalReader.GetAvailableReader();
-            if (readers.Count > 0)
-                LineChart = new LineChartVM(readers.First(), start, end);
+            m_startAvailable = start;
+            m_endAvailable = end;
+            m_startVisualization = start;
+            m_endVisualization = end;
+
+            m_reader = SignalReader.GetAvailableReader();
+            if (m_reader.Count > 0)
+                LineChart = new LineChartVM(m_reader.First(), start, end);
         }
 
         #endregion

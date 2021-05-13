@@ -6,17 +6,69 @@
              xmlns:local="clr-namespace:Adapt.View.Visualization"
              mc:Ignorable="d" 
              >
+    <UserControl.Resources>
+        <Style TargetType="{x:Type Popup}">
+            <Setter Property="StaysOpen" Value="False"/>
+            <EventSetter Event="Button.Click" Handler="addPanel_Click" />
+        </Style>
+        <Style TargetType="{x:Type Border}">
+            <Setter Property="Background" Value="{StaticResource {x:Static SystemColors.MenuBrushKey}}" />
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="2"/>
+        </Style>
+    </UserControl.Resources>
     <Grid>
+        
         <StackPanel Orientation="Horizontal" Background="Gray">
-            <Button ToolTip="Reset Graphs to show full Dataset" Margin="10">
+            <Button ToolTip="Reset Graphs to show full Dataset" Margin="10,2" Height="20">
                 Reset
             </Button>
-            <StackPanel Margin="20,2,2,2"  Orientation="Horizontal">
-                <Label Content="Available Data: "/>
-                <TextBlock Text="{Binding DataStart}" Margin="2" VerticalAlignment="Center"/>
-                <Label Content=" - "/>
-                <TextBlock Text="{Binding DataEnd}" Margin="2" VerticalAlignment="Center"/>
+            <StackPanel Orientation="Vertical" Margin="2,10">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Available Data: " Margin="2" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding DataAvailabilityStart}" Margin="2" VerticalAlignment="Center"/>
+                    <TextBlock Text=" - " Margin="2" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding DataAvailabilityEnd}" Margin="2" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Current Data: " Margin="2" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding VisualizationStart}" Margin="2" VerticalAlignment="Center"/>
+                    <TextBlock Text=" - " Margin="2" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding VisializationEnd}" Margin="2" VerticalAlignment="Center"/>
+                </StackPanel>
             </StackPanel>
+            <TextBlock Text="Available Channels: " Margin="2,10" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding Nreaders}" Margin="2" VerticalAlignment="Center"/>
+            <ToggleButton Margin="20,2" Height="20" x:Name="btnAddPanel" Click="btnAddPanel_Click" Width="150">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
+                    <Path Margin="2" VerticalAlignment="Center" Width="6" Fill="Gray" Stretch="Uniform" HorizontalAlignment="Right" Data="F1 M 300,-190 h 10 v -10 h 10 v -10 h -10 v -10 h -10 v 10 h -10 v 10 h 10  Z "/>
+                    <TextBlock Text="Add Panel" Width="120"/>
+                    <Separator Margin="2,0">
+                        <Separator.LayoutTransform>
+                            <TransformGroup>
+                                <TransformGroup.Children>
+                                    <TransformCollection>
+                                        <RotateTransform Angle="90"/>
+                                    </TransformCollection>
+                                </TransformGroup.Children>
+                            </TransformGroup>
+                        </Separator.LayoutTransform>
+                    </Separator>
+                    <Path Margin="2" VerticalAlignment="Center" Width="6" Fill="#FF527DB5" Stretch="Uniform" HorizontalAlignment="Right" Data="F1 M 301.14,-189.041L 311.57,-189.041L 306.355,-182.942L 301.14,-189.041 Z "/>
+                </StackPanel>
+            </ToggleButton>
+            <Popup PlacementTarget="{Binding ElementName=btnAddPanel}" x:Name="addPanel" Width="150">
+                <Border>
+                    <StackPanel>
+                        <Button Background="{StaticResource {x:Static SystemColors.MenuBrushKey}}" BorderThickness="0">
+                            Average Line Chart
+                        </Button >
+                        <Button Background="{StaticResource {x:Static SystemColors.MenuBrushKey}}" BorderThickness="0">
+                            Summary Table
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Popup>
         </StackPanel>
     </Grid>
 </UserControl>

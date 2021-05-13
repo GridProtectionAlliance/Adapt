@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  LineChartViewModel.tsx - Gbtc
+//  WidgetBaseViewModel.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,7 +16,7 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  04/19/2021 - C. Lackner
+//  05/13/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
@@ -34,52 +34,32 @@ using System.Threading.Tasks;
 
 namespace Adapt.ViewModels.Visualization.Widgets
 {
-    public class LineChartVM: WidgetBaseVM
+    public abstract class WidgetBaseVM: ViewModelBase
     {
-        #region [ Member ]
-        private PlotModel m_plotModel;
 
-        #endregion
+        protected SignalReader m_reader;
+       
 
-        #region [ Properties ]
-        public PlotModel PlotModel
+        #region [ constructor ]
+        public WidgetBaseVM(SignalReader reader, DateTime start, DateTime end)
         {
-            get { return m_plotModel; }
-            set
-            {
-                m_plotModel = value;
-                OnPropertyChanged(); 
-            }
-        }
-
-        #endregion
-
-        #region [ Constructor ]
-        public LineChartVM(SignalReader reader, DateTime start, DateTime end): base(reader,start,end)
-        {
-            m_plotModel = new PlotModel();
-            m_plotModel.Title = "Average Value Line Chart";
-            m_plotModel.Axes.Add(new DateTimeAxis()
-            {
-                Minimum = DateTimeAxis.ToDouble(start),
-                Maximum = DateTimeAxis.ToDouble(end)
-            });
-            LineSeries series = new LineSeries();
-            List<ITimeSeriesValue> lst = m_reader.GetTrend(start, end).ToList();
-            series.Points.AddRange(lst.Select(item => new DataPoint(DateTimeAxis.ToDouble(item.Timestamp), item.Value)));
-            m_plotModel.Series.Add(series);
-            OnPropertyChanged(nameof(PlotModel));
+            m_reader = reader;
         }
 
         #endregion
 
         #region [ Methods ]
 
-        public override void Zoom(DateTime start, DateTime end)
+        /// <summary>
+        /// Zooms in to a new Section.
+        /// </summary>
+        /// <param name="start">new Start Time.</param>
+        /// <param name="end">new End Time.</param>
+        public virtual void Zoom(DateTime start, DateTime end)
         {
-            base.Zoom(start, end);
-        }
 
+        }
         #endregion
+
     }
 }
