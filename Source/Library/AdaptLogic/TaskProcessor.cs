@@ -140,6 +140,12 @@ namespace AdaptLogic
             try
             {
                 int count = 0;
+                if (!m_Source.SupportProgress())
+                {
+                    ProgressArgs args = new ProgressArgs("This DataSource does not support Progress updates.", false, (int)50);
+                    ReportProgress?.Invoke(this, args);
+                }
+
                 await foreach (IFrame frame in m_Source.GetData(m_sourceSignals, m_start, m_end))
                 {
                     await m_sourceQueue.Writer.WriteAsync(frame, cancelationToken);
@@ -169,6 +175,10 @@ namespace AdaptLogic
                     }
                    
                 }
+            }
+            catch (Exception ex)
+            {
+                int t = 1;
             }
             finally
             {

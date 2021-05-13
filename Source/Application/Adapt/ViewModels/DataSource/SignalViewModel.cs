@@ -263,9 +263,7 @@ namespace Adapt.ViewModels
                 ds = new TableOperations<DataSource>(connection).QueryRecordWhere("ID = {0}", m_dataSourceID);
 
             TaskProcessor taskProcessor = new TaskProcessor(new List<AdaptSignal>() { m_signal }, ds, start, end);
-            taskProcessor.StartTask();
-
-
+            
             ProcessNotificationWindow progress = new ProcessNotificationWindow();
             ProcessNotificationWindowVM progressVM = new ProcessNotificationWindowVM();
             progress.DataContext = progressVM;
@@ -287,10 +285,12 @@ namespace Adapt.ViewModels
                     progressVM.Update(arg); 
             };
 
+            taskProcessor.StartTask();
+
 
         }
 
-       
+
         #endregion
 
         #region [ Static ]

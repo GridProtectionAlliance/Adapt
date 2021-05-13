@@ -71,7 +71,7 @@ namespace Adapt.ViewModels.Common
         public ProcessNotificationVM()
         {
             m_Progress = 0;
-            m_message = "";
+            m_message = "Loading TaskProcessor...";
         }
 
         #endregion
