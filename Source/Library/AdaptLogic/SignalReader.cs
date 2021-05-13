@@ -192,7 +192,7 @@ namespace AdaptLogic
             // If we grab Summary points from .bin files (1 second of Data)
             if (currentLevel == NLevels)
             {
-                foreach (string file in Directory.GetFiles(root, "*.bin"))
+                foreach (string file in Directory.GetFiles(root, "*.bin").OrderBy(item => item))
                 {
                     byte[] data = File.ReadAllBytes(file);
                     GraphPoint pt = new GraphPoint(data);
@@ -254,7 +254,7 @@ namespace AdaptLogic
             // if we grab summary points from .summary files
             int nextLevel = currentLevel + 1;
 
-            foreach (string folder in Directory.GetDirectories(root))
+            foreach (string folder in Directory.GetDirectories(root).OrderBy(item => item))
             {
                 byte[] data = File.ReadAllBytes(folder + Path.DirectorySeparatorChar + "summary.node");
                 GraphPoint pt = new GraphPoint(data);

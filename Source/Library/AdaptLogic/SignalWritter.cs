@@ -246,10 +246,10 @@ namespace AdaptLogic
 
             int j = GraphPoint.NSize;
 
-            for (int i = m_data.Count; i > 0; i--)
+            for (int i = 0; i < m_data.Count; i++)
             {
-                BitConverter.GetBytes(m_data[i - 1].Timestamp.Value).CopyTo(data, j);
-                BitConverter.GetBytes(m_data[i - 1].Value).CopyTo(data, j + 8);
+                BitConverter.GetBytes(m_data[i].Timestamp.Value).CopyTo(data, j);
+                BitConverter.GetBytes(m_data[i].Value).CopyTo(data, j + 8);
                 j = j + 16;
             }
 
