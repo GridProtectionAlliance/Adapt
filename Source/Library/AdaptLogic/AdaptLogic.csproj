@@ -9,4 +9,12 @@
     <ProjectReference Include="..\GemstoneCommon\GemstoneCommon.csproj" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\..\..\Build\Outputs\Debug\Library\AdaptLogic\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\..\..\Build\Outputs\Release\Library\AdaptLogic\</OutputPath>
+  </PropertyGroup>
+  
 </Project>
