@@ -69,6 +69,9 @@
       <Component Id="Adapt.Models">
         <File Id="Adapt.Models.dll" Name="$(var.Adapt.Models.TargetFileName)" Source="$(var.Adapt.Models.TargetPath)" />
       </Component>
+      <Component Id="Adapt.DataSources">
+        <File Id="Adapt.DataSources.dll" Name="$(var.Adapt.DataSources.TargetFileName)" Source="$(var.Adapt.DataSources.TargetPath)" />
+      </Component>
       <Component Id="GemstoneAnalytic">
         <File Id="GemstoneAnalytic.dll" Name="$(var.GemstoneAnalytic.TargetFileName)" Source="$(var.GemstoneAnalytic.TargetPath)" />
       </Component>
