@@ -101,7 +101,10 @@ namespace Adapt.DataSources
                     continue;
                 }
 
-                m_Files.Add(dateTime, fileInfo.FullName);
+                if (m_Files.ContainsKey(dateTime))
+                    m_Files[dateTime] = fileInfo.FullName;
+                else
+                    m_Files.Add(dateTime, fileInfo.FullName);
             }
 
             GetConfigFrame();
@@ -202,7 +205,7 @@ namespace Adapt.DataSources
                         break;
                     MultiProtocolFrameParser parser = new MultiProtocolFrameParser();
                     ManualResetEvent reset = new ManualResetEvent(false);
-                    parser.PhasorProtocol = PhasorProtocol.IEEEC37_118V2;
+                    parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
                     parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
                     parser.ConnectionString = $"file={m_Files[files[i]]}";
 
@@ -300,7 +303,7 @@ namespace Adapt.DataSources
                 return;
 
             MultiProtocolFrameParser parser = new MultiProtocolFrameParser();
-            parser.PhasorProtocol = PhasorProtocol.IEEEC37_118V2;
+            parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
             parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
             parser.ConnectionString = $"file={m_Files.First().Value}";
 

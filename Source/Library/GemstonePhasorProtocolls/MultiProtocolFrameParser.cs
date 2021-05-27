@@ -137,7 +137,11 @@ namespace GemstonePhasorProtocolls
         /// <summary>
         /// IEC 61850-90-5 protocol.
         /// </summary>
-        IEC61850_90_5
+        IEC61850_90_5,
+        /// <summary>
+        /// IEEE C37.118 with Pdat File Header
+        /// </summary>
+        IEEEC37_Pdat,
     }
 
     #endregion
@@ -1454,7 +1458,8 @@ namespace GemstonePhasorProtocolls
         private int m_serverIndex;
         private bool m_enabled;
         private bool m_disposed;
-
+        private bool m_skippedHeader;
+        private byte[] m_pdatHeader;
         #endregion
 
         #region [ Constructors ]
@@ -1479,6 +1484,8 @@ namespace GemstonePhasorProtocolls
             m_rateCalcTimer.Interval = 5000;
             m_rateCalcTimer.AutoReset = true;
             m_rateCalcTimer.Enabled = false;
+
+            m_skippedHeader = false;
 
             // Set minimum timer resolution to one millisecond to improve timer accuracy
             PrecisionTimer.SetMinimumTimerResolution(1);
@@ -1838,6 +1845,7 @@ namespace GemstonePhasorProtocolls
         public bool IsIEEEProtocol => m_phasorProtocol == PhasorProtocol.IEEEC37_118V2 ||
                                       m_phasorProtocol == PhasorProtocol.IEEEC37_118V1 ||
                                       m_phasorProtocol == PhasorProtocol.IEEEC37_118D6 ||
+                                      m_phasorProtocol == PhasorProtocol.IEEEC37_Pdat ||
                                       m_phasorProtocol == PhasorProtocol.IEEE1344;
 
         /// <summary>
@@ -2343,6 +2351,9 @@ namespace GemstonePhasorProtocolls
                 case PhasorProtocol.IEEEC37_118V2:
                     m_frameParser = new IEEEC37_118.FrameParser(m_checkSumValidationFrameTypes, TrustHeaderLength, IEEEC37_118.DraftRevision.Std2011);
                     break;
+                case PhasorProtocol.IEEEC37_Pdat:
+                    m_frameParser = new IEEEC37_118.FrameParser(m_checkSumValidationFrameTypes, TrustHeaderLength, IEEEC37_118.DraftRevision.Std2011);
+                    break;
                 case PhasorProtocol.IEEEC37_118V1:
                 case PhasorProtocol.IEEEC37_118D6:
                     m_frameParser = new IEEEC37_118.FrameParser(m_checkSumValidationFrameTypes, TrustHeaderLength, m_phasorProtocol == PhasorProtocol.IEEEC37_118D6 ? IEEEC37_118.DraftRevision.Draft6 : IEEEC37_118.DraftRevision.Std2005);
@@ -2578,6 +2589,8 @@ namespace GemstonePhasorProtocolls
                     fileClient.ReceiveBufferSize = ushort.MaxValue;
                     fileClient.AutoRepeat = AutoRepeatCapturedPlayback;
 
+                    m_skippedHeader = false;
+                    m_pdatHeader = new byte[0];
                     // Setup synchronized read operation for file client operations
                     m_readNextBuffer = new ShortSynchronizedOperation(ReadNextFileBuffer, ex => OnParsingException(new InvalidOperationException($"Encountered an exception while reading file data: {ex.Message}", ex)));
                     break;
@@ -3249,7 +3262,89 @@ namespace GemstonePhasorProtocolls
         private void m_dataChannel_ReceiveData(object sender, EventArgs<int> e)
         {
             int length = e.Argument;
-            byte[] buffer = new byte[length];
+            byte[] buffer;
+
+            // Logic to skip Header on .pdat Files
+            if (m_phasorProtocol == PhasorProtocol.IEEEC37_Pdat && !m_skippedHeader)
+            {
+                // For now just assume we got a whole file including the whole header in a single read. 
+                // #ToDo: Add Logic if .pdat Header is broken into multiple calls to m_dataChannel.Read
+                if (length < 1024)
+                    throw new ArgumentException("PDAT format can only be used for .pdat Files");
+
+                buffer = new byte[length];
+                length = m_dataChannel.Read(buffer, 0, length);
+
+                byte[] HeaderFrameData = new byte[0];
+                byte[] ConfigFrameData = new byte[0];
+                byte[] DataFrameData = new byte[0];
+
+                byte Flag = buffer[3];
+
+                int idx = 4;
+                int dataOffset = (int)BigEndian.ToUInt32(buffer, idx);
+                idx += 4;
+
+                uint headerPtrLen = BigEndian.ToUInt32(buffer, idx);
+                idx += 4;
+                idx += (int)headerPtrLen;
+                uint headerDataLen = BigEndian.ToUInt32(buffer, idx);
+                idx += 4;
+                
+
+                // #ToDo: Add Logic if Header Frames are in a separate File
+                if (buffer[0] != 0xaa && (Flag & 0x01) > 0)
+                {
+                    HeaderFrameData = new byte[(int)headerDataLen];
+                    Buffer.BlockCopy(buffer, idx, HeaderFrameData, 0, (int)headerDataLen);
+                    idx += (int)headerDataLen;
+                }
+
+                uint cfgPtrLen = BigEndian.ToUInt32(buffer, idx);
+                idx += 4;
+                idx += (int)headerPtrLen;
+                uint cfgDataLen = BigEndian.ToUInt32(buffer, idx);
+                idx += 4;
+
+                // #ToDo: Add Logic if Config Frames are in a separate File
+                if (buffer[0] != 0xaa && (Flag & 0x02) > 0)
+                {
+                    ConfigFrameData = new byte[(int)cfgDataLen];
+                    Buffer.BlockCopy(buffer, idx, ConfigFrameData, 0, (int)cfgDataLen);
+                    idx += (int)cfgDataLen;
+                }
+
+                // Skip all of the .ini Data
+                uint iniPtrLen = BigEndian.ToUInt32(buffer, idx);
+                idx += 4;
+                idx += (int)iniPtrLen;
+                uint iniDataLen = BigEndian.ToUInt32(buffer, idx);
+                idx += 4;
+                idx += (int)iniDataLen;
+
+                m_skippedHeader = true;
+
+                if (buffer[0] == 0xaa)
+                {
+                    dataOffset = 0;
+                    ConfigFrameData = new byte[0];
+                }
+                DataFrameData = new byte[(int)(buffer.Length - dataOffset)];
+                Buffer.BlockCopy(buffer, dataOffset, DataFrameData, 0, (buffer.Length - dataOffset));
+                
+                length = length - (int)dataOffset + ConfigFrameData.Length;
+                buffer = new byte[length];
+
+                idx = 0;
+                Common.CopyImage(ConfigFrameData, buffer, ref idx, ConfigFrameData.Length);
+                Common.CopyImage(DataFrameData, buffer, ref idx, DataFrameData.Length);
+
+                Parse(SourceChannel.Data,  buffer, 0, length);
+
+                return;
+            }
+           
+            buffer = new byte[length];
             length = m_dataChannel.Read(buffer, 0, length);
             Parse(SourceChannel.Data, buffer, 0, length);
         }
