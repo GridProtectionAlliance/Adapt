@@ -59,3 +59,24 @@ ON SignalMetaData(DataSourceID,SignalID,Field);
 
 CREATE UNIQUE INDEX IDX_DeviceMetaData 
 ON DeviceMetaData(DataSourceID,DeviceID,Field);
+
+CREATE Table Template (
+	ID INTEGER PRIMARY KEY NOT NULL,
+	Name VARCHAR(200) NOT NULL
+);
+
+CREATE Table TemplateInputDevices (
+	ID INTEGER PRIMARY KEY NOT NULL,
+	TemplateID  INTEGER NOT NULL,
+	Name VARCHAR(200) NOT NULL,
+	FOREIGN KEY(TemplateID) REFERENCES Template(ID)
+);
+
+CREATE Table TemplateInputSignals (
+	ID INTEGER PRIMARY KEY NOT NULL,
+	DeviceID  INTEGER NOT NULL,
+	Name VARCHAR(200) NOT NULL,
+	Phase INTEGER NULL,
+	MeasurmentType INTEGER NULL,
+	FOREIGN KEY(DeviceID) REFERENCES TemplateInputDevices(ID)
+);

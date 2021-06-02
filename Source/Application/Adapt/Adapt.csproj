@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <None Remove="Resources\DataSource.png" />
+    <None Remove="Resources\Template.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,6 +49,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Resources\Template.png" />
     <Resource Include="Resources\DataSource.png" />
   </ItemGroup>
 
@@ -58,6 +60,9 @@
     <Compile Update="View\DataSource\DataSourceSettingView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="View\OverviewTabs\TemplateListView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -66,6 +71,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="View\DataSource\DataSourceSettingView.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="View\OverviewTabs\TemplateListView.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
       <SubType>Designer</SubType>
     </Page>
