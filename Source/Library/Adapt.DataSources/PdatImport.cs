@@ -51,18 +51,16 @@ namespace Adapt.DataSources
         #region [ Members ]
         private PdatSettings m_settings;
         private Dictionary<DateTime, string> m_Files = new Dictionary<DateTime, string>();
-        private IConfigurationFrame m_configurationFrame;
-        private ManualResetEvent m_configurationWaitHandle;
         private Channel<IDataFrame> m_dataQueue;
-
+        private ManualResetEvent m_FileComplete;
+        public TaskCompletionSource<IConfigurationFrame> m_ConfigFrameSource;
         #endregion
 
         #region [ Constructor ]
 
         public PdatImporter()
         {
-            m_configurationWaitHandle = new ManualResetEvent(false);
-
+            m_ConfigFrameSource = new TaskCompletionSource<IConfigurationFrame>();
         }
         #endregion
         #region [ Methods ]
@@ -115,9 +113,9 @@ namespace Adapt.DataSources
             //Create List of Relevant Files
             List<DateTime> files = m_Files.Keys.Where(k => k < end && k > start).ToList();
 
-            if (m_Files.Keys.Where(k => k < start).Count() > 0)
+            if (m_Files.Keys.Where(k => k <= start).Count() > 0)
             {
-                DateTime initial = start - m_Files.Keys.Where(k => k < start).Min(k => (start - k));
+                DateTime initial = start - m_Files.Keys.Where(k => k <= start).Min(k => (start - k));
 
                 files.Add(initial);
             }
@@ -136,7 +134,10 @@ namespace Adapt.DataSources
                 if (frame.Timestamp < new Ticks(start))
                     continue;
                 if (frame.Timestamp > new Ticks(end))
+                {
+                    tokenSource.Cancel();
                     continue;
+                }
 
                 IEnumerable<ITimeSeriesValue> magnitudes = frame.Cells.SelectMany(item => item.PhasorValues)
                     .Select(item => new Tuple<int, IPhasorValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label + "-Mag"),item))
@@ -192,6 +193,7 @@ namespace Adapt.DataSources
                 yield return outFrame;
 
             }
+            tokenSource.Cancel();
 
 
         }
@@ -199,20 +201,24 @@ namespace Adapt.DataSources
         public Task ReadFile(List<DateTime> files, CancellationToken cancellationToken)
         {
             return new Task(() => {
+
+                if (m_FileComplete != null)
+                    m_FileComplete.Set();
+
                 for (int i = 0; i < files.Count; i++)
                 {
                     if (cancellationToken.IsCancellationRequested)
                         break;
                     MultiProtocolFrameParser parser = new MultiProtocolFrameParser();
-                    ManualResetEvent reset = new ManualResetEvent(false);
+                    m_FileComplete = new ManualResetEvent(false);
                     parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
                     parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
                     parser.ConnectionString = $"file={m_Files[files[i]]}";
-
+                    parser.ConnectionTerminated += ConnectionTerminated;
                     parser.ReceivedDataFrame += RecievedDataFrame;
-
+                    parser.DefinedFrameRate = 10000000;
                     parser.Start();
-                    reset.WaitOne(10000);
+                    WaitHandle.WaitAny(new WaitHandle[] { m_FileComplete, cancellationToken.WaitHandle });
                     parser.Stop();
                 }
 
@@ -222,10 +228,12 @@ namespace Adapt.DataSources
 
         public IEnumerable<AdaptDevice> GetDevices()
         {
-            if (m_configurationFrame == null)
+            if (!m_ConfigFrameSource.Task.IsCompleted && m_ConfigFrameSource.Task.Status != TaskStatus.WaitingForActivation)
                 return new List<AdaptDevice>();
 
-            return m_configurationFrame.Cells.Select(cell => new AdaptDevice(cell.IDCode.ToString(),cell.StationName)).ToList();
+            IConfigurationFrame configuration = m_ConfigFrameSource.Task.Result;
+
+            return configuration.Cells.Select(cell => new AdaptDevice(cell.IDCode.ToString(),cell.StationName)).ToList();
         }
 
         public double GetProgress()
@@ -240,10 +248,12 @@ namespace Adapt.DataSources
 
         public IEnumerable<AdaptSignal> GetSignals()
         {
-            if (m_configurationFrame == null)
+            if (!m_ConfigFrameSource.Task.IsCompleted && m_ConfigFrameSource.Task.Status != TaskStatus.WaitingForActivation)
                 return new List<AdaptSignal>();
 
-            IEnumerable<AdaptSignal> analogs = m_configurationFrame.Cells.SelectMany(cell => cell.AnalogDefinitions
+            IConfigurationFrame configuration = m_ConfigFrameSource.Task.Result;
+
+            IEnumerable<AdaptSignal> analogs = configuration.Cells.SelectMany(cell => cell.AnalogDefinitions
                 .Select(aD => new AdaptSignal(aD.Label, aD.Label, cell.IDCode.ToString())
                     {
                         FramesPerSecond = cell.FrameRate,
@@ -251,7 +261,7 @@ namespace Adapt.DataSources
                         Type = MeasurementType.Analog
                     }));
 
-            IEnumerable<AdaptSignal> digitals = m_configurationFrame.Cells.SelectMany(cell => cell.DigitalDefinitions
+            IEnumerable<AdaptSignal> digitals = configuration.Cells.SelectMany(cell => cell.DigitalDefinitions
                 .Select(aD => new AdaptSignal(aD.Label, aD.Label, cell.IDCode.ToString())
                 {
                     FramesPerSecond = cell.FrameRate,
@@ -259,14 +269,14 @@ namespace Adapt.DataSources
                     Type = MeasurementType.Digital
                 }));
 
-            IEnumerable<AdaptSignal> phases = m_configurationFrame.Cells.SelectMany(cell => cell.PhasorDefinitions
+            IEnumerable<AdaptSignal> phases = configuration.Cells.SelectMany(cell => cell.PhasorDefinitions
                 .Select(aD => new AdaptSignal(aD.Label + "-Ph", aD.Label + " Phase", cell.IDCode.ToString())
                 {
                     FramesPerSecond = cell.FrameRate,
                     Phase = Phase.NONE,
                     Type = aD.PhasorType == Gemstone.Numeric.EE.PhasorType.Current? MeasurementType.CurrentPhase : MeasurementType.VoltagePhase
                 }));
-            IEnumerable<AdaptSignal> magnitudes = m_configurationFrame.Cells.SelectMany(cell => cell.PhasorDefinitions
+            IEnumerable<AdaptSignal> magnitudes = configuration.Cells.SelectMany(cell => cell.PhasorDefinitions
             .Select(aD => new AdaptSignal(aD.Label + "-Mag", aD.Label + " Magnitude", cell.IDCode.ToString()) 
             {
                 FramesPerSecond = cell.FrameRate,
@@ -274,7 +284,7 @@ namespace Adapt.DataSources
                 Type = aD.PhasorType == Gemstone.Numeric.EE.PhasorType.Current ? MeasurementType.CurrentMagnitude : MeasurementType.VoltageMagnitude
             }));
 
-            IEnumerable<AdaptSignal> frequency = m_configurationFrame.Cells.Select( cell => new AdaptSignal(cell.IDCode.ToString() + cell.FrequencyDefinition.Label, cell.FrequencyDefinition.Label ?? "Frequency", cell.IDCode.ToString())
+            IEnumerable<AdaptSignal> frequency = configuration.Cells.Select( cell => new AdaptSignal(cell.IDCode.ToString() + cell.FrequencyDefinition.Label, cell.FrequencyDefinition.Label ?? "Frequency", cell.IDCode.ToString())
                {
                    FramesPerSecond = cell.FrameRate,
                    Phase = Phase.NONE,
@@ -297,42 +307,44 @@ namespace Adapt.DataSources
             return m_Files.Count > 0;
         }
 
-        private async void GetConfigFrame()
+        private void GetConfigFrame()
         {
             if (m_Files.Count == 0)
                 return;
 
+            if (m_ConfigFrameSource.Task.IsCompleted)
+                return;
+            
             MultiProtocolFrameParser parser = new MultiProtocolFrameParser();
             parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
             parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
             parser.ConnectionString = $"file={m_Files.First().Value}";
 
             parser.ReceivedConfigurationFrame += RecievedConfigFrame;
-            parser.ConnectionTerminated += ConnectionTerminated;
 
             parser.Start();
-            m_configurationWaitHandle.WaitOne(10000);
-            parser.Stop();
+
+            m_ConfigFrameSource.Task.ContinueWith((t) => {
+                parser.Stop();
+            });
+            return;
         }
 
         private void RecievedConfigFrame(object sender, EventArgs<IConfigurationFrame> conf)
         {
-            m_configurationFrame = conf.Argument;
-            m_configurationWaitHandle.Set();
+            m_ConfigFrameSource.SetResult(conf.Argument);
 
-        }
-
-        private void ConnectionTerminated(object sender, EventArgs e)
-        {
-            // Clear wait handle
-            m_configurationWaitHandle.Set();
         }
 
         private void RecievedDataFrame(object sender, EventArgs<IDataFrame> conf)
         {
-            m_dataQueue.Writer.TryWrite(conf.Argument);
+            bool a = m_dataQueue.Writer.TryWrite(conf.Argument);
         }
 
+        private void ConnectionTerminated(object sender, EventArgs conf)
+        {
+            m_FileComplete.Set();
+        }
         #endregion
 
         #region [ static ]

@@ -3275,10 +3275,6 @@ namespace GemstonePhasorProtocolls
                 buffer = new byte[length];
                 length = m_dataChannel.Read(buffer, 0, length);
 
-                byte[] HeaderFrameData = new byte[0];
-                byte[] ConfigFrameData = new byte[0];
-                byte[] DataFrameData = new byte[0];
-
                 byte Flag = buffer[3];
 
                 int idx = 4;
@@ -3295,8 +3291,6 @@ namespace GemstonePhasorProtocolls
                 // #ToDo: Add Logic if Header Frames are in a separate File
                 if (buffer[0] != 0xaa && (Flag & 0x01) > 0)
                 {
-                    HeaderFrameData = new byte[(int)headerDataLen];
-                    Buffer.BlockCopy(buffer, idx, HeaderFrameData, 0, (int)headerDataLen);
                     idx += (int)headerDataLen;
                 }
 
@@ -3309,8 +3303,7 @@ namespace GemstonePhasorProtocolls
                 // #ToDo: Add Logic if Config Frames are in a separate File
                 if (buffer[0] != 0xaa && (Flag & 0x02) > 0)
                 {
-                    ConfigFrameData = new byte[(int)cfgDataLen];
-                    Buffer.BlockCopy(buffer, idx, ConfigFrameData, 0, (int)cfgDataLen);
+                    Parse(SourceChannel.Data, buffer, idx, (int)cfgDataLen);
                     idx += (int)cfgDataLen;
                 }
 
@@ -3324,23 +3317,8 @@ namespace GemstonePhasorProtocolls
 
                 m_skippedHeader = true;
 
-                if (buffer[0] == 0xaa)
-                {
-                    dataOffset = 0;
-                    ConfigFrameData = new byte[0];
-                }
-                DataFrameData = new byte[(int)(buffer.Length - dataOffset)];
-                Buffer.BlockCopy(buffer, dataOffset, DataFrameData, 0, (buffer.Length - dataOffset));
-                
-                length = length - (int)dataOffset + ConfigFrameData.Length;
-                buffer = new byte[length];
-
-                idx = 0;
-                Common.CopyImage(ConfigFrameData, buffer, ref idx, ConfigFrameData.Length);
-                Common.CopyImage(DataFrameData, buffer, ref idx, DataFrameData.Length);
-
-                Parse(SourceChannel.Data,  buffer, 0, length);
-
+                Parse(SourceChannel.Data, buffer, dataOffset, length - dataOffset);
+              
                 return;
             }
            
