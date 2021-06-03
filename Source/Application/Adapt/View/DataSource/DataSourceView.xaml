@@ -4,8 +4,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.DataSource"
+             xmlns:localcv="clr-namespace:Adapt.Converter"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="15*" />
@@ -24,9 +28,15 @@
             </TabItem>
         </TabControl>
         <StackPanel Grid.Row="1"  Orientation="Horizontal" HorizontalAlignment="Left" >
-            <Button Margin="10,0" Height="20" Command="{Binding SaveCommand}">Save Changes</Button>
-            <Button Margin="10,0" Height="20" Command="{Binding TestCommand}">Test Data Source</Button>
-
+            <Button Margin="10,0" Height="20" Command="{Binding SaveCommand}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
+                    <Path Margin="1,0" VerticalAlignment="Center" Visibility="{Binding Path=PassedTest, Converter={StaticResource ObjectToVisibility}}" 
+                          Width="20" Fill="DarkGreen" Stretch="Uniform" HorizontalAlignment="Right" Data="F1 M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    <Path Margin="1,0" VerticalAlignment="Center" Visibility="{Binding Path=FailedTest, Converter={StaticResource ObjectToVisibility}}" 
+                          Width="20" Fill="DarkRed" Stretch="Uniform" HorizontalAlignment="Right" Data="F1M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                    <TextBlock Text="Test Data Source and Save Changes" />
+                </StackPanel>
+            </Button>
         </StackPanel>
     </Grid>
    
