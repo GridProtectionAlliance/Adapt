@@ -286,7 +286,7 @@ namespace Adapt.ViewModels
                 ConfigureInstance();
 
                 PassedTest = m_instance.Test();
-                if (m_isTested)
+                if (PassedTest)
                     Popup("This DataSource is set up Properly and ADAPT was able to get data.", "Success", MessageBoxImage.Information);
                 else
                     Popup("This DataSource is not set up Properly and ADAPT was unable to get data. Please check the settings.","Failed", MessageBoxImage.Warning);
