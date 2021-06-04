@@ -42,12 +42,30 @@ using System.Threading.Tasks;
 namespace Adapt.DataSources
 {
     /// <summary>
+    /// Convention to use for Signal Naming
+    /// </summary>
+    public enum NamingConvention
+    {
+        PointTag=1,
+        SignalReference=2
+    }
+
+    /// <summary>
     /// The Settings for a <see cref="OpenHistorian"/> Data Source
     /// </summary>
     public class OpenHistorianSettings
     {
-        [DefaultValue("C:\\Users\\clackner\\Desktop\\Adapt")]
-        [CustomConfigurationEditor("GemstoneWPF.dll", "GemstoneWPF.Editors.FolderBrowser", "showNewFolderButton=true; description=Select Root Folder")]
-        public string RootFolder { get; set; }
+
+        public string Server { get; set; }
+
+        public string User { get; set; }
+
+        public string Password { get; set; }
+
+        [DefaultValue("PPA")]
+        public string Instance { get; set; }
+        
+        [DefaultValue(NamingConvention.PointTag)]
+        public NamingConvention NameField { get; set; }
     }
 }
