@@ -474,9 +474,15 @@ namespace Adapt.ViewModels
             {
                 IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(AdapterSettingParameterVM.GetConnectionString(m_settings, m_instance)).Build();
                 Instance.Configure(config);
-                IEnumerable<AdaptSignal> signals = Instance.GetSignals();
-                m_Devices = Instance.GetDevices().Select(item => new DeviceViewModel(item, signals.Where(s => item.ID == s.Device), m_dataSource.ID)).ToList();
-
+                try
+                {
+                    IEnumerable<AdaptSignal> signals = Instance.GetSignals();
+                    m_Devices = Instance.GetDevices().Select(item => new DeviceViewModel(item, signals.Where(s => item.ID == s.Device), m_dataSource.ID)).ToList();
+                }
+                catch 
+                {
+                    m_Devices = new List<DeviceViewModel>();
+                }
             }
             else
                 m_Devices = new List<DeviceViewModel>();
