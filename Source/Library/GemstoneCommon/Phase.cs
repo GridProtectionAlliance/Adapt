@@ -40,6 +40,9 @@ namespace GemstoneCommon
         BC,
         CA,
         RES,
+        Pos,
+        Neg,
+        Zero,
         NONE
     }
 }
