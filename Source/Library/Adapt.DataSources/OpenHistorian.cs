@@ -177,7 +177,7 @@ namespace Adapt.DataSources
 
             foreach (IGrouping<string, JObject> device in activeMeasurments.GroupBy(item => item["Device"].ToString()))
             {
-                m_Devices.Add(new AdaptDevice(device.First()["DeviceID"].ToString(), device.Key));
+                m_Devices.Add(new AdaptDevice(device.First()["Device"].ToString(), device.Key));
 
                 foreach (JObject measurement in device)
                 {
