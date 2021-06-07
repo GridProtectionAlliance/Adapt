@@ -114,14 +114,17 @@ namespace Adapt.ViewModels
         /// </summary>
         /// <param name="Signal"> The <see cref="AdaptSignal"/> this View  Model is based on.</param>
         /// <param name="DataSourceID">The ID of the <see cref="DataSource"/> used to identify Signals in the Database</param>
-        public SignalViewModel(AdaptSignal Signal, int DataSourceID)
+        /// <param name="CustomTypes"> A Dictionary of Custom Measurement Types to avoid overloading the SQLite DB with calls.</param>
+        /// <param name="CustomPhases"> A Dictionary of Custom Phases to avoid overloading the SQLite DB with calls.</param>
+        /// <param name="CustomNames"> A Dictionary of Custom Names to avoid overloading the SQLite DB with calls.</param>
+        public SignalViewModel(AdaptSignal Signal, int DataSourceID, Dictionary<string,MeasurementType> CustomTypes, Dictionary<string, Phase> CustomPhases, Dictionary<string, string> CustomNames)
         {
             m_signal = Signal;
             m_dataSourceID = DataSourceID;
 
-            m_phase = GetCustomPhase();
-            m_type = GetCustomType();
-            m_Name = GetCustomName();
+            m_phase = GetCustomPhase(CustomPhases);
+            m_type = GetCustomType(CustomTypes);
+            m_Name = GetCustomName(CustomNames);
 
             m_VisualizeCommand = new RelayCommand(OpenVisualize, () => true);
         }
@@ -133,18 +136,16 @@ namespace Adapt.ViewModels
         /// <summary>
         /// Checks the Database for a custom Phase. If non is available it will return the Phase provided by the <see cref="IDataSource"/>.
         /// </summary>
+        /// <param name="CustomPhases"> A Dictionary to get custom Phases</param>
         /// <returns>The <see cref="Phase"/> associated with this Signal</returns>
-        private Phase GetCustomPhase()
+        private Phase GetCustomPhase(Dictionary<string, Phase> CustomPhases)
         {
-            bool hasCustom = false;
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                hasCustom = connection.ExecuteScalar<bool>($"SELECT (COUNT(ID) > 0) FROM SignalMetaData WHERE DataSourceID={m_dataSourceID} AND SignalID='{m_signal.ID}' AND Field='Phase' ");
+            bool hasCustom = CustomPhases.ContainsKey(m_signal.ID);
 
-                if (hasCustom)
-                    return connection.ExecuteScalar<Phase>($"SELECT Value FROM SignalMetaData WHERE DataSourceID={m_dataSourceID} AND SignalID='{m_signal.ID}' AND Field='Phase' ");
-            }
-                return m_signal.Phase;
+            if (hasCustom)
+                return CustomPhases[m_signal.ID];
+             
+            return m_signal.Phase;
         }
 
         /// <summary>
@@ -171,17 +172,15 @@ namespace Adapt.ViewModels
         /// <summary>
         /// Checks the Database for a custom MeasurementType. If non is available it will return the Phase provided by the <see cref="IDataSource"/>.
         /// </summary>
+        /// <param name="CustomTypes"> A Dictionary to look up any custom Measurement Types. </param>
         /// <returns>The <see cref="AdaptMeasurementType"/> associated with this Signal</returns>
-        private MeasurementType GetCustomType()
+        private MeasurementType GetCustomType(Dictionary<string, MeasurementType> CustomTypes)
         {
-            bool hasCustom = false;
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                hasCustom = connection.ExecuteScalar<bool>($"SELECT (COUNT(ID) > 0) FROM SignalMetaData WHERE DataSourceID={m_dataSourceID} AND SignalID='{m_signal.ID}' AND Field='Type' ");
+            bool hasCustom = CustomTypes.ContainsKey(m_signal.ID);
 
-                if (hasCustom)
-                    return connection.ExecuteScalar<MeasurementType>($"SELECT Value FROM SignalMetaData WHERE DataSourceID={m_dataSourceID} AND SignalID='{m_signal.ID}' AND Field='Type' ");
-            }
+            if (hasCustom)
+                return CustomTypes[m_signal.ID];
+
             return m_signal.Type;
         }
 
@@ -209,17 +208,15 @@ namespace Adapt.ViewModels
         /// <summary>
         /// Checks the Database for a custom Name. If non is available it will return the Phase provided by the <see cref="IDataSource"/>.
         /// </summary>
+        /// <param name="CustomNames"> A Dictionary to look up Custom Names</param>
         /// <returns>The <see cref="Name"/> associated with this Signal</returns>
-        private string GetCustomName()
+        private string GetCustomName(Dictionary<string, string> CustomNames)
         {
-            bool hasCustom = false;
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                hasCustom = connection.ExecuteScalar<bool>($"SELECT (COUNT(ID) > 0) FROM SignalMetaData WHERE DataSourceID={m_dataSourceID} AND SignalID='{m_signal.ID}' AND Field='Name' ");
+            bool hasCustom = CustomNames.ContainsKey(m_signal.ID);
 
-                if (hasCustom)
-                    return connection.ExecuteScalar<string>($"SELECT Value FROM SignalMetaData WHERE DataSourceID={m_dataSourceID} AND SignalID='{m_signal.ID}' AND Field='Name' ");
-            }
+            if (hasCustom)
+                return CustomNames[m_signal.ID];
+              
             return m_signal.Name;
         }
 

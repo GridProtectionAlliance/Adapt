@@ -24,6 +24,7 @@ using Adapt.Models;
 using Gemstone.Data;
 using Gemstone.Data.Model;
 using Gemstone.IO;
+using GemstoneCommon;
 using GemstoneWPF;
 using System.Collections.Generic;
 using System.IO;
@@ -66,11 +67,21 @@ namespace Adapt.ViewModels
         #endregion
 
         #region [ Constructor ]
-        public DeviceViewModel(AdaptDevice device, IEnumerable<AdaptSignal> signals, int DataSourceID)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="device"> The <see cref="AdaptDevice"/> associated with this ViewModel</param>
+        /// <param name="signals"> A list of Signals attached to this device. </param>
+        /// <param name="DataSourceID">The ID of the <see cref="DataSource"/> used to identify Signals in the Database</param>
+        /// <param name="CustomTypes"> A Dictionary of Custom Measurement Types to avoid overloading the SQLite DB with calls.</param>
+        /// <param name="CustomPhases"> A Dictionary of Custom Phases to avoid overloading the SQLite DB with calls.</param>
+        /// <param name="CustomNames"> A Dictionary of Custom Names to avoid overloading the SQLite DB with calls.</param>
+        /// <param name="CustomDeviceNames"> A Dictionary of Custom Device Names to avoid overloading the SQLite DB with calls.</param>
+        public DeviceViewModel(AdaptDevice device, IEnumerable<AdaptSignal> signals, int DataSourceID, Dictionary<string, MeasurementType> CustomTypes, Dictionary<string, Phase> CustomPhases, Dictionary<string, string> CustomNames, Dictionary<string, string> CustomDeviceNames)
         {
             m_device = device;
-            m_signals = signals.Select(s => new SignalViewModel(s,DataSourceID));
-            m_Name = GetCustomName();
+            m_signals = signals.Select(s => new SignalViewModel(s,DataSourceID, CustomTypes, CustomPhases, CustomNames));
+            m_Name = GetCustomName(CustomDeviceNames);
             m_dataSourceID = DataSourceID;
         }
 
@@ -78,19 +89,17 @@ namespace Adapt.ViewModels
 
         #region [ Methods ]
 
+        /// <summary>
         /// Checks the Database for a custom Name. If non is available it will return the Phase provided by the <see cref="IDataSource"/>.
         /// </summary>
+        /// <param name="CustomNames"> A Dictionary to look up Custom Names</param>
         /// <returns>The <see cref="Name"/> associated with this Device</returns>
-        private string GetCustomName()
+        private string GetCustomName(Dictionary<string,string> CustomNames)
         {
-            bool hasCustom = false;
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                hasCustom = connection.ExecuteScalar<bool>($"SELECT (COUNT(ID) > 0) FROM DeviceMetaData WHERE DataSourceID={m_dataSourceID} AND DeviceID='{m_device.ID}' AND Field='Name' ");
+            bool hasCustom = CustomNames.ContainsKey(m_device.ID);
 
-                if (hasCustom)
-                    return connection.ExecuteScalar<string>($"SELECT Value FROM DeviceMetaData WHERE DataSourceID={m_dataSourceID} AND DeviceID='{m_device.ID}' AND Field='Name' ");
-            }
+            if (hasCustom)
+                return CustomNames[m_device.ID];
             return m_device.Name;
         }
 

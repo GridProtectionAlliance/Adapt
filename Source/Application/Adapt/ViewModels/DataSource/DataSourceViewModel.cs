@@ -32,8 +32,10 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.IO;
 using System.Linq;
+using System.Transactions;
 using System.Windows;
 using System.Windows.Input;
 
@@ -477,9 +479,23 @@ namespace Adapt.ViewModels
                 try
                 {
                     IEnumerable<AdaptSignal> signals = Instance.GetSignals();
-                    m_Devices = Instance.GetDevices().Select(item => new DeviceViewModel(item, signals.Where(s => item.ID == s.Device), m_dataSource.ID)).ToList();
+
+                    using (TransactionScope scope = new TransactionScope())
+                    using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    {
+                        DataTable TypeTbl = connection.RetrieveData("SELECT SignalID, Value FROM SignalMetaData WHERE DataSourceID={0} AND Field='Type' ", m_dataSource.ID);
+                        DataTable PhaseTbl = connection.RetrieveData("SELECT SignalID, Value FROM SignalMetaData WHERE DataSourceID={0} AND Field='Phase' ", m_dataSource.ID);
+                        DataTable SignalNameTbl = connection.RetrieveData("SELECT SignalID, Value FROM SignalMetaData WHERE DataSourceID={0} AND Field='Name' ", m_dataSource.ID);
+                        DataTable DeviceNameTbl = connection.RetrieveData("SELECT DeviceID, Value FROM DeviceMetaData WHERE DataSourceID={0} AND Field='Name'", m_dataSource.ID);
+
+                        Dictionary<string, MeasurementType> CustomSignalTypes = TypeTbl.Select().ToDictionary(r => r["SignalID"].ToString(), r => Enum.Parse<MeasurementType>(r["Value"].ToString()));
+                        Dictionary<string, Phase> CustomSignalPhases = PhaseTbl.Select().ToDictionary(r => r["SignalID"].ToString(), r => Enum.Parse<Phase>(r["Value"].ToString()));
+                        Dictionary<string, string> CustomSignalNames = SignalNameTbl.Select().ToDictionary(r => r["SignalID"].ToString(), r => r["Value"].ToString());
+                        Dictionary<string, string> CustomDeviceNames = DeviceNameTbl.Select().ToDictionary(r => r["DeviceID"].ToString(), r => r["Value"].ToString());
+                        m_Devices = Instance.GetDevices().Select(item => new DeviceViewModel(item, signals.Where(s => item.ID == s.Device), m_dataSource.ID, CustomSignalTypes, CustomSignalPhases, CustomSignalNames, CustomDeviceNames)).ToList();
+                    }   
                 }
-                catch 
+                catch (Exception ex)
                 {
                     m_Devices = new List<DeviceViewModel>();
                 }
