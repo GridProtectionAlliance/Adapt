@@ -38,5 +38,9 @@ namespace Adapt.DataSources
         [DefaultValue("C:\\Users\\clackner\\Desktop\\Adapt")]
         [CustomConfigurationEditor("GemstoneWPF.dll", "GemstoneWPF.Editors.FolderBrowser", "showNewFolderButton=true; description=Select Root Folder")]
         public string RootFolder { get; set; }
+        [DefaultValue(100)]
+        [CustomConfigurationEditor("ADAPT.dll", "Adapt.View.Common.hengtest")]
+
+        public int MyTestProperty { get; set; }
     }
 }
