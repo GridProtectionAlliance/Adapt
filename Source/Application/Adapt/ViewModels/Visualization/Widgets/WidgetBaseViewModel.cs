@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Adapt.ViewModels.Visualization.Widgets
 {
@@ -38,7 +39,12 @@ namespace Adapt.ViewModels.Visualization.Widgets
     {
 
         protected SignalReader m_reader;
-       
+
+
+        #region [ Properties ]
+        public abstract UIElement UserControl { get; }
+
+        #endregion
 
         #region [ constructor ]
         public WidgetBaseVM(SignalReader reader, DateTime start, DateTime end)

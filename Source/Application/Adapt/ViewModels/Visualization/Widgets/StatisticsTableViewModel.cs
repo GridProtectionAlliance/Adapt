@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  LineChartViewModel.tsx - Gbtc
+//  StatisticsTableViewModel.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -29,6 +29,7 @@ using OxyPlot.Axes;
 using OxyPlot.Series;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -36,44 +37,49 @@ using System.Windows;
 
 namespace Adapt.ViewModels.Visualization.Widgets
 {
-    public class LineChartVM: WidgetBaseVM
+    public class StatisticsTableVM : WidgetBaseVM
     {
         #region [ Member ]
-        private PlotModel m_plotModel;
+        private DataTable m_data;
         private UIElement m_xamlClass;
+
         #endregion
 
         #region [ Properties ]
-        public PlotModel PlotModel
+        public DataTable DataTable
         {
-            get { return m_plotModel; }
-            set
-            {
-                m_plotModel = value;
-                OnPropertyChanged(); 
-            }
+            get { return m_data; }
         }
 
         public override UIElement UserControl => m_xamlClass;
         #endregion
 
         #region [ Constructor ]
-        public LineChartVM(SignalReader reader, DateTime start, DateTime end): base(reader,start,end)
+        public StatisticsTableVM(SignalReader reader, DateTime start, DateTime end): base(reader,start,end)
         {
-            m_xamlClass = new LineChart();
+            m_xamlClass = new StatisticsTable();
 
-            m_plotModel = new PlotModel();
-            m_plotModel.Title = "Average Value Line Chart";
-            m_plotModel.Axes.Add(new DateTimeAxis()
-            {
-                Minimum = DateTimeAxis.ToDouble(start),
-                Maximum = DateTimeAxis.ToDouble(end)
-            });
-            LineSeries series = new LineSeries();
-            List<ITimeSeriesValue> lst = m_reader.GetTrend(start, end).ToList();
-            series.Points.AddRange(lst.Select(item => new DataPoint(DateTimeAxis.ToDouble(item.Timestamp), item.Value)));
-            m_plotModel.Series.Add(series);
-            OnPropertyChanged(nameof(PlotModel));
+            m_data = new DataTable();
+            m_data.Clear();
+            m_data.Columns.Add("Signal");
+            m_data.Columns.Add("Minimum");
+            m_data.Columns.Add("Average");
+            m_data.Columns.Add("Maximum");
+            m_data.Columns.Add("StandardDeviation");
+            m_data.Columns.Add("NumerOfPoints");
+
+            DataRow r = m_data.NewRow();
+            r["Signal"] = reader.Signal.Name;
+            r["Minimum"] = 0;
+            r["Average"] = 12;
+            r["Maximum"] = 1;
+            r["StandardDeviation"] = 121;
+            r["NumerOfPoints"] = 1212;
+
+            m_data.Rows.Add(r);
+
+            OnPropertyChanged(nameof(DataTable));
+
         }
 
         #endregion
