@@ -20,6 +20,7 @@
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
+using Adapt.Models;
 using Adapt.View.Visualization.Widgets;
 using AdaptLogic;
 using GemstoneCommon;
@@ -58,7 +59,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         public StatisticsTableVM(SignalReader reader, DateTime start, DateTime end): base(reader,start,end)
         {
             m_xamlClass = new StatisticsTable();
-
+            
             m_data = new DataTable();
             m_data.Clear();
             m_data.Columns.Add("Signal");
@@ -66,15 +67,16 @@ namespace Adapt.ViewModels.Visualization.Widgets
             m_data.Columns.Add("Average");
             m_data.Columns.Add("Maximum");
             m_data.Columns.Add("StandardDeviation");
-            m_data.Columns.Add("NumerOfPoints");
+            m_data.Columns.Add("DataAvailability");
 
+            AdaptPoint pt = reader.GetStatistics(start, end);
             DataRow r = m_data.NewRow();
             r["Signal"] = reader.Signal.Name;
-            r["Minimum"] = 0;
-            r["Average"] = 12;
-            r["Maximum"] = 1;
-            r["StandardDeviation"] = 121;
-            r["NumerOfPoints"] = 1212;
+            r["Minimum"] = pt.Min;
+            r["Average"] = pt.Value;
+            r["Maximum"] = pt.Max;
+            r["StandardDeviation"] = pt.StandardDeviation;
+            r["DataAvailability"] = pt.DataAvailability * 100.0;
 
             m_data.Rows.Add(r);
 

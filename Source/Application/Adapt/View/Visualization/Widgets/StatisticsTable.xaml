@@ -7,5 +7,5 @@
              xmlns:local="clr-namespace:Adapt.View.Visualization.Widgets"
              mc:Ignorable="d" 
              >
-    <DataGrid ItemsSource="{Binding DataTable}"  />
+    <DataGrid ItemsSource="{Binding DataTable}" IsReadOnly="true" />
 </UserControl>
