@@ -39,7 +39,7 @@ namespace Adapt.DataSources
         [CustomConfigurationEditor("GemstoneWPF.dll", "GemstoneWPF.Editors.FolderBrowser", "showNewFolderButton=true; description=Select Root Folder")]
         public string RootFolder { get; set; }
         [DefaultValue(100)]
-        [CustomConfigurationEditor("ADAPT.dll", "Adapt.View.Common.hengtest")]
+        [CustomConfigurationEditor("ADAPT.dll", "Adapt.View.Common.hengtest", "showNewFolderButton=true; description=test heng")]
 
         public int MyTestProperty { get; set; }
     }
