@@ -199,7 +199,7 @@ namespace Adapt.ViewModels.Common
             }
             set
             {
-                m_end = EndDate.AddSeconds(EndSecond).AddHours(value).AddMinutes(EndHour);
+                m_end = EndDate.AddSeconds(EndSecond).AddHours(value).AddMinutes(EndMinute);
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(End));
                 OnPropertyChanged(nameof(Duration));

@@ -32,8 +32,10 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.IO;
 using System.Linq;
+using System.Transactions;
 using System.Windows;
 using System.Windows.Input;
 
@@ -50,7 +52,9 @@ namespace Adapt.ViewModels
         private RelayCommand m_saveCommand;
         private RelayCommand m_deleteCommand;
         private RelayCommand m_clearCommand;
-        private RelayCommand m_testCommand;
+
+        private bool m_isTested;
+        private bool m_passedTest;
 
         private List<DeviceViewModel> m_Devices;
 
@@ -78,6 +82,7 @@ namespace Adapt.ViewModels
             set
             {
                 m_dataSource.Name = value;
+                OnSettingsChanged();
                 OnPropertyChanged();
             }
         }
@@ -101,6 +106,7 @@ namespace Adapt.ViewModels
             set
             {
                 m_dataSource.TypeName = value;
+                OnSettingsChanged();
                 OnPropertyChanged();
             }
         }
@@ -171,15 +177,32 @@ namespace Adapt.ViewModels
         public ICommand DeleteCommand => m_deleteCommand;
 
         public ICommand ClearCommand => m_clearCommand;
-        public ICommand TestCommand => m_testCommand;
 
         public bool CanSave => ValidConfig();
+
+        /// <summary>
+        /// Indicates if the Data source is saved and has been succesfully tested
+        /// </summary>
+        public bool PassedTest
+        {
+            get { return m_isTested && m_passedTest; }
+            set { 
+                m_passedTest = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(FailedTest));
+            }
+        }
+
+        /// <summary>
+        /// Indicates if the Data source is saved and has been tested but failed
+        /// </summary>
+        public bool FailedTest => m_isTested && !m_passedTest;
+        
 
         public bool CanDelete => false;
 
         public bool CanClear => false;
-        public bool CanTest => ValidConfig();
-
+        
 
         public event CancelEventHandler BeforeLoad;
         public event EventHandler Loaded;
@@ -209,7 +232,6 @@ namespace Adapt.ViewModels
             m_clearCommand = new RelayCommand(Clear, () => CanClear);
             m_saveCommand = new RelayCommand(Save, () => CanSave);
             m_deleteCommand = new RelayCommand(Delete, () => CanDelete);
-            m_testCommand = new RelayCommand(Test, () => CanTest);
 
             m_dataSourceTypes = DataSourceTypeDescription.LoadDataSourceTypes(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar));
 
@@ -253,22 +275,27 @@ namespace Adapt.ViewModels
             {
                 Mouse.OverrideCursor = null;
             }
+            Test();
         }
 
         public void Test()
         {
+            m_isTested = true;
+
             Mouse.OverrideCursor = Cursors.Wait;
             try
             {
                 ConfigureInstance();
 
-                if (m_instance.Test())
+                PassedTest = m_instance.Test();
+                if (PassedTest)
                     Popup("This DataSource is set up Properly and ADAPT was able to get data.", "Success", MessageBoxImage.Information);
                 else
                     Popup("This DataSource is not set up Properly and ADAPT was unable to get data. Please check the settings.","Failed", MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
+                PassedTest = false;
                 if (ex.InnerException != null)
                 {
                     Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Test DataSource Exception:", MessageBoxImage.Error);
@@ -404,6 +431,7 @@ namespace Adapt.ViewModels
             if (m_instance != null)
             {
                 m_settings = AdapterSettingParameterVM.GetSettingParameters(m_instance, m_dataSource.ConnectionString);
+                m_settings.ForEach(s => s.SettingChanged += (object sender, SettingChangedArg arg) => OnSettingsChanged());
                 ConfigureInstance();
             }
             else
@@ -411,19 +439,32 @@ namespace Adapt.ViewModels
             OnPropertyChanged(nameof(Settings));
         }
 
+        
+        private void OnSettingsChanged()
+        {
+            m_isTested = false;
+            OnPropertyChanged(nameof(PassedTest));
+            OnPropertyChanged(nameof(FailedTest));
+        }
         /// <summary>
         /// Creates an Instance of <see cref="IDataSource"/> corresponding to the <see cref="DataSource"/>
         /// </summary>
         private void CreateInstance()
         {
+            m_isTested = false;
+            OnPropertyChanged(nameof(PassedTest));
+            OnPropertyChanged(nameof(FailedTest));
+
             if (AdapterTypeSelectedIndex >= 0 && AdapterTypeSelectedIndex < m_dataSourceTypes.Count)
                 Instance = (IDataSource)Activator.CreateInstance(m_dataSourceTypes[AdapterTypeSelectedIndex].Type);
-        
+               
             else
             {
                 m_settings = new List<AdapterSettingParameterVM>();
                 OnPropertyChanged(nameof(Settings));
             }
+
+
         }
 
         /// <summary>
@@ -435,9 +476,29 @@ namespace Adapt.ViewModels
             {
                 IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(AdapterSettingParameterVM.GetConnectionString(m_settings, m_instance)).Build();
                 Instance.Configure(config);
-                IEnumerable<AdaptSignal> signals = Instance.GetSignals();
-                m_Devices = Instance.GetDevices().Select(item => new DeviceViewModel(item, signals.Where(s => item.ID == s.Device), m_dataSource.ID)).ToList();
+                try
+                {
+                    IEnumerable<AdaptSignal> signals = Instance.GetSignals();
 
+                    using (TransactionScope scope = new TransactionScope())
+                    using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    {
+                        DataTable TypeTbl = connection.RetrieveData("SELECT SignalID, Value FROM SignalMetaData WHERE DataSourceID={0} AND Field='Type' ", m_dataSource.ID);
+                        DataTable PhaseTbl = connection.RetrieveData("SELECT SignalID, Value FROM SignalMetaData WHERE DataSourceID={0} AND Field='Phase' ", m_dataSource.ID);
+                        DataTable SignalNameTbl = connection.RetrieveData("SELECT SignalID, Value FROM SignalMetaData WHERE DataSourceID={0} AND Field='Name' ", m_dataSource.ID);
+                        DataTable DeviceNameTbl = connection.RetrieveData("SELECT DeviceID, Value FROM DeviceMetaData WHERE DataSourceID={0} AND Field='Name'", m_dataSource.ID);
+
+                        Dictionary<string, MeasurementType> CustomSignalTypes = TypeTbl.Select().ToDictionary(r => r["SignalID"].ToString(), r => Enum.Parse<MeasurementType>(r["Value"].ToString()));
+                        Dictionary<string, Phase> CustomSignalPhases = PhaseTbl.Select().ToDictionary(r => r["SignalID"].ToString(), r => Enum.Parse<Phase>(r["Value"].ToString()));
+                        Dictionary<string, string> CustomSignalNames = SignalNameTbl.Select().ToDictionary(r => r["SignalID"].ToString(), r => r["Value"].ToString());
+                        Dictionary<string, string> CustomDeviceNames = DeviceNameTbl.Select().ToDictionary(r => r["DeviceID"].ToString(), r => r["Value"].ToString());
+                        m_Devices = Instance.GetDevices().Select(item => new DeviceViewModel(item, signals.Where(s => item.ID == s.Device), m_dataSource.ID, CustomSignalTypes, CustomSignalPhases, CustomSignalNames, CustomDeviceNames)).ToList();
+                    }   
+                }
+                catch (Exception ex)
+                {
+                    m_Devices = new List<DeviceViewModel>();
+                }
             }
             else
                 m_Devices = new List<DeviceViewModel>();

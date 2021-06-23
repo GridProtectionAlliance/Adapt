@@ -67,7 +67,7 @@ namespace Adapt.ViewModels.Common
         private string[] m_ConnectionSTringNames;
         #endregion
 
-        #region [ COnstructor ]
+        #region [ Constructor ]
 
         public AdapterSettingParameterVM()
         {
@@ -75,6 +75,11 @@ namespace Adapt.ViewModels.Common
         }
         #endregion
         #region [ Properties ]
+
+        /// <summary>
+        /// Triggered anytime the Setting is changed.
+        /// </summary>
+        public event EventHandler<SettingChangedArg> SettingChanged;
 
         /// <summary>
         /// Gets or sets the <see cref="PropertyInfo"/> of the
@@ -144,6 +149,7 @@ namespace Adapt.ViewModels.Common
             set
             {
                 m_value = value;
+                SettingChanged?.Invoke(this, new SettingChangedArg() { Name = m_name, Value = value });
                 OnPropertyChanged();
             
             }
@@ -496,5 +502,11 @@ namespace Adapt.ViewModels.Common
 
 
         #endregion
+    }
+
+    public class SettingChangedArg : EventArgs
+    {
+        public string Name;
+        public object Value;
     }
 }

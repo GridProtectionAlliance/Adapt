@@ -192,8 +192,8 @@ namespace AdaptLogic
             m_activeSummary[NLevels].Min = min;
             m_activeSummary[NLevels].N =  m_data.Count;
             m_activeSummary[NLevels].Sum = m_data.Sum(pt => pt.Value);
-            m_activeSummary[NLevels].Tmax = m_data.Max(item => item.Timestamp);
-            m_activeSummary[NLevels].Tmin = m_data.Min(item => item.Timestamp);
+            m_activeSummary[NLevels].Tmax = new DateTime(m_data.Max(item => item.Timestamp), DateTimeKind.Utc);
+            m_activeSummary[NLevels].Tmin = new DateTime(m_data.Min(item => item.Timestamp), DateTimeKind.Utc);
 
             GenerateIndex(5);
 
@@ -238,8 +238,8 @@ namespace AdaptLogic
             fileSummary.Sum = m_data.Sum(pt => pt.Value);
             fileSummary.Min = min;
             fileSummary.Max = max;
-            fileSummary.Tmax = m_data.Max(item => item.Timestamp);
-            fileSummary.Tmin = m_data.Min(item => item.Timestamp);
+            fileSummary.Tmax = new DateTime(m_data.Max(item => item.Timestamp),DateTimeKind.Utc);
+            fileSummary.Tmin = new DateTime(m_data.Min(item => item.Timestamp), DateTimeKind.Utc);
 
             fileSummary.ToByte().CopyTo(data, 0);
 
