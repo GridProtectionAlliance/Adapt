@@ -38,7 +38,7 @@ using System.Windows;
 
 namespace Adapt.ViewModels.Visualization.Widgets
 {
-    public class StatisticsTableVM : WidgetBaseVM
+    public class StatisticsTableVM : WidgetBaseVM, IDisplayWidget
     {
         #region [ Member ]
         private DataTable m_data;
@@ -56,31 +56,14 @@ namespace Adapt.ViewModels.Visualization.Widgets
         #endregion
 
         #region [ Constructor ]
-        public StatisticsTableVM(SignalReader reader, DateTime start, DateTime end): base(reader,start,end)
+
+        /// <summary>
+        /// Creates a new <see cref="StatisticsTableVM"/> that is empty.
+        /// </summary>
+        public StatisticsTableVM(): base()
         {
             m_xamlClass = new StatisticsTable();
-            
-            m_data = new DataTable();
-            m_data.Clear();
-            m_data.Columns.Add("Signal");
-            m_data.Columns.Add("Minimum");
-            m_data.Columns.Add("Average");
-            m_data.Columns.Add("Maximum");
-            m_data.Columns.Add("StandardDeviation");
-            m_data.Columns.Add("DataAvailability");
-
-            AdaptPoint pt = reader.GetStatistics(start, end);
-            DataRow r = m_data.NewRow();
-            r["Signal"] = reader.Signal.Name;
-            r["Minimum"] = pt.Min;
-            r["Average"] = pt.Value;
-            r["Maximum"] = pt.Max;
-            r["StandardDeviation"] = pt.StandardDeviation;
-            r["DataAvailability"] = pt.DataAvailability * 100.0;
-
-            m_data.Rows.Add(r);
-
-            OnPropertyChanged(nameof(DataTable));
+            m_data = new DataTable();         
 
         }
 
@@ -91,6 +74,45 @@ namespace Adapt.ViewModels.Visualization.Widgets
         public override void Zoom(DateTime start, DateTime end)
         {
             base.Zoom(start, end);
+        }
+
+        public override void AddReader(IReader reader)
+        {
+            base.AddReader(reader);
+            UpdateTable();
+        }
+
+        public override void RemoveReader(IReader reader)
+        {
+            base.RemoveReader(reader);
+            UpdateTable();
+        }
+
+        private void UpdateTable()
+        {
+            m_data.Clear();
+            m_data.Columns.Add("Signal");
+            m_data.Columns.Add("Minimum");
+            m_data.Columns.Add("Average");
+            m_data.Columns.Add("Maximum");
+            m_data.Columns.Add("StandardDeviation");
+            m_data.Columns.Add("DataAvailability");
+
+            foreach (IReader reader in m_readers)
+            {
+                AdaptPoint pt = reader.GetStatistics(m_start, m_end);
+                DataRow r = m_data.NewRow();
+                r["Signal"] = reader.Signal.Name;
+                r["Minimum"] = pt.Min;
+                r["Average"] = pt.Value;
+                r["Maximum"] = pt.Max;
+                r["StandardDeviation"] = pt.StandardDeviation;
+                r["DataAvailability"] = pt.DataAvailability * 100.0;
+
+                m_data.Rows.Add(r);
+            }
+
+            OnPropertyChanged(nameof(DataTable));
         }
 
         #endregion

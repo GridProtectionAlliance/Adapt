@@ -20,6 +20,7 @@
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
+using Adapt.Models;
 using Adapt.View.Visualization.Widgets;
 using AdaptLogic;
 using GemstoneCommon;
@@ -58,21 +59,11 @@ namespace Adapt.ViewModels.Visualization.Widgets
         #endregion
 
         #region [ Constructor ]
-        public LineChartVM(SignalReader reader, DateTime start, DateTime end): base(reader,start,end)
+        public LineChartVM(): base()
         {
             m_xamlClass = new LineChart();
-
             m_plotModel = new PlotModel();
             m_plotModel.Title = "Average Value Line Chart";
-            m_plotModel.Axes.Add(new DateTimeAxis()
-            {
-                Minimum = DateTimeAxis.ToDouble(start),
-                Maximum = DateTimeAxis.ToDouble(end)
-            });
-            LineSeries series = new LineSeries();
-            List<ITimeSeriesValue> lst = m_reader.GetTrend(start, end).ToList();
-            series.Points.AddRange(lst.Select(item => new DataPoint(DateTimeAxis.ToDouble(item.Timestamp), item.Value)));
-            m_plotModel.Series.Add(series);
             OnPropertyChanged(nameof(PlotModel));
         }
 
@@ -83,8 +74,40 @@ namespace Adapt.ViewModels.Visualization.Widgets
         public override void Zoom(DateTime start, DateTime end)
         {
             base.Zoom(start, end);
+            UpdateChart();
         }
 
+        private void UpdateChart()
+        {
+            m_plotModel = new PlotModel();
+            m_plotModel.Title = "Average Value Line Chart";
+            m_plotModel.Axes.Add(new DateTimeAxis()
+            {
+                Minimum = DateTimeAxis.ToDouble(m_start),
+                Maximum = DateTimeAxis.ToDouble(m_end)
+            });
+
+            foreach (IReader reader in m_readers)
+            {
+                LineSeries series = new LineSeries();
+                List<ITimeSeriesValue> lst = reader.GetTrend(m_start, m_end).ToList();
+                series.Points.AddRange(lst.Select(item => new DataPoint(DateTimeAxis.ToDouble(item.Timestamp), item.Value)));
+                m_plotModel.Series.Add(series);
+            }
+            OnPropertyChanged(nameof(PlotModel));
+        }
+
+        public override void AddReader(IReader reader)
+        {
+            base.AddReader(reader);
+            UpdateChart();
+        }
+
+        public override void RemoveReader(IReader reader)
+        {
+            base.RemoveReader(reader);
+            UpdateChart();
+        }
         #endregion
     }
 }

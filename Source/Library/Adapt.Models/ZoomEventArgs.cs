@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  IDisplayWidget.tsx - Gbtc
+//  ZoomEventArgs.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,7 +16,7 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  05/23/2021 - C. Lackner
+//  05/24/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
@@ -26,40 +26,32 @@ using System.Windows;
 namespace Adapt.Models
 {
     /// <summary>
-    /// Represents a Widget used to Display Data.
+    /// Arguments for a Progress Change Event
     /// </summary>
-    public interface IDisplayWidget
+    public class ZoomEventArgs : EventArgs
     {
 
 
         /// <summary>
-        /// A <see cref="UIElement"/> used for displaying this Widget.
+        /// The start Time of the new Window.
         /// </summary>
-        public UIElement UserControl { get; }
+        public DateTime Start { get; }
 
         /// <summary>
-        /// Zooms into or out of a section of Data.
+        /// The end Time of the new Window.
         /// </summary>
-        /// <param name="end"> The end Time.</param>
-        /// <param name="start"> The start Time.</param>
-        public void Zoom(DateTime start, DateTime end);
+        public DateTime End { get; }
 
         /// <summary>
-        /// Add another Signal to this Widget.
+        /// Creates a new <see cref="ZoomEventArgs"/>
         /// </summary>
-        /// <param name="reader"> The <see cref="IReader"/> to get the data.</param>
-        public void AddReader(IReader reader);
-
-        /// <summary>
-        /// Remove a Signal from this Widget
-        /// </summary>
-        /// <param name="reader"> The <see cref="IReader"/> to obtain the data.</param>
-        public void RemoveReader(IReader reader);
-
-        /// <summary>
-        /// Event that gets triggered when the User changes the Window.
-        /// </summary>
-        public event EventHandler<ZoomEventArgs> ChangedWindow;
+        /// <param name="start"> start Time of the new window.</param>
+        /// <param name="end"> end time of the new window. </param>
+        public ZoomEventArgs(DateTime start, DateTime end)
+        {
+            Start = start;
+            End = end;
+        }
 
     }
 }

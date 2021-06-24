@@ -43,8 +43,7 @@ namespace Adapt.ViewModels.Vizsalization
         private DateTime m_endVisualization;
 
         private List<SignalReader> m_reader;
-        private List<WidgetBaseVM> m_widgets;
-        private LineChartVM m_lineChart;
+        private List<IDisplayWidget> m_widgets;
         #endregion
 
         #region[ Properties ]
@@ -121,24 +120,43 @@ namespace Adapt.ViewModels.Vizsalization
             m_endVisualization = end;
 
             m_reader = SignalReader.GetAvailableReader();
+
+            // Temporary Setup is Linechart followed by Table.
+            // meant for testing and development only.
             if (m_reader.Count > 0)
-                m_widgets = new List<WidgetBaseVM>() {
-                    new LineChartVM(m_reader.First(), start, end),
-                    new StatisticsTableVM(m_reader.First(), start, end)
+                m_widgets = new List<IDisplayWidget>() {
+                    new LineChartVM(),
+                    new StatisticsTableVM()
                 };
             else
-                m_widgets = new List<WidgetBaseVM>();
+                m_widgets = new List<IDisplayWidget>();
 
-            OnPropertyChanged(nameof(Widgets));
-
-            if (m_reader.Count > 0)
-                LineChart = new LineChartVM(m_reader.First(), start, end);
+            InitalizeCharts();
+            
         }
 
         #endregion
 
         #region [ Methods ]
-       
+        
+        private void InitalizeCharts()
+        {
+            foreach(IDisplayWidget widget in m_widgets)
+            {
+                widget.Zoom(m_startAvailable, m_endAvailable);
+                if (m_reader.Count > 0)
+                    widget.AddReader(m_reader[0]);
+                widget.ChangedWindow += ChangedWindow;
+            }
+
+            OnPropertyChanged(nameof(Widgets));
+        }
+
+        private void ChangedWindow(object sender, ZoomEventArgs args)
+        {
+            foreach (IDisplayWidget widget in m_widgets)
+                widget.Zoom(args.Start, args.End);
+        }
         #endregion
     }
 
