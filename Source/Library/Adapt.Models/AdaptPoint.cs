@@ -36,6 +36,10 @@ namespace Adapt.Models
     {
         private double m_Max;
         private double m_Min;
+        private Ticks m_time;
+        private double m_stdev;
+        private int M_Npoints;
+        private double m_fps;
 
         public AdaptPoint(AdaptValue value, double Min, double Max): base(value.ID,value.Value,value.Timestamp)
         {
@@ -50,6 +54,21 @@ namespace Adapt.Models
         {
             m_Max = Max;
             m_Min = Min;
+            m_time = 0;
+            m_fps = 0;
+            M_Npoints = 0;
+            m_stdev = 0;
+        }
+
+        public AdaptPoint(string Guid, double Sum, double SumSqrd, int NCount, Ticks StartTime, Ticks EndTime, double Min, double Max, double FPS) : base(Guid, Sum/(double)NCount, StartTime + (EndTime - StartTime))
+        {
+            m_Max = Max;
+            m_Min = Min;
+            m_time = EndTime - StartTime;
+            m_stdev = Math.Sqrt((SumSqrd - 2 * Value * Sum + NCount * Value * Value) / NCount);
+            M_Npoints = NCount;
+            m_fps = FPS;
+
         }
 
         /// <summary>
@@ -62,7 +81,16 @@ namespace Adapt.Models
         /// </summary>
         public double Min { get => m_Min; set => m_Min = value; }
 
-        
+        /// <summary>
+        /// Data Availability
+        /// </summary>
+        public double DataAvailability => (m_fps == 0? 0 : (double)M_Npoints/(m_fps*(double)m_time.ToSeconds()));
+
+        /// <summary>
+        /// The Standard Deviation.
+        /// </summary>
+        public double StandardDeviation => m_stdev;
+
 
         public static AdaptPoint operator +(AdaptPoint a, double b) => new AdaptPoint(new AdaptValue(a.ID,a.Value+b,a.Timestamp),a.Min*b,a.Max*b);
 

@@ -14,9 +14,14 @@
         </Grid.RowDefinitions>
         <local:VisToolBar Grid.Row="0" />
         <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="1" Width="Auto" Height="300">
-            <!--<StackPanel VerticalAlignment="Top"  HorizontalAlignment="left" Width="Auto" Height="300">-->
-            <widgets:LineChart DataContext="{Binding LineChart}" Height="300" Width="Auto"/>
-            <!-- </StackPanel>-->
+            <ItemsControl ItemsSource="{Binding Widgets}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ContentPresenter Content="{Binding UserControl}"  DataContext="{Binding .}"  Height="300" Width="Auto" />
+                        <!-- <widgets:LineChart DataContext="{Binding .}" Height="300" Width="Auto"/> -->
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </ScrollViewer>
 
 

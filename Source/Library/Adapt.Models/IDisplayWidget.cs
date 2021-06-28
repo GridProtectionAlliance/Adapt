@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  WidgetBaseViewModel.tsx - Gbtc
+//  IDisplayWidget.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,56 +16,46 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  05/13/2021 - C. Lackner
+//  05/23/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
-using AdaptLogic;
-using GemstoneCommon;
-using GemstoneWPF;
-using OxyPlot;
-using OxyPlot.Axes;
-using OxyPlot.Series;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 
-namespace Adapt.ViewModels.Visualization.Widgets
+namespace Adapt.Models
 {
-    public abstract class WidgetBaseVM: ViewModelBase
+    /// <summary>
+    /// Represents a Widget used to Display Data.
+    /// </summary>
+    /// <remarks> <see cref="{T}"/> is providing the data. </remarks>
+    public interface IDisplayWidget<T>
     {
 
-        protected SignalReader m_reader;
-
-
-        #region [ Properties ]
-        public abstract UIElement UserControl { get; }
-
-        #endregion
-
-        #region [ constructor ]
-        public WidgetBaseVM(SignalReader reader, DateTime start, DateTime end)
-        {
-            m_reader = reader;
-        }
-
-        #endregion
-
-        #region [ Methods ]
 
         /// <summary>
-        /// Zooms in to a new Section.
+        /// A <see cref="UIElement"/> used for displaying this Widget.
         /// </summary>
-        /// <param name="start">new Start Time.</param>
-        /// <param name="end">new End Time.</param>
-        public virtual void Zoom(DateTime start, DateTime end)
-        {
+        public UIElement UserControl { get; }
 
-        }
-        #endregion
+        /// <summary>
+        /// Zooms into or out of a section of Data.
+        /// </summary>
+        /// <param name="end"> The end Time.</param>
+        /// <param name="start"> The start Time.</param>
+        public void Zoom(DateTime start, DateTime end);
+
+        /// <summary>
+        /// Add another Signal to this Widget.
+        /// </summary>
+        /// <param name="reader"> The reader to obtain the data.</param>
+        public void AddReader(T reader);
+
+        /// <summary>
+        /// Remove a Signal from this Widget
+        /// </summary>
+        /// <param name="reader"> The reader to obtain the data.</param>
+        public void RemoveReader(T reader);
 
     }
 }

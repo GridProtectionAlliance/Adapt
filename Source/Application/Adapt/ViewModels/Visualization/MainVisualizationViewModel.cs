@@ -43,6 +43,7 @@ namespace Adapt.ViewModels.Vizsalization
         private DateTime m_endVisualization;
 
         private List<SignalReader> m_reader;
+        private List<WidgetBaseVM> m_widgets;
         private LineChartVM m_lineChart;
         #endregion
 
@@ -101,6 +102,14 @@ namespace Adapt.ViewModels.Vizsalization
             }
         }
 
+        /// <summary>
+        /// List of Widgets to be displayed
+        /// </summary>
+        public List<WidgetBaseVM> Widgets
+        {
+            get { return m_widgets; }
+        }
+
         #endregion
 
         #region[ Constructor]
@@ -112,6 +121,16 @@ namespace Adapt.ViewModels.Vizsalization
             m_endVisualization = end;
 
             m_reader = SignalReader.GetAvailableReader();
+            if (m_reader.Count > 0)
+                m_widgets = new List<WidgetBaseVM>() {
+                    new LineChartVM(m_reader.First(), start, end),
+                    new StatisticsTableVM(m_reader.First(), start, end)
+                };
+            else
+                m_widgets = new List<WidgetBaseVM>();
+
+            OnPropertyChanged(nameof(Widgets));
+
             if (m_reader.Count > 0)
                 LineChart = new LineChartVM(m_reader.First(), start, end);
         }
