@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  Template.tsx - Gbtc
+//  TemplateInputDevice.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,7 +16,7 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  05/28/2021 - C. Lackner
+//  06/29/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
@@ -32,12 +32,16 @@ using System.Collections.Generic;
 namespace Adapt.Models
 {
     /// <summary>
-    /// Represents Template used to set up Computations for a set of input signals.
+    /// Represents an Input Device for a Template.
     /// </summary>
-    public class Template
+    public class TemplateInputDevice
     {
         [PrimaryKey(true)]
-        public int Id { get; set; }
+        public int ID { get; set; } 
+
+        public int TemplateID { get; set; }
+
         public string Name { get; set; }
+    
     } 
 }

@@ -90,7 +90,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
             foreach (IReader reader in m_readers)
             {
                 LineSeries series = new LineSeries();
-                List<ITimeSeriesValue> lst = reader.GetTrend(m_start, m_end).ToList();
+                List<ITimeSeriesValue> lst = reader.GetTrend(m_start, m_end, 100).ToList();
                 series.Points.AddRange(lst.Select(item => new DataPoint(DateTimeAxis.ToDouble(item.Timestamp), item.Value)));
                 m_plotModel.Series.Add(series);
             }

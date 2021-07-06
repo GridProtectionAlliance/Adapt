@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  TemplateListViewModel.tsx - Gbtc
+// InputSignalViewModel.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,97 +16,76 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  05/28/2020 - C. Lackner
+//  06/29/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
 using Adapt.Models;
-using Adapt.View;
 using Gemstone.Data;
 using Gemstone.Data.Model;
 using Gemstone.IO;
+using GemstoneCommon;
 using GemstoneWPF;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
-using System.Windows.Input;
-using System.Windows.Threading;
 
 namespace Adapt.ViewModels
 {
     /// <summary>
-    /// ViewModel for Template List Window
+    /// ViewModel for Template Input Signal
     /// </summary>
-    public class TemplateListVM : ViewModelBase
+    public class InputSignalVM: ViewModelBase
     {
         #region [ Members ]
 
-        private List<Template> m_templates;
-        private int m_selectedIndex;
+        
+        private int m_templateID;
         #endregion
 
         #region[ Properties ]
 
-        public List<Template> Templates
+        public string Name
         {
-            get { return m_templates; }
+            get => "";
             set
             {
-                m_templates = value;
+                //m_device.Name = value;
                 OnPropertyChanged();
             }
         }
-
-        public int SelectedID => (m_selectedIndex > -1? m_templates[m_selectedIndex].Id : -1);
-        
-        public int SelectedIndex
-        {
-            get => m_selectedIndex;
-            set
-            {
-                if (m_selectedIndex == value)
-                    return;
-                m_selectedIndex = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(SelectedID));
-            }
-        }
-
-        public ICommand AddNewCommand { get; set; }
 
         #endregion
 
         #region [ Constructor ]
-        public TemplateListVM()
+        /// <summary>
+        /// Creates a new <see cref="TemplateInputDevice"/> VieModel
+        /// </summary>
+        /// <param name="device"> The <see cref="TemplateInputDevice"/> associated with this ViewModel</param>
+        /// <param name="DataSourceID">The ID of the <see cref="Template"/> </param>
+        public InputSignalVM()
         {
-            AddNewCommand = new RelayCommand(AddNewTemplate, () => true);
-            Load();
         }
 
         #endregion
 
         #region [ Methods ]
 
-        public void Load(int Id=-1)
+        public void Save()
         {
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                m_templates = new TableOperations<Template>(connection).QueryRecords().ToList();
+            //using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            //    new TableOperations<TemplateInputDevice>(connection).AddNewOrUpdateRecord(m_device);
 
-            if (m_templates.Count > 0 && m_selectedIndex == -1 && Id == -1)
-                SelectedIndex = 0;
-            else if (Id != -1)
-                SelectedIndex = m_templates.FindIndex(ds => ds.Id == Id);
-            else
-                SelectedIndex = -1;
-
-            OnPropertyChanged(nameof(Templates));
         }
 
-        public void AddNewTemplate()
+        public void Delete()
         {
-           
+            //using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            //    new TableOperations<TemplateInputDevice>(connection).DeleteRecord(m_device);
+
         }
+
+
         #endregion
 
         #region [ Static ]

@@ -23,10 +23,15 @@
 using Adapt.Models;
 using Adapt.ViewModels.Visualization.Widgets;
 using AdaptLogic;
+using Gemstone.IO;
+using Gemstone.Reflection.MemberInfoExtensions;
+using Gemstone.StringExtensions;
+using Gemstone.TypeExtensions;
 using GemstoneWPF;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 
 namespace Adapt.ViewModels.Vizsalization
@@ -44,6 +49,8 @@ namespace Adapt.ViewModels.Vizsalization
 
         private List<SignalReader> m_reader;
         private List<IDisplayWidget> m_widgets;
+
+        private List<Tuple<Type, string>> m_loadedWigets;
         #endregion
 
         #region[ Properties ]
@@ -88,23 +95,12 @@ namespace Adapt.ViewModels.Vizsalization
             get => m_reader.Count();
         }
 
-        /// <summary>
-        /// Note that this will need to change to an Interface to support different Plot Types down the road.
-        /// </summary>
-        public LineChartVM LineChart
-        {
-            get { return m_lineChart; }
-            set
-            {
-                m_lineChart = value;
-                OnPropertyChanged();
-            }
-        }
+       
 
         /// <summary>
         /// List of Widgets to be displayed
         /// </summary>
-        public List<WidgetBaseVM> Widgets
+        public List<IDisplayWidget> Widgets
         {
             get { return m_widgets; }
         }
@@ -118,6 +114,9 @@ namespace Adapt.ViewModels.Vizsalization
             m_endAvailable = end;
             m_startVisualization = start;
             m_endVisualization = end;
+
+            m_loadedWigets = new List<Tuple<Type, string>>();
+            LoadWidgets();
 
             m_reader = SignalReader.GetAvailableReader();
 
@@ -157,8 +156,46 @@ namespace Adapt.ViewModels.Vizsalization
             foreach (IDisplayWidget widget in m_widgets)
                 widget.Zoom(args.Start, args.End);
         }
+
+        private void LoadWidgets()
+        {
+            
+            m_loadedWigets = typeof(IDisplayWidget).LoadImplementations(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar), true)
+                .Distinct()
+                .Where(type => GetEditorBrowsableState(type) == EditorBrowsableState.Always)
+                .Select( type => new Tuple<Type,string>(type,GetDescription(type)))
+                .OrderByDescending(pair => pair.Item2)
+                .ToList();
+        }
+
+
+        #endregion
+
+        #region [ static ]
+        private static EditorBrowsableState GetEditorBrowsableState(Type type)
+        {
+            EditorBrowsableAttribute editorBrowsableAttribute;
+
+            if (type.TryGetAttribute(out editorBrowsableAttribute))
+                return editorBrowsableAttribute.State;
+
+            return EditorBrowsableState.Always;
+        }
+
+        private static string GetDescription(Type type)
+        {
+            DescriptionAttribute descriptionAttribute;
+            string description;
+
+            if (type.TryGetAttribute(out descriptionAttribute))
+                description = descriptionAttribute.Description.ToNonNullNorEmptyString(type.FullName);
+            else
+                description =  type.FullName;
+
+            return description;
+        }
         #endregion
     }
 
-  
+
 }
