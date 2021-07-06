@@ -23,6 +23,7 @@
 
 
 using Gemstone;
+using Gemstone.Data.Model;
 using GemstoneCommon;
 using System;
 using System.Collections.Concurrent;
@@ -35,6 +36,7 @@ namespace Adapt.Models
     /// </summary>
     public class Template
     {
+        [PrimaryKey(true)]
         public int Id { get; set; }
         public string Name { get; set; }
     } 

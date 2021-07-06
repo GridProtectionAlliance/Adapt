@@ -65,6 +65,7 @@ namespace AdaptLogic
         public event EventHandler<ProgressArgs> ReportProgress;
 
         #endregion
+
         #region [ Constructor ]
 
         /// <summary>

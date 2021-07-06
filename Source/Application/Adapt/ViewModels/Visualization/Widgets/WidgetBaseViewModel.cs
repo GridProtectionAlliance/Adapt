@@ -20,36 +20,33 @@
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
+using Adapt.Models;
 using AdaptLogic;
-using GemstoneCommon;
 using GemstoneWPF;
-using OxyPlot;
-using OxyPlot.Axes;
-using OxyPlot.Series;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace Adapt.ViewModels.Visualization.Widgets
 {
-    public abstract class WidgetBaseVM: ViewModelBase
+    public abstract class WidgetBaseVM: ViewModelBase, IDisplayWidget
     {
 
-        protected SignalReader m_reader;
+        protected List<IReader> m_readers;
+        protected DateTime m_start;
+        protected DateTime m_end;
 
 
         #region [ Properties ]
         public abstract UIElement UserControl { get; }
+        public event EventHandler<ZoomEventArgs> ChangedWindow;
 
         #endregion
 
         #region [ constructor ]
-        public WidgetBaseVM(SignalReader reader, DateTime start, DateTime end)
+        public WidgetBaseVM()
         {
-            m_reader = reader;
+            m_readers = new List<IReader>();
         }
 
         #endregion
@@ -63,7 +60,28 @@ namespace Adapt.ViewModels.Visualization.Widgets
         /// <param name="end">new End Time.</param>
         public virtual void Zoom(DateTime start, DateTime end)
         {
+            if (start < end)
+            {
+                m_start = start;
+                m_end = end;
+            }
+            else 
+            {
+                m_end = start;
+                m_start = end;
+            }
+        }
 
+        public virtual void AddReader(IReader reader)
+        {
+            m_readers.Add(reader);
+        }
+
+        public virtual void RemoveReader(IReader reader)
+        {
+            int index = m_readers.FindIndex(r => reader.SignalGuid == r.SignalGuid);
+            if (index > -1)
+                m_readers.RemoveAt(index);
         }
         #endregion
 
