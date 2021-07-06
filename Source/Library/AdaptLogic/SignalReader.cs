@@ -36,9 +36,8 @@ namespace AdaptLogic
 {
     /// <summary>
     /// Reads an Adapt Signal from temporary Files for reduced RAM requirement
-    /// Only reads up to 400 points for Performance Reasons. 
     /// </summary>
-    public class SignalReader
+    public class SignalReader: IReader
     {
         #region [ Internal Classes ]
 
@@ -77,12 +76,15 @@ namespace AdaptLogic
         /// Gets the <see cref="AdaptSignal"/> This reader is attached to
         /// </summary>
         public AdaptSignal Signal { get; private set; }
+
+        public string SignalGuid { get; private set; }
         #endregion
 
         #region [ Methods ]
-       
+
         private void ReadSignal(string guid)
         {
+            SignalGuid = guid;
             m_rootFolder = $"{DataPath}{guid}";
             string name = "";
             string deviceID = "";

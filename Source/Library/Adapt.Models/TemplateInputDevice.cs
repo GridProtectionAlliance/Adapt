@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  IDisplayWidget.tsx - Gbtc
+//  TemplateInputDevice.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,50 +16,32 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  05/23/2021 - C. Lackner
+//  06/29/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
+
+
+using Gemstone;
+using Gemstone.Data.Model;
+using GemstoneCommon;
 using System;
-using System.Windows;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace Adapt.Models
 {
     /// <summary>
-    /// Represents a Widget used to Display Data.
+    /// Represents an Input Device for a Template.
     /// </summary>
-    public interface IDisplayWidget
+    public class TemplateInputDevice
     {
+        [PrimaryKey(true)]
+        public int ID { get; set; } 
 
+        public int TemplateID { get; set; }
 
-        /// <summary>
-        /// A <see cref="UIElement"/> used for displaying this Widget.
-        /// </summary>
-        public UIElement UserControl { get; }
-
-        /// <summary>
-        /// Zooms into or out of a section of Data.
-        /// </summary>
-        /// <param name="end"> The end Time.</param>
-        /// <param name="start"> The start Time.</param>
-        public void Zoom(DateTime start, DateTime end);
-
-        /// <summary>
-        /// Add another Signal to this Widget.
-        /// </summary>
-        /// <param name="reader"> The <see cref="IReader"/> to get the data.</param>
-        public void AddReader(IReader reader);
-
-        /// <summary>
-        /// Remove a Signal from this Widget
-        /// </summary>
-        /// <param name="reader"> The <see cref="IReader"/> to obtain the data.</param>
-        public void RemoveReader(IReader reader);
-
-        /// <summary>
-        /// Event that gets triggered when the User changes the Window.
-        /// </summary>
-        public event EventHandler<ZoomEventArgs> ChangedWindow;
-
-    }
+        public string Name { get; set; }
+    
+    } 
 }

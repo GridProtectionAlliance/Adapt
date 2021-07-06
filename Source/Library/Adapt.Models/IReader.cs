@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  IDisplayWidget.tsx - Gbtc
+//  IReader.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -20,46 +20,44 @@
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
+using GemstoneCommon;
 using System;
+using System.Collections.Generic;
 using System.Windows;
 
 namespace Adapt.Models
 {
     /// <summary>
-    /// Represents a Widget used to Display Data.
+    /// Interface for a Data Reader.
     /// </summary>
-    public interface IDisplayWidget
+    public interface IReader
     {
+        /// <summary>
+        /// Gets an avg Trend Series to specified resolution.
+        /// </summary>
+        /// <param name="start">the start Time of the Series.</param>
+        /// <param name="end">The end time of the Series.</param>
+        /// <param name="points"> The minimum number of points requested.</param>
+        /// <returns></returns>
+        public IEnumerable<ITimeSeriesValue> GetTrend(DateTime start, DateTime end, int points);
 
+        // <summary>
+        /// Gets the Summary of this Signal for a specified Time range.
+        /// </summary>
+        /// <param name="start">The startTime.</param>
+        /// <param name="end">The endTime.</param>
+        /// <returns>An <see cref="AdaptPoint"/> specifying Min, Max and Avg</returns>
+        public AdaptPoint GetStatistics(DateTime start, DateTime end);
 
         /// <summary>
-        /// A <see cref="UIElement"/> used for displaying this Widget.
+        /// The Guid used to identify the specific Signal.
+        /// This Guid is unique when looking at current Results.
         /// </summary>
-        public UIElement UserControl { get; }
+        public string SignalGuid { get; }
 
         /// <summary>
-        /// Zooms into or out of a section of Data.
+        /// Gets the <see cref="AdaptSignal"/> This reader is attached to
         /// </summary>
-        /// <param name="end"> The end Time.</param>
-        /// <param name="start"> The start Time.</param>
-        public void Zoom(DateTime start, DateTime end);
-
-        /// <summary>
-        /// Add another Signal to this Widget.
-        /// </summary>
-        /// <param name="reader"> The <see cref="IReader"/> to get the data.</param>
-        public void AddReader(IReader reader);
-
-        /// <summary>
-        /// Remove a Signal from this Widget
-        /// </summary>
-        /// <param name="reader"> The <see cref="IReader"/> to obtain the data.</param>
-        public void RemoveReader(IReader reader);
-
-        /// <summary>
-        /// Event that gets triggered when the User changes the Window.
-        /// </summary>
-        public event EventHandler<ZoomEventArgs> ChangedWindow;
-
+        public AdaptSignal Signal { get; }
     }
 }

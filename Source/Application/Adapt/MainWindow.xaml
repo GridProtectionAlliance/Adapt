@@ -17,6 +17,9 @@
         <DataTemplate DataType="{x:Type localvm:DataSourceViewModel}">
             <localv:DataSourceView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type localvm:TemplateVM}">
+            <localv:TemplateView/>
+        </DataTemplate>
     </Window.Resources>
     
     <Grid>
@@ -58,7 +61,7 @@
         </Expander>
 
         <StackPanel Grid.RowSpan="4" Grid.Column="1" Visibility="{Binding ActiveExpander, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=2}" >
-            <TextBlock Text="To Be Implemented" FontSize="16"/>
+            <localv:TemplateListView VerticalAlignment="top" DataContext="{Binding TemplateList}" Height="{Binding Height, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}"/>
         </StackPanel>
 
         <Expander ExpandDirection="Right" Grid.Column="0"  Grid.Row="2" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=3}">

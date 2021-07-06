@@ -34,11 +34,12 @@ namespace Adapt.ViewModels
         #region [ Members ]
 
         private DataSourceListViewModel m_dataSourceList;
+        private TemplateListVM m_templateList;
         private SelectedExpander m_currentExpander;
 
         private ViewModelBase m_currentView;
         private DataSourceViewModel m_dataSource;
-
+        private TemplateVM m_template;
         #endregion
 
         #region[ Properties ]
@@ -52,12 +53,23 @@ namespace Adapt.ViewModels
             }
         }
 
+        public TemplateListVM TemplateList
+        {
+            get => m_templateList;
+            set
+            {
+                m_templateList = value;
+                OnPropertyChanged();
+            }
+        }
+
         public SelectedExpander ActiveExpander
         {
             get => m_currentExpander;
             set
             {
                 m_currentExpander = value;
+                TabChanged();
                 OnPropertyChanged();
             }
         }
@@ -78,11 +90,16 @@ namespace Adapt.ViewModels
         {
             m_currentExpander = SelectedExpander.DataSource;
             m_dataSourceList = new DataSourceListViewModel();
+            m_templateList = new TemplateListVM();
+
+            m_template = new TemplateVM(m_templateList.SelectedID);
+            m_templateList.PropertyChanged += TemplateList_Changed;
 
             m_dataSource = new DataSourceViewModel(m_dataSourceList.SelectedID);
             m_dataSourceList.PropertyChanged += DataSourceList_Changed;
 
             m_dataSource.PropertyChanged += DataSource_Changed;
+            m_template.PropertyChanged += Template_Changed;
 
             m_currentView = m_dataSource;
         }
@@ -94,20 +111,47 @@ namespace Adapt.ViewModels
 
         public void DataSourceList_Changed(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == "SelectedIndex")
+            if (e.PropertyName == nameof(m_dataSourceList.SelectedIndex))
             {
                 if (m_dataSource.ID != m_dataSourceList.SelectedID)
                     m_dataSource.ID = m_dataSourceList.SelectedID;
             }
         }
 
+        public void TemplateList_Changed(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(m_templateList.SelectedIndex))
+            {
+                if (m_template.ID != m_templateList.SelectedID)
+                    m_template.ID = m_templateList.SelectedID;
+            }
+        }
+
         public void DataSource_Changed(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == "DataSource")
+            if (e.PropertyName == nameof(m_dataSource.DataSource))
             {
                 if (m_dataSource.ID != m_dataSourceList.SelectedID)
                     m_dataSourceList.Load(m_dataSource.ID);
             }
+        }
+
+        public void Template_Changed(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(m_template.Template))
+            {
+                if (m_template.ID != m_templateList.SelectedID)
+                    m_templateList.Load(m_template.ID);
+            }
+        }
+
+        private void TabChanged()
+        {
+            if (m_currentExpander == SelectedExpander.DataSource)
+                m_currentView = m_dataSource;
+            else if (m_currentExpander == SelectedExpander.Template)
+                m_currentView = m_template;
+            OnPropertyChanged(nameof(CurrentView));
         }
         #endregion
     }

@@ -25,7 +25,7 @@
 -- *******************************************************************************************
 -- IMPORTANT NOTE: When making updates to this schema, please increment the version number!
 -- *******************************************************************************************
-CREATE VIEW SchemaVersion AS SELECT 1 AS VersionNumber;
+CREATE VIEW SchemaVersion AS SELECT 2 AS VersionNumber;
 
 CREATE Table DataSource (
 	ID INTEGER PRIMARY KEY NOT NULL,
@@ -65,12 +65,13 @@ CREATE Table Template (
 	Name VARCHAR(200) NOT NULL
 );
 
-CREATE Table TemplateInputDevices (
+CREATE Table TemplateInputDevice (
 	ID INTEGER PRIMARY KEY NOT NULL,
 	TemplateID  INTEGER NOT NULL,
 	Name VARCHAR(200) NOT NULL,
 	FOREIGN KEY(TemplateID) REFERENCES Template(ID)
 );
+
 
 CREATE Table TemplateInputSignals (
 	ID INTEGER PRIMARY KEY NOT NULL,

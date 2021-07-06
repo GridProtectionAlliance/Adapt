@@ -35,7 +35,7 @@ namespace Adapt.ViewModels
     /// <summary>
     /// ViewModel for PMU MetaData
     /// </summary>
-    public class DeviceViewModel: ViewModelBase
+    public class DeviceViewModel : ViewModelBase
     {
         #region [ Members ]
 
