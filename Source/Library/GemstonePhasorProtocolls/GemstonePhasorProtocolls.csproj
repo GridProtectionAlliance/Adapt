@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
@@ -17,13 +17,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gemstone.Common" Version="1.0.67" />
-    <PackageReference Include="Gemstone.Communication" Version="1.0.67" />
-    <PackageReference Include="Gemstone.IO" Version="1.0.67" />
-    <PackageReference Include="Gemstone.Numeric" Version="1.0.67" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\gemstone\communication\src\Gemstone.Communication\Gemstone.Communication.csproj" />
+    <ProjectReference Include="..\..\..\..\gemstone\io\src\Gemstone.IO\Gemstone.IO.csproj" />
+    <ProjectReference Include="..\..\..\..\gemstone\numeric\src\Gemstone.Numeric\Gemstone.Numeric.csproj" />
     <ProjectReference Include="..\GemstoneCommon\GemstoneCommon.csproj" />
   </ItemGroup>
 

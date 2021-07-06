@@ -17,11 +17,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gemstone.Common" Version="1.0.67" />
-    <PackageReference Include="Gemstone.Data" Version="1.0.67" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\gemstone\common\src\Gemstone\Gemstone.Common.csproj" />
+    <ProjectReference Include="..\..\..\..\gemstone\data\src\Gemstone.Data\Gemstone.Data.csproj" />
     <ProjectReference Include="..\GemstoneCommon\GemstoneCommon.csproj" />
   </ItemGroup>
 
