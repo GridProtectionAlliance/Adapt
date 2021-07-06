@@ -84,7 +84,7 @@ namespace Adapt.DataSources
 
         public IEnumerable<AdaptDevice> GetDevices()
         {
-            throw new NotImplementedException();
+            return new List<AdaptDevice>();
         }
 
         public double GetProgress()
@@ -104,12 +104,15 @@ namespace Adapt.DataSources
 
         public bool SupportProgress()
         {
-            throw new NotImplementedException();
+            return false;
         }
 
         public bool Test()
         {
-            throw new NotImplementedException();
+            if (!Directory.Exists(m_settings.RootFolder))
+                return false;
+
+            return m_Files.Count > 0;
         }
         #endregion
 
