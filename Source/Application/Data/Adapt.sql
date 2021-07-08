@@ -79,5 +79,5 @@ CREATE Table TemplateInputSignals (
 	Name VARCHAR(200) NOT NULL,
 	Phase INTEGER NULL,
 	MeasurmentType INTEGER NULL,
-	FOREIGN KEY(DeviceID) REFERENCES TemplateInputDevices(ID)
+	FOREIGN KEY(DeviceID) REFERENCES TemplateInputDevice(ID)
 );
