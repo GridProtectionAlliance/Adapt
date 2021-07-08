@@ -326,7 +326,8 @@ namespace AdaptLogic
         /// </summary>
         public static void CleanAppData() 
         {
-            Directory.Delete(DataPath, true);
+            if (Directory.Exists(DataPath))
+                Directory.Delete(DataPath, true);
         }
         #endregion
     }
