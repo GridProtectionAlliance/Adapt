@@ -39,7 +39,7 @@ namespace Adapt.ViewModels
     {
         #region [ Members ]
 
-        
+        private bool m_removed;
         private int m_templateID;
         #endregion
 
@@ -55,6 +55,7 @@ namespace Adapt.ViewModels
             }
         }
 
+        public bool Removed => m_removed;
         #endregion
 
         #region [ Constructor ]
@@ -65,6 +66,7 @@ namespace Adapt.ViewModels
         /// <param name="DataSourceID">The ID of the <see cref="Template"/> </param>
         public InputSignalVM()
         {
+            m_removed = false;
         }
 
         #endregion

@@ -20,6 +20,7 @@
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
+using Adapt.DataSources;
 using Adapt.Models;
 using Gemstone.Data;
 using Gemstone.Data.Model;
@@ -93,7 +94,7 @@ namespace Adapt.ViewModels
 
             DescriptionAttribute descriptionAttribute;
 
-            return typeof(IDataSource).LoadImplementations(searchDirectory, true)
+            return typeof(IDataSource).LoadImplementations(searchDirectory, true,false)
                 .Distinct()
                 .Where(type => GetEditorBrowsableState(type) == EditorBrowsableState.Always)
                 .Select(type => GetDescription(type))

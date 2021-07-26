@@ -19,7 +19,7 @@
         <TextBlock Grid.Row="1" Text="Please Select A Template" VerticalAlignment="Center" Margin="2,0" FontWeight="Black" TextWrapping="WrapWithOverflow" HorizontalAlignment="Left"/>
         <Button Grid.Row="2" Content="Add Template" ToolTip="Add A New Template" Margin="0,5" Width="100" HorizontalAlignment="Left" Command="{Binding AddNewCommand}"/>
 
-        <ListView VerticalAlignment="Top" Grid.Row="3" Height="auto" ItemsSource="{Binding Template}" BorderThickness="0" SelectedIndex="{Binding SelectedIndex}">
+        <ListView VerticalAlignment="Top" Grid.Row="3" Height="auto" ItemsSource="{Binding Templates}" BorderThickness="0" SelectedIndex="{Binding SelectedIndex}">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <WrapPanel>

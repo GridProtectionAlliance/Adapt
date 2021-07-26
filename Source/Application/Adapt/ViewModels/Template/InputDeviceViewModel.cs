@@ -57,15 +57,12 @@ namespace Adapt.ViewModels
             }
         }
 
-        public int NSignals => 99;
+        public int NSignals => m_signals.Count(i => !i.Removed);
 
-        public bool Removed
-        { get => m_removed; }
+        public bool Removed => m_removed;
 
-        public List<InputSignalVM> Signals
-        {
-            get => m_signals;
-        }
+        public List<InputSignalVM> Signals => m_signals;
+
         #endregion
 
         #region [ Constructor ]
@@ -106,9 +103,13 @@ namespace Adapt.ViewModels
         public void LoadSignals() 
         {
             m_signals = new List<InputSignalVM>() { new InputSignalVM(), new InputSignalVM() };
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                m_signals = new TableOperations<TemplateInputSignal>(connection)
+                        .QueryRecordsWhere("DeviceId = {0}", m_device.ID)
+                        .Select(d => new InputSignalVM()).ToList();
 
             OnPropertyChanged(nameof(Signals));
-            }
+        }
         #endregion
 
         #region [ Static ]

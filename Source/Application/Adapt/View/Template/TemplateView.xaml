@@ -17,25 +17,31 @@
 
         <ScrollViewer>
             <StackPanel Orientation="Vertical">
-            <Expander ExpandDirection="Down" Grid.Row="0">
-                <Expander.Header>
-                    <TextBlock Text="0: General Settings">
-                    </TextBlock>
-                </Expander.Header>
-                    <StackPanel Orientation="Horizontal" Height="50">
+                <Expander ExpandDirection="Down" Grid.Row="0" Background="Gray">
+
+                    <Expander.Header>
+                        <TextBlock FontWeight="bold"  Text="0: General Settings" Width="auto">
+                        </TextBlock>
+                    </Expander.Header>
+                    <StackPanel Orientation="Horizontal" Height="50" Background="LightGray">
                         <Label Margin="0,2" Width="60" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Name:"/>
                         <TextBox Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Name}">
                         </TextBox>
                     </StackPanel>
                 </Expander>
-                <Expander ExpandDirection="Down" Grid.Row="0">
+                <Expander ExpandDirection="Down" Grid.Row="0" Background="Gray">
                     <Expander.Header>
-                        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" >
+                        <TextBlock FontWeight="bold"  Text="1: Inputs" Width="auto">
+                        </TextBlock>
+                    </Expander.Header>
+                    <StackPanel Orientation="Vertical" Height="auto" Background="LightGray">
+                        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800">
                             <TreeView.ItemTemplate>
                                 <HierarchicalDataTemplate DataType="{x:Type localvm:InputDeviceVM}" ItemsSource="{Binding Signals}">
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding Removed}">
-                                        <Label  Margin="0,2" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding Removed}" Width="750">
+                                        <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
                                         <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
+                                        <Button Width="80" Height="18" Margin="2, 2">Remove</Button>
                                         <WrapPanel Margin="100,0">
                                             <TextBlock Text="{Binding NSignals}" />
                                             <TextBlock Text=" Signals" />
@@ -50,8 +56,10 @@
                                 </HierarchicalDataTemplate>
                             </TreeView.ItemTemplate>
                         </TreeView>
-                    </Expander.Header>
-                    
+                        <Button Width="200" Margin="5,0,5,15">Add Device</Button>
+                    </StackPanel>
+
+
                 </Expander>
             </StackPanel>
         </ScrollViewer>

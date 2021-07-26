@@ -280,6 +280,7 @@ namespace Adapt.ViewModels
                         .Select(d => new InputDeviceVM(d, m_template.Id)).ToList();
 
             m_Devices.ForEach(d => d.PropertyChanged += OnDeviceChange);
+            m_Devices.ForEach(d => d.LoadSignals());
             OnPropertyChanged(nameof(Devices));
         }
 
