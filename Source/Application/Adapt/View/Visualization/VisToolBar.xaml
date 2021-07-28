@@ -60,12 +60,14 @@
             <Popup PlacementTarget="{Binding ElementName=btnAddPanel}" x:Name="addPanel" Width="150">
                 <Border>
                     <StackPanel>
-                        <Button Background="{StaticResource {x:Static SystemColors.MenuBrushKey}}" BorderThickness="0">
-                            Average Line Chart
-                        </Button >
-                        <Button Background="{StaticResource {x:Static SystemColors.MenuBrushKey}}" BorderThickness="0">
-                            Summary Table
-                        </Button>
+                        <ItemsControl ItemsSource="{Binding AvailableWidgets}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Background="{StaticResource {x:Static SystemColors.MenuBrushKey}}" BorderThickness="0" Content="{Binding }" Command="{Binding DataContext.AddWidgetCommand, RelativeSource={RelativeSource AncestorType=Popup}}"  CommandParameter="{Binding }" >
+                                    </Button >
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
             </Popup>

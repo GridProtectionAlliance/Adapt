@@ -4,26 +4,54 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.Visualization"
+             xmlns:converter="clr-namespace:Adapt.Converter"
              xmlns:widgets="clr-namespace:Adapt.View.Visualization.Widgets"
              mc:Ignorable="d"
+             Height="{Binding Height,RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}"
              >
+    <UserControl.Resources>
+        <converter:HeightSubtraction  x:Key="HeightSubtraction"/>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition  Height="auto" />
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
         <local:VisToolBar Grid.Row="0" />
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="1" Width="Auto" Height="300">
-            <ItemsControl ItemsSource="{Binding Widgets}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <ContentPresenter Content="{Binding UserControl}"  DataContext="{Binding .}"  Height="300" Width="Auto" />
-                        <!-- <widgets:LineChart DataContext="{Binding .}" Height="300" Width="Auto"/> -->
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
-
-
+        
+        <!--<ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="1" Width="Auto"> -->
+        <ItemsControl ItemsSource="{Binding Widgets}" Grid.Row="1" Width="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" 
+                      Height="{Binding Height,RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type UserControl}}, Converter={StaticResource HeightSubtraction}, ConverterParameter=100}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <ContentPresenter Content="{Binding UserControl}"  DataContext="{Binding .}"  Height="300" Width="Auto" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+            <ItemsControl.Template>
+                <ControlTemplate TargetType="{x:Type ItemsControl}">
+                    <Border x:Name="Border"
+                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ScrollViewer Margin="0"
+                                      Focusable="False"
+                                      Padding="{TemplateBinding Padding}"
+                                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                      HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                                      VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}"
+                                      CanContentScroll="{TemplateBinding ScrollViewer.CanContentScroll}">
+                            <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                        </ScrollViewer>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Border" Property="Background" Value="Gray" />
+                            <Setter TargetName="Border" Property="BorderBrush" Value="Silver" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </ItemsControl.Template>
+        </ItemsControl>
     </Grid>
 </UserControl>
