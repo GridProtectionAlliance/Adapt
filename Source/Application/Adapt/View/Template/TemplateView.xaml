@@ -46,7 +46,8 @@
                                     <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" Width="750">
                                         <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
                                         <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
-                                        <Button Width="80" Height="18" Margin="2, 2" Command="{Binding Remove}">Remove</Button>
+                                        <Button Width="80" Height="18" Margin="2, 5" Command="{Binding AddSignal}">Add Signal</Button>
+                                        <Button Width="80" Height="18" Margin="2, 5" Command="{Binding Remove}">Remove</Button>
                                         <WrapPanel Margin="100,0">
                                             <TextBlock Text="{Binding NSignals}" />
                                             <TextBlock Text=" Signals" />
@@ -71,7 +72,7 @@
                                 </Style>
                             </TreeView.ItemContainerStyle>
                         </TreeView>
-                        <Button Width="200" Margin="5,0,5,15">Add Device</Button>
+                        <Button Width="200" Margin="5,0,5,15" Command="{Binding AddDeviceCommand}">Add Device</Button>
                     </StackPanel>
 
 

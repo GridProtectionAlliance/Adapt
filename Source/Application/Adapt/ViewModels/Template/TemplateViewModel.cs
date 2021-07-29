@@ -31,6 +31,7 @@ using GemstoneWPF;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.IO;
@@ -52,7 +53,9 @@ namespace Adapt.ViewModels
         private RelayCommand m_saveCommand;
         private RelayCommand m_deleteCommand;
         private RelayCommand m_clearCommand;
-        private List<InputDeviceVM> m_Devices;
+        private RelayCommand m_addDeviceCommand;
+
+        private ObservableCollection<InputDeviceVM> m_Devices;
 
         private bool m_changed;
 
@@ -108,6 +111,11 @@ namespace Adapt.ViewModels
 
         public ICommand ClearCommand => m_clearCommand;
 
+        /// <summary>
+        /// Command that adds a <see cref="TemplateInputDevice"/> to this <see cref="Template"/>
+        /// </summary>
+        public ICommand AddDeviceCommand => m_addDeviceCommand;
+
         public bool CanSave => Changed;
 
         public bool CanDelete => false;
@@ -125,7 +133,7 @@ namespace Adapt.ViewModels
         public int NumberPMU => m_Devices?.Count() ?? 0;
         public int NumberSignals => m_Devices?.Sum(pmu => pmu.NSignals) ?? 0;
 
-        public List<InputDeviceVM> Devices => m_Devices;
+        public ObservableCollection<InputDeviceVM> Devices => m_Devices;
 
         #endregion
 
@@ -138,12 +146,12 @@ namespace Adapt.ViewModels
         public TemplateVM()
         {
             m_template = null;
-            m_Devices = new List<InputDeviceVM>();
+            m_Devices = new ObservableCollection<InputDeviceVM>();
 
             m_clearCommand = new RelayCommand(Clear, () => CanClear);
             m_saveCommand = new RelayCommand(Save, () => CanSave);
             m_deleteCommand = new RelayCommand(Delete, () => CanDelete);
-
+            m_addDeviceCommand = new RelayCommand(AddDevice, () => true);
             m_changed = false;
 
 
@@ -160,7 +168,7 @@ namespace Adapt.ViewModels
                 if (OnBeforeSaveCanceled())
                     throw new OperationCanceledException("Save was canceled.");
 
-                m_Devices.ForEach(d => d.Save());
+                m_Devices.ToList().ForEach(d => d.Save());
 
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     new TableOperations<Template>(connection).AddNewOrUpdateRecord(m_template);
@@ -186,7 +194,23 @@ namespace Adapt.ViewModels
             }
         }
 
-       
+        private void AddDevice()
+        {
+            string name = "PMU 1";
+            int i = 1;
+            while (m_Devices.Where(d => d.Name == name).Any())
+            {
+                i++;
+                name = "PMU " + i.ToString();
+            }
+
+            m_Devices.Add(new InputDeviceVM(new TemplateInputDevice() { Name = name, TemplateID=m_template.Id})) ;
+                
+            m_Devices.Last().PropertyChanged += OnDeviceChange;
+            OnPropertyChanged(nameof(Devices));
+            OnPropertyChanged(nameof(Changed));
+        }
+
         public void Delete() 
         {}
 
@@ -280,15 +304,15 @@ namespace Adapt.ViewModels
         private void LoadDevices()
         {
             if (m_template == null)
-                m_Devices = new List<InputDeviceVM>();
+                m_Devices = new ObservableCollection<InputDeviceVM>();
             else
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    m_Devices = new TableOperations<TemplateInputDevice>(connection)
+                    m_Devices = new ObservableCollection<InputDeviceVM>(new TableOperations<TemplateInputDevice>(connection)
                         .QueryRecordsWhere("TemplateID = {0}", m_template.Id)
-                        .Select(d => new InputDeviceVM(d, m_template.Id)).ToList();
+                        .Select(d => new InputDeviceVM(d)));
 
-            m_Devices.ForEach(d => d.PropertyChanged += OnDeviceChange);
-            m_Devices.ForEach(d => d.LoadSignals());
+            m_Devices.ToList().ForEach(d => d.PropertyChanged += OnDeviceChange);
+            m_Devices.ToList().ForEach(d => d.LoadSignals());
             OnPropertyChanged(nameof(Devices));
         }
 
