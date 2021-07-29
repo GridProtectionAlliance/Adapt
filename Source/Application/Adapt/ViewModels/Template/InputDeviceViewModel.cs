@@ -27,6 +27,7 @@ using Gemstone.IO;
 using GemstoneCommon;
 using GemstoneWPF;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 
@@ -41,7 +42,9 @@ namespace Adapt.ViewModels
 
         private TemplateInputDevice m_device;
         private List<InputSignalVM> m_signals;
+        private RelayCommand m_removeCmd;
         private bool m_removed;
+        private bool m_changed;
         private int m_templateID;
         #endregion
 
@@ -53,6 +56,8 @@ namespace Adapt.ViewModels
             set
             {
                 m_device.Name = value;
+                m_changed = true;
+                OnPropertyChanged(nameof(Changed));
                 OnPropertyChanged();
             }
         }
@@ -61,7 +66,19 @@ namespace Adapt.ViewModels
 
         public bool Removed => m_removed;
 
+        /// <summary>
+        /// Indicates whether this Device or any of the associated signals have changed
+        /// </summary>
+        public bool Changed => m_changed || m_removed || m_signals.Where(item => item.Changed).Any();
+        /// <summary>
+        /// List of All <see cref="TemplateInputSignal"/> associated with this <see cref="TemplateInputDevice"/>
+        /// </summary>
         public List<InputSignalVM> Signals => m_signals;
+
+        /// <summary>
+        /// <see cref="RelayCommand"/> to remove this <see cref="TemplateInputDevice"/>
+        /// </summary>
+        public RelayCommand Remove => m_removeCmd;
 
         #endregion
 
@@ -77,7 +94,8 @@ namespace Adapt.ViewModels
             m_templateID = TemplateID;
             m_signals = new List<InputSignalVM>();
             m_removed = false;
-
+            m_removeCmd = new RelayCommand(Delete, () => true);
+            m_changed = false;
         }
 
         #endregion
@@ -86,29 +104,37 @@ namespace Adapt.ViewModels
 
         public void Save()
         {
+            m_signals.ForEach(s => s.Save());
             if (m_removed)
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     new TableOperations<TemplateInputDevice>(connection).DeleteRecord(m_device);
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 new TableOperations<TemplateInputDevice>(connection).AddNewOrUpdateRecord(m_device);
-
         }
 
         public void Delete()
         {
             m_removed = true;
             OnPropertyChanged(nameof(Removed));
+            OnPropertyChanged(nameof(Changed));
         }
 
         public void LoadSignals() 
         {
-            m_signals = new List<InputSignalVM>() { new InputSignalVM(), new InputSignalVM() };
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 m_signals = new TableOperations<TemplateInputSignal>(connection)
                         .QueryRecordsWhere("DeviceId = {0}", m_device.ID)
-                        .Select(d => new InputSignalVM()).ToList();
+                        .Select(d => new InputSignalVM(m_device,d)).ToList();
 
             OnPropertyChanged(nameof(Signals));
+            m_signals.ForEach(s => s.PropertyChanged += SignalChanged);
+        }
+
+        private void SignalChanged(object sender, PropertyChangedEventArgs arg)
+        {
+            if (arg.PropertyName == "Changed")
+                OnPropertyChanged("Changed");
+            
         }
         #endregion
 

@@ -54,6 +54,8 @@ namespace Adapt.ViewModels
         private RelayCommand m_clearCommand;
         private List<InputDeviceVM> m_Devices;
 
+        private bool m_changed;
+
         #endregion
 
         #region[ Properties ]
@@ -75,6 +77,8 @@ namespace Adapt.ViewModels
             set
             {
                 m_template.Name = value;
+                m_changed = true;
+                OnPropertyChanged(nameof(Changed));
                 OnPropertyChanged();
             }
         }
@@ -92,6 +96,7 @@ namespace Adapt.ViewModels
             }
         }
 
+        public bool Changed => m_changed || m_Devices.Where(d => d.Changed).Any();
        
 
      
@@ -103,11 +108,11 @@ namespace Adapt.ViewModels
 
         public ICommand ClearCommand => m_clearCommand;
 
-        public bool CanSave => true;
+        public bool CanSave => Changed;
 
         public bool CanDelete => false;
 
-        public bool CanClear => false;
+        public bool CanClear => !Changed;
         
 
         public event CancelEventHandler BeforeLoad;
@@ -139,7 +144,9 @@ namespace Adapt.ViewModels
             m_saveCommand = new RelayCommand(Save, () => CanSave);
             m_deleteCommand = new RelayCommand(Delete, () => CanDelete);
 
-            
+            m_changed = false;
+
+
         }
 
         #endregion
@@ -153,11 +160,13 @@ namespace Adapt.ViewModels
                 if (OnBeforeSaveCanceled())
                     throw new OperationCanceledException("Save was canceled.");
 
-             
+                m_Devices.ForEach(d => d.Save());
+
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     new TableOperations<Template>(connection).AddNewOrUpdateRecord(m_template);
 
                 Load(m_template.Id);
+                m_changed = false;
                 OnSaved();
             }
             catch (Exception ex)
@@ -260,7 +269,6 @@ namespace Adapt.ViewModels
             if (Saved != null)
                 Saved(this, EventArgs.Empty);
         }
-
        
         private void OnTemplateChanged()
         {
@@ -286,8 +294,8 @@ namespace Adapt.ViewModels
 
         private void OnDeviceChange(object sender, PropertyChangedEventArgs args)
         {
-            if (args.PropertyName == "Status")
-                LoadDevices();
+            if (args.PropertyName == "Changed")
+                OnPropertyChanged(nameof(Changed));
         }
         #endregion
 

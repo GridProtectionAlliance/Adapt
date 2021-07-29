@@ -40,21 +40,26 @@ namespace Adapt.ViewModels
         #region [ Members ]
 
         private bool m_removed;
+        private bool m_changed;
         private int m_templateID;
+        private TemplateInputSignal m_signal;
         #endregion
 
         #region[ Properties ]
 
         public string Name
         {
-            get => "";
+            get => m_signal.Name;
             set
             {
-                //m_device.Name = value;
+                m_signal.Name = value;
                 OnPropertyChanged();
+                m_changed = true;
+                OnPropertyChanged(nameof(Changed));
             }
         }
 
+        public bool Changed => m_changed || m_removed;
         public bool Removed => m_removed;
         #endregion
 
@@ -63,10 +68,13 @@ namespace Adapt.ViewModels
         /// Creates a new <see cref="TemplateInputDevice"/> VieModel
         /// </summary>
         /// <param name="device"> The <see cref="TemplateInputDevice"/> associated with this ViewModel</param>
-        /// <param name="DataSourceID">The ID of the <see cref="Template"/> </param>
-        public InputSignalVM()
+        /// <param name="signal">The <see cref="TemplateInputSignal"/> for this ViewModel </param>
+        public InputSignalVM(TemplateInputDevice device, TemplateInputSignal signal)
         {
             m_removed = false;
+            m_changed = false;
+            m_signal = signal;
+            OnSignalChange();
         }
 
         #endregion
@@ -75,19 +83,27 @@ namespace Adapt.ViewModels
 
         public void Save()
         {
-            //using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            //    new TableOperations<TemplateInputDevice>(connection).AddNewOrUpdateRecord(m_device);
+            if (!m_removed)
+               using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                  new TableOperations<TemplateInputSignal>(connection).AddNewOrUpdateRecord(m_signal);
+            else
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    new TableOperations<TemplateInputSignal>(connection).DeleteRecord(m_signal);
 
         }
 
         public void Delete()
         {
-            //using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            //    new TableOperations<TemplateInputDevice>(connection).DeleteRecord(m_device);
-
+            m_removed = true;
+            OnPropertyChanged(nameof(Changed));
+            OnPropertyChanged(nameof(Removed));
         }
 
+        private void OnSignalChange()
+        {
+            OnPropertyChanged(nameof(Name));
 
+        }
         #endregion
 
         #region [ Static ]
