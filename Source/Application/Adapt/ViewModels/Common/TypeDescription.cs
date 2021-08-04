@@ -40,9 +40,9 @@ using System.Windows.Input;
 namespace Adapt.ViewModels
 {
     /// <summary>
-    /// ViewModel for DataSource Type
+    /// ViewModel for a Type Description as defined in the <see cref="DescriptionAttribute"/>
     /// </summary>
-    public class DataSourceTypeDescription
+    public class TypeDescription
     {
         #region [ Properties ]
         public string Header
@@ -86,15 +86,15 @@ namespace Adapt.ViewModels
         /// implementations of the given adapter type. It then returns a collection
         /// containing all the implementations it found as well as their descriptions.
         /// </summary>
-        /// <param name="searchDirectory">The directory in which to search for assemblies.</param>
-        /// <param name="adapterType">The type to be searched for in the assemblies.</param>
+        /// <param name="SearchDirectory">The directory in which to search for assemblies.</param>
+        /// <param name="Interface">The type to be searched for in the assemblies.</param>
         /// <returns>The collection of types found as well as their descriptions.</returns>
-        public static List<DataSourceTypeDescription> LoadDataSourceTypes(string searchDirectory)
+        public static List<TypeDescription> LoadDataSourceTypes(string SearchDirectory, Type Interface)
         {
 
             DescriptionAttribute descriptionAttribute;
 
-            return typeof(IDataSource).LoadImplementations(searchDirectory, true,false)
+            return Interface.LoadImplementations(SearchDirectory, true,false)
                 .Distinct()
                 .Where(type => GetEditorBrowsableState(type) == EditorBrowsableState.Always)
                 .Select(type => GetDescription(type))
@@ -133,9 +133,9 @@ namespace Adapt.ViewModels
         /// Either the description as defined by a <see cref="DescriptionAttribute"/>
         /// or else the <see cref="Type.FullName"/> of the parameter.
         /// </returns>
-        private static DataSourceTypeDescription GetDescription(Type type)
+        private static TypeDescription GetDescription(Type type)
         {
-            DataSourceTypeDescription adapterTypeDescription = new DataSourceTypeDescription();
+            TypeDescription adapterTypeDescription = new TypeDescription();
             DescriptionAttribute descriptionAttribute;
             string[] splitDescription;
 

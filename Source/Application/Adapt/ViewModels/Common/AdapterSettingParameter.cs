@@ -65,6 +65,7 @@ namespace Adapt.ViewModels.Common
         private UIElement m_customPopup;
 
         private string[] m_ConnectionSTringNames;
+
         #endregion
 
         #region [ Constructor ]
@@ -347,6 +348,7 @@ namespace Adapt.ViewModels.Common
             get => m_ConnectionSTringNames;
             set => m_ConnectionSTringNames = value;
         }
+
         #endregion
 
         #region[ Methods ]
@@ -386,12 +388,12 @@ namespace Adapt.ViewModels.Common
         #region [ Static ]
 
         /// <summary>
-        /// Gets the <see cref="AdapterSettingParameter"/> for a given <see cref="IDataSource"/>.
+        /// Gets the <see cref="AdapterSettingParameter"/> for a given <see cref="IAdapter"/>.
         /// </summary>
-        /// <param name="dataSource">The <see cref="IDataSource"/> for which the Settings are.</param>
+        /// <param name="dataSource">The <see cref="IAdapter"/> for which the Settings are.</param>
         /// <param name="connectionString">The current Connection string to be parsed.</param>
         /// <returns></returns>
-        public static List<AdapterSettingParameterVM> GetSettingParameters(IDataSource dataSource, string connectionString) 
+        public static List<AdapterSettingParameterVM> GetSettingParameters(IAdapter dataSource, string connectionString) 
         {
 
             Type settingType = dataSource.GetSettingType();

@@ -58,7 +58,7 @@ namespace Adapt.ViewModels
 
         private List<DeviceViewModel> m_Devices;
 
-        private List<DataSourceTypeDescription> m_dataSourceTypes;
+        private List<TypeDescription> m_dataSourceTypes;
         private IDataSource m_instance;
         private List<AdapterSettingParameterVM> m_settings;
 
@@ -150,7 +150,7 @@ namespace Adapt.ViewModels
             }
         }
 
-        public List<DataSourceTypeDescription> DataSourceTypes
+        public List<TypeDescription> DataSourceTypes
         {
             get => m_dataSourceTypes;
             set
@@ -233,7 +233,7 @@ namespace Adapt.ViewModels
             m_saveCommand = new RelayCommand(Save, () => CanSave);
             m_deleteCommand = new RelayCommand(Delete, () => CanDelete);
 
-            m_dataSourceTypes = DataSourceTypeDescription.LoadDataSourceTypes(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar));
+            m_dataSourceTypes = TypeDescription.LoadDataSourceTypes(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar),typeof(IDataSource));
 
             m_Devices = new List<DeviceViewModel>();
             
