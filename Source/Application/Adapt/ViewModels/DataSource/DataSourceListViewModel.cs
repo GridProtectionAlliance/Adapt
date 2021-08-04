@@ -81,6 +81,7 @@ namespace Adapt.ViewModels
         public DataSourceListViewModel()
         {
             AddNewCommand = new RelayCommand(AddNewDataSource, () => true);
+            m_selectedIndex = -1;
             Load();
         }
 
