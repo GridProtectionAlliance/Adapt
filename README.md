@@ -1,4 +1,4 @@
-![Icon](http://www.gridprotectionalliance.org/images/products/icons%2064/openXDA.png)![ADAPT](http://www.gridprotectionalliance.org/images/products/openXDAW.png)
+![Model](https://www.gridprotectionalliance.org/images/products/productTitles75/Adapt.png)
 
 **Accelerated data Analytics for power-system Time-series Data**
 
