@@ -92,14 +92,18 @@ namespace Adapt.ViewModels
             m_changed = false;
             Assigned = true;
             m_inputIndex = index;
+            m_analyticVM = analyticViewModel;
+
             if (analyticInputSignal == null)
             {
                 m_name = "Not Assigned";
                 Assigned = false;
             }
+            else
+                GetSignalName(analyticInputSignal);
 
-            m_analyticVM = analyticViewModel;
             m_signal = analyticInputSignal;
+
             ChangeSignal = new RelayCommand(SelectSignal, () => true);
         }
 
@@ -125,22 +129,78 @@ namespace Adapt.ViewModels
         private void UpdateSignal(AnalyticInput selectedSignal)
         {
             Assigned = true;
+           
             selectedSignal.AnalyticID = m_analyticVM.ID;
             selectedSignal.InputIndex = m_inputIndex;
 
+            GetSignalName(selectedSignal);
             m_signal = selectedSignal;
-
-            if (selectedSignal.IsInputSignal)
-                m_name = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.SelectMany(d => d.Signals).Where(s => s.ID == selectedSignal.SignalID).FirstOrDefault()?.Name ?? "";
-            else
-                m_name = m_analyticVM.SectionViewModel.TemplateViewModel.Sections.SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == selectedSignal.SignalID).FirstOrDefault()?.Name ?? "";
-
+            
             m_changed = true;
             OnPropertyChanged(nameof(Changed));
             OnPropertyChanged(nameof(Assigned));
-            OnPropertyChanged(nameof(Name));
 
         }
+
+        /// <summary>
+        /// Update Name Property with correct SignalName
+        /// </summary>
+        /// <param name="signal">The <see cref="AnalyticInput"/> with the correct signalID</param>
+        private void GetSignalName(AnalyticInput signal)
+        {
+            if (m_signal != null)
+            {
+                if (m_signal.IsInputSignal)
+                {
+                    InputSignalVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.SelectMany(d => d.Signals).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
+                    signalVM.PropertyChanged -= SignalNameChanged;
+                }
+                else
+                {
+                    AnalyticOutputVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Sections
+                        .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
+                    signalVM.PropertyChanged -= SignalNameChanged;
+                }
+            }
+
+            if (signal.IsInputSignal)
+            {
+                InputSignalVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.SelectMany(d => d.Signals).Where(s => s.ID == signal.SignalID).FirstOrDefault();
+                m_name = signalVM?.Name ?? "";
+                signalVM.PropertyChanged += SignalNameChanged;
+            }
+            else
+            {
+                AnalyticOutputVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Sections
+                    .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == signal.SignalID).FirstOrDefault();
+                signalVM.PropertyChanged += SignalNameChanged;
+                m_name = signalVM?.Name ?? "";
+            }
+
+            OnPropertyChanged(nameof(Name));
+        }
+        /// <summary>
+        /// Function to update Name if the Signal Name changes.
+        /// </summary>
+        private void SignalNameChanged(object sender, PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == "Name" && m_signal != null)
+            {
+                if (m_signal.IsInputSignal)
+                {
+                    InputSignalVM signalVM = (InputSignalVM)sender;
+                    m_name = signalVM?.Name ?? "";
+                }
+                else
+                {
+                    AnalyticOutputVM signalVM = (AnalyticOutputVM)sender;
+                    m_name = signalVM?.Name ?? "";
+                }
+                OnPropertyChanged(nameof(Name));
+            }
+            
+        }
+
         #endregion
 
         #region [ Static ]

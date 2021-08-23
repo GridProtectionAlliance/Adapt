@@ -170,6 +170,9 @@ namespace Adapt.ViewModels
         #endregion
 
         #region [ Methods ]
+        /// <summary>
+        /// Saves the entire Template and all associated Elements.
+        /// </summary>
         public void Save()
         {
             Mouse.OverrideCursor = Cursors.Wait;
@@ -178,10 +181,18 @@ namespace Adapt.ViewModels
                 if (OnBeforeSaveCanceled())
                     throw new OperationCanceledException("Save was canceled.");
 
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                {
+                    TableOperations<Template> templateTbl = new TableOperations<Template>(connection);
+                    templateTbl.AddNewOrUpdateRecord(m_template);
+                }
+
+                // Save Devices
                 m_Devices.ToList().ForEach(d => d.Save());
 
-                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    new TableOperations<Template>(connection).AddNewOrUpdateRecord(m_template);
+                // Save Sections
+                m_Sections.ToList().ForEach(s => s.Save());
+             
 
                 Load(m_template.Id);
                 m_changed = false;

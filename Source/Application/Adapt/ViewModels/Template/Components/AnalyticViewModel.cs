@@ -45,8 +45,6 @@ namespace Adapt.ViewModels
 
         private bool m_removed;
         private bool m_changed;
-        private int m_templateID;
-        private SectionVM m_SectionVM;
         private Analytic m_analytic;
         private List<TypeDescription> m_analyticTypes;
 
@@ -84,7 +82,7 @@ namespace Adapt.ViewModels
         /// <summary>
         /// The Section View model this Analytic is associated with
         /// </summary>
-        public SectionVM SectionViewModel => m_SectionVM;
+        public SectionVM SectionViewModel { get; set; }
         /// <summary>
         /// Gets or sets the index of the selected item in the <see cref="AnalyticTypes"/>.
         /// </summary>
@@ -138,7 +136,7 @@ namespace Adapt.ViewModels
             m_changed = analytic.ID < 1;
             m_analytic = analytic;
             m_settings = new ObservableCollection<AdapterSettingParameterVM>();
-            m_SectionVM = section;
+            SectionViewModel = section;
             m_analyticTypes = TypeDescription.LoadDataSourceTypes(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar), typeof(IAnalytic));
             OnAdapterTypeSelectedIndexChanged();
         }
@@ -204,6 +202,43 @@ namespace Adapt.ViewModels
         {
             m_changed = true;
             OnPropertyChanged("Changed");
+        }
+
+        /// <summary>
+        /// Saves this Analytic and all associated inputs and outputs.
+        /// </summary>
+        public void Save()
+        {
+            if (!Changed)
+                return;
+
+            IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
+            m_analytic.ConnectionString = AdapterSettingParameterVM.GetConnectionString(m_settings.ToList(), Instance);
+            if (!Changed)
+                return;
+
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            {
+                TableOperations<Analytic> analyticTbl = new TableOperations<Analytic>(connection);
+                if (m_analytic.ID < 0)
+                {
+                    int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", SectionViewModel.TemplateViewModel.Name).Id;
+                    int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("Order = {0} AND TemplateId = {1}", SectionViewModel.Order, templateId).ID;
+                    analyticTbl.AddNewRecord(new Analytic()
+                    {
+                        Name = m_analytic.Name,
+                        AssemblyName = m_analytic.AssemblyName,
+                        ConnectionString = m_analytic.ConnectionString,
+                        TypeName = m_analytic.TypeName,
+                        SectionID = sectionId,
+                        TemplateID = templateId
+                    });
+                }
+                else
+                    analyticTbl.UpdateRecord(m_analytic);
+
+            }
+
         }
         #endregion
 

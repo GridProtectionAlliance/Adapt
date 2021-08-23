@@ -44,8 +44,6 @@ namespace Adapt.ViewModels
     public class SectionVM: ViewModelBase
     {
         #region [ Members ]
-
-        private TemplateVM m_templateVM;
         private TemplateSection m_section;
         private ObservableCollection<AnalyticVM> m_analytics;
         #endregion
@@ -76,7 +74,10 @@ namespace Adapt.ViewModels
 
         public int Order => m_section.Order;
 
-        public TemplateVM TemplateViewModel => m_templateVM;
+        /// <summary>
+        /// The associated Template ViewModel
+        /// </summary>
+        public TemplateVM TemplateViewModel { get; set; }
         #endregion
 
         #region [ Constructor ]
@@ -87,7 +88,7 @@ namespace Adapt.ViewModels
         /// <param name="template">The <see cref="TemplateVM"/> associated with this <see cref="TemplateSection"/> </param>
         public SectionVM(TemplateSection section, TemplateVM template)
         {
-            m_templateVM = template;
+            TemplateViewModel = template;
             m_section = section;
 
             AddAnalyticCommand = new RelayCommand(AddAnalytic, () => true);
@@ -136,6 +137,35 @@ namespace Adapt.ViewModels
                 description = sectionType.ToString();
 
             return description;
+        }
+
+        /// <summary>
+        /// Save All changes.
+        /// </summary>
+        public void Save()
+        {
+            if (!Changed)
+                return;
+
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            {
+                TableOperations<TemplateSection> templateTbl = new TableOperations<TemplateSection>(connection);
+                if (m_section.ID < 0)
+                {
+                    int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", TemplateViewModel.Name).Id;
+                    templateTbl.AddNewRecord(new TemplateSection()
+                    {
+                        Name = m_section.Name,
+                        AnalyticTypeID = m_section.AnalyticTypeID,
+                        Order = m_section.Order,
+                        TemplateID = templateId
+                    });
+                }
+                else
+                    templateTbl.UpdateRecord(m_section);
+
+                m_analytics.ToList().ForEach(a => a.Save());
+            }
         }
         #endregion
 
