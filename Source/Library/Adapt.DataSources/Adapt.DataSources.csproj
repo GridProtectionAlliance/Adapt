@@ -7,6 +7,7 @@
   <ItemGroup>
     <PackageReference Include="Gemstone.Common" Version="1.0.67" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0-preview.1.21102.12" />
+    <PackageReference Include="System.IO.FileSystem.AccessControl" Version="6.0.0-preview.1.21102.12" />
   </ItemGroup>
 
   <ItemGroup>
@@ -14,6 +15,12 @@
     <ProjectReference Include="..\GemstoneAnalytic\GemstoneAnalytic.csproj" />
     <ProjectReference Include="..\GemstoneCommon\GemstoneCommon.csproj" />
     <ProjectReference Include="..\GemstonePhasorProtocolls\GemstonePhasorProtocolls.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="OSIsoft.AFSDK">
+      <HintPath>..\..\Dependencies\OSI\OSIsoft.AFSDK.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
