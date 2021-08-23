@@ -21,6 +21,7 @@
 //
 // ******************************************************************************************************
 using Adapt.Models;
+using Adapt.View.Template;
 using Adapt.ViewModels.Common;
 using Gemstone.Data;
 using Gemstone.Data.Model;
@@ -36,9 +37,11 @@ using System.ComponentModel;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Transactions;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace Adapt.ViewModels
 {
@@ -54,10 +57,14 @@ namespace Adapt.ViewModels
         private RelayCommand m_deleteCommand;
         private RelayCommand m_clearCommand;
         private RelayCommand m_addDeviceCommand;
+        private RelayCommand m_addSectionCommand;
+
 
         private ObservableCollection<InputDeviceVM> m_Devices;
 
         private bool m_changed;
+
+        private ObservableCollection<SectionVM> m_Sections;
 
         #endregion
 
@@ -99,11 +106,7 @@ namespace Adapt.ViewModels
             }
         }
 
-        public bool Changed => m_changed || m_Devices.Where(d => d.Changed).Any();
-       
-
-     
-
+        public bool Changed => m_changed || m_Devices.Where(d => d.Changed).Any() || m_Sections.Where(s => s.Changed).Any();
         
         public ICommand SaveCommand => m_saveCommand;
 
@@ -115,6 +118,11 @@ namespace Adapt.ViewModels
         /// Command that adds a <see cref="TemplateInputDevice"/> to this <see cref="Template"/>
         /// </summary>
         public ICommand AddDeviceCommand => m_addDeviceCommand;
+
+        /// <summary>
+        /// Command that adds a <see cref="SectionVM"/> to this <see cref="Template"/>
+        /// </summary>
+        public ICommand AddSectionCommand => m_addSectionCommand;
 
         public bool CanSave => Changed;
 
@@ -135,6 +143,8 @@ namespace Adapt.ViewModels
 
         public ObservableCollection<InputDeviceVM> Devices => m_Devices;
 
+        public ObservableCollection<SectionVM> Sections => m_Sections;
+
         #endregion
 
         #region [ Constructor ]
@@ -153,8 +163,8 @@ namespace Adapt.ViewModels
             m_deleteCommand = new RelayCommand(Delete, () => CanDelete);
             m_addDeviceCommand = new RelayCommand(AddDevice, () => true);
             m_changed = false;
-
-
+            m_Sections = new ObservableCollection<SectionVM>();
+            m_addSectionCommand = new RelayCommand(AddSection, () => m_Sections.Count() < 10);
         }
 
         #endregion
@@ -204,11 +214,37 @@ namespace Adapt.ViewModels
                 name = "PMU " + i.ToString();
             }
 
-            m_Devices.Add(new InputDeviceVM(new TemplateInputDevice() { Name = name, TemplateID=m_template.Id})) ;
+            m_Devices.Add(new InputDeviceVM(this, new TemplateInputDevice()
+            {
+                Name = name,
+                TemplateID = m_template?.Id ?? 0,
+                ID = CreateDeviceID()
+            }));
                 
             m_Devices.Last().PropertyChanged += OnDeviceChange;
             OnPropertyChanged(nameof(Devices));
             OnPropertyChanged(nameof(Changed));
+        }
+
+        private void AddSection()
+        {
+            NewSectionView window = new NewSectionView();
+            NewSectionVM vm = new NewSectionVM((TemplateSection section) => {
+                section.TemplateID = m_template.Id;
+                section.Order = m_Sections.Count() > 0 ? m_Sections.Max(s => s.Order) + 1 : 1;
+                m_Sections.Add(new SectionVM(section, this));
+                m_Sections.Last().PropertyChanged += OnSectionChange;
+
+                OnPropertyChanged(nameof(Sections));
+                window.Dispatcher.Invoke(DispatcherPriority.Normal, new ThreadStart(() =>
+                {
+                    window.Close();
+                }));
+            });
+            window.DataContext = vm;
+            
+            window.Show();
+
         }
 
         public void Delete() 
@@ -231,6 +267,7 @@ namespace Adapt.ViewModels
                     Template = new TableOperations<Template>(connection).QueryRecordWhere("Id = {0}", ID);
 
                 LoadDevices();
+                LoadSections();
                 OnLoaded();
             }
             catch(Exception ex)
@@ -241,7 +278,7 @@ namespace Adapt.ViewModels
                 }
                 else
                 {
-                    Popup(ex.Message, "Load DataSource Exception:", MessageBoxImage.Error);
+                    Popup(ex.Message, "Load Template Exception:", MessageBoxImage.Error);
                 }
             }
             finally
@@ -309,7 +346,7 @@ namespace Adapt.ViewModels
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     m_Devices = new ObservableCollection<InputDeviceVM>(new TableOperations<TemplateInputDevice>(connection)
                         .QueryRecordsWhere("TemplateID = {0}", m_template.Id)
-                        .Select(d => new InputDeviceVM(d)));
+                        .Select(d => new InputDeviceVM(this,d)));
 
             m_Devices.ToList().ForEach(d => d.PropertyChanged += OnDeviceChange);
             m_Devices.ToList().ForEach(d => d.LoadSignals());
@@ -321,6 +358,68 @@ namespace Adapt.ViewModels
             if (args.PropertyName == "Changed")
                 OnPropertyChanged(nameof(Changed));
         }
+
+        private void OnSectionChange(object sender, PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == "Changed")
+                OnPropertyChanged(nameof(Changed));
+        }
+
+        private void LoadSections()
+        {
+            if (m_template == null)
+                m_Sections = new ObservableCollection<SectionVM>();
+            else
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    m_Sections = new ObservableCollection<SectionVM>(new TableOperations<TemplateSection>(connection)
+                        .QueryRecordsWhere("TemplateID = {0}", m_template.Id).OrderBy(item => item.Order)
+                        .Select(d => new SectionVM(d, this)));
+
+            m_Sections.ToList().ForEach(d => d.PropertyChanged += OnSectionChange);
+            m_Sections.ToList().ForEach(d => d.LoadAnalytics());           
+
+            OnPropertyChanged(nameof(Sections));
+        }
+
+        /// <summary>
+        /// Creates a unique ID for a new Device. 
+        /// All IDs < 0 to indicate they have never been saved to the Database.
+        /// </summary>
+        /// <returns> a negative unique deviceID</returns>
+        public int CreateDeviceID()
+        {
+            if (m_Devices.Count() == 0)
+                return -1;
+            int min =  m_Devices.Min(item => item.ID);
+            return (min < 0 ? (min - 1) : -1);
+        }
+
+        /// <summary>
+        /// Creates a unique ID for a new InputSignal. 
+        /// All IDs < 0 to indicate they have never been saved to the Database.
+        /// </summary>
+        /// <returns> a negative unique inpusSignalID</returns>
+        public int CreateInputSignalID()
+        {
+            if (m_Devices.Count() == 0)
+                return -1;
+            int min = m_Devices.Min(item => item.NSignals > 0 ? item.Signals.Min(s => s.ID) : 0 );
+            return (min < 0 ? (min - 1) : -1);
+        }
+
+        /// <summary>
+        /// Creates a unique ID for a new Analytic. 
+        /// All IDs < 0 to indicate they have never been saved to the Database.
+        /// </summary>
+        /// <returns> a negative unique analyticID</returns>
+        public int CreateAnalyticID()
+        {
+            if (m_Sections.Count() == 0)
+                return -1;
+            int min = m_Sections.Min(item => item.Analytics.Count() > 0 ? item.Analytics.Min(a => a.ID) : 0);
+            return (min < 0 ? (min - 1) : -1);
+        }
+
         #endregion
 
         #region [ Static ]

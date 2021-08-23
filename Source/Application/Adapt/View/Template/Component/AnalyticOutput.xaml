@@ -1,0 +1,22 @@
+﻿<UserControl x:Class="Adapt.View.Template.AnalyticOutput"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Adapt.View.Template" xmlns:common="clr-namespace:Adapt.View.Common"
+             mc:Ignorable="d" >
+
+    <StackPanel Orientation="Horizontal" Height="auto" Background="LightGray">
+        <StackPanel.Resources>
+            <CollectionViewSource Source="{Binding Path=DeviceNames}" x:Key="DeviceNames" />
+        </StackPanel.Resources>
+        <TextBlock Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Label}" />
+        <TextBox Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Name}" />
+        <Label Margin="0,2" Width="60" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Device:"/>
+        <ComboBox Margin="0,2" Width="300" VerticalAlignment="Center" HorizontalAlignment="Center" ItemsSource="{Binding Source={StaticResource DeviceNames}}"
+                  SelectedIndex="{Binding Mode=TwoWay, Path=DeviceIndex}">
+        </ComboBox>
+
+    </StackPanel>
+            
+</UserControl>

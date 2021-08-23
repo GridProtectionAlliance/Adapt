@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  DataSource.tsx - Gbtc
+//  AnalyticSectionAttribute.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,29 +16,49 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  03/25/2020 - C. Lackner
+//  08/02/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
 
 
 using Gemstone.Data.Model;
+using System;
 
 namespace Adapt.Models
 {
     /// <summary>
-    /// Represents a DataSource saved in the SQL Lite DB.
+    /// Defines an attribute that determines the <see cref="AnalyticSection"/> associated with an Attributes.
     /// </summary>
-    public class DataSource
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    public sealed class AnalyticSectionAttribute : Attribute
     {
-        public string Name { get; set; }
+     
+        /// <summary>
+        /// Gets a list of <see cref="AnalyticSection"/> this Analytic can be used in.
+        /// </summary>
+        public AnalyticSection[] Sections
+        {
+            get;
+        }
 
-        [PrimaryKey(true)]
-        public new int ID { get; set; }
-        public string TypeName { get; set; }
-        public string ConnectionString { get; set; }
+        /// <summary>
+        /// Creates a new <see cref="AllowSearchAttribute"/>.
+        /// </summary>
+        /// <param name="Section"> The <see cref="AnalyticSection"/> this analytic is available in.</param>
+        public AnalyticSectionAttribute(AnalyticSection Section)
+        {
+            this.Sections = new AnalyticSection[] { Section };
+        }
 
-        public string AssemblyName { get; set; }
-
+        /// <summary>
+        /// Creates a new <see cref="AllowSearchAttribute"/>.
+        /// </summary>
+        /// <param name="Sections"> A List of <see cref="AnalyticSection"/>s this analytic is available in.</param>
+        public AnalyticSectionAttribute(params AnalyticSection[] Sections)
+        {
+            this.Sections = Sections;
+        }
     }
+
 }

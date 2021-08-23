@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  DataSource.tsx - Gbtc
+//  IAdapter.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,29 +16,29 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  03/25/2020 - C. Lackner
+//  08/04/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
 
 
-using Gemstone.Data.Model;
+using GemstoneCommon;
+using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
 
 namespace Adapt.Models
 {
     /// <summary>
-    /// Represents a DataSource saved in the SQL Lite DB.
+    /// Interface for an ADAPT Adapter (Datasource or Analytic)
     /// </summary>
-    public class DataSource
+    public interface IAdapter
     {
-        public string Name { get; set; }
+        /// <summary>
+        /// Returns the <see cref="Type"/> of the Settings object that defines all Parameters
+        /// </summary>
+        public Type GetSettingType();
 
-        [PrimaryKey(true)]
-        public new int ID { get; set; }
-        public string TypeName { get; set; }
-        public string ConnectionString { get; set; }
-
-        public string AssemblyName { get; set; }
 
     }
 }

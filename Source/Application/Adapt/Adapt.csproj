@@ -29,6 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Library\Adapt.Analytics\Adapt.Analytcis.csproj" />
     <ProjectReference Include="..\..\Library\Adapt.DataSources\Adapt.DataSources.csproj" />
     <ProjectReference Include="..\..\Library\Adapt.Models\Adapt.Models.csproj" />
     <ProjectReference Include="..\..\Library\AdaptLogic\AdaptLogic.csproj" />
@@ -57,10 +58,22 @@
     <Compile Update="View\Common\AdapterSettingParameter.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="View\Template\Component\SelectSignalWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="View\DataSource\DataSourceSettingView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="View\OverviewTabs\TemplateListView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="View\Template\Component\AnalyticInputView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="View\Template\Component\AnalyticOutput.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="View\Template\Sections\NewSectionView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="View\Visualization\Widgets\StatisticsTable.xaml.cs">
@@ -73,11 +86,27 @@
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="View\Template\Component\SelectSignalWindow.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="View\DataSource\DataSourceSettingView.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
       <SubType>Designer</SubType>
     </Page>
     <Page Update="View\OverviewTabs\TemplateListView.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="View\Template\Component\AnalyticInputView.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="View\Template\Component\AnalyticOutput.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="View\Template\Sections\NewSectionView.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
       <SubType>Designer</SubType>
     </Page>

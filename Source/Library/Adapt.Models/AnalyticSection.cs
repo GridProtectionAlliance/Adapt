@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  DataSource.tsx - Gbtc
+//  AnalyticSection.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,29 +16,35 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  03/25/2020 - C. Lackner
+//  08/02/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
-
-
-using Gemstone.Data.Model;
+using GemstoneCommon;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Windows;
 
 namespace Adapt.Models
 {
     /// <summary>
-    /// Represents a DataSource saved in the SQL Lite DB.
+    /// Enumerable of AnalyticSections
     /// </summary>
-    public class DataSource
+    public enum AnalyticSection
     {
-        public string Name { get; set; }
+        [Description("Data Cleanup: Bad Data Removal and Data Quality Operation.")]
+        DataCleanup,
 
-        [PrimaryKey(true)]
-        public new int ID { get; set; }
-        public string TypeName { get; set; }
-        public string ConnectionString { get; set; }
+        [Description("Signal Construction: Simple operations to combine Signals or condition Signals.")]
+        DataFiltering,
 
-        public string AssemblyName { get; set; }
+        [Description("Signal Processing: Process Signals through LTI Filters.")]
+        SignalProcessing,
+
+        [Description("Event Detection: Event Detection")]
+        EventDetection
+        
 
     }
 }

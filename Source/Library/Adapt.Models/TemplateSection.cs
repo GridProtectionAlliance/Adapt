@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  DataSource.tsx - Gbtc
+//  TemplateSection.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,29 +16,30 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  03/25/2020 - C. Lackner
+//  08/02/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
-
-
 using Gemstone.Data.Model;
+using GemstoneCommon;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Windows;
 
 namespace Adapt.Models
 {
     /// <summary>
-    /// Represents a DataSource saved in the SQL Lite DB.
+    /// A Section of Analytics in a <see cref="Template"/>
     /// </summary>
-    public class DataSource
+    public class TemplateSection
     {
+        [PrimaryKey()]
+        public int ID { get; set; }
+        public int TemplateID { get; set; }
         public string Name { get; set; }
-
-        [PrimaryKey(true)]
-        public new int ID { get; set; }
-        public string TypeName { get; set; }
-        public string ConnectionString { get; set; }
-
-        public string AssemblyName { get; set; }
+        public int AnalyticTypeID { get; set; }
+	    public int Order { get; set; }
 
     }
 }

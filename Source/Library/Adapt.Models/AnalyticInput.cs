@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  DataSource.tsx - Gbtc
+//  AnalyticInput.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,7 +16,7 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  03/25/2020 - C. Lackner
+//  08/02/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
@@ -27,18 +27,16 @@ using Gemstone.Data.Model;
 namespace Adapt.Models
 {
     /// <summary>
-    /// Represents a DataSource saved in the SQL Lite DB.
+    /// Represents an input Signal for a <see cref="IAnalytic"/> saved in the SQL Lite DB.
     /// </summary>
-    public class DataSource
+    public class AnalyticInput
     {
-        public string Name { get; set; }
-
+     
         [PrimaryKey(true)]
-        public new int ID { get; set; }
-        public string TypeName { get; set; }
-        public string ConnectionString { get; set; }
-
-        public string AssemblyName { get; set; }
-
+        public int ID { get; set; }
+        public int AnalyticID { get; set; }
+        public int InputIndex { get; set; }
+	    public bool IsInputSignal { get; set; }
+        public int SignalID { get; set; }
     }
 }

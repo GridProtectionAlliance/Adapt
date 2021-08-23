@@ -33,20 +33,24 @@ using System.Linq;
 namespace Adapt.ViewModels
 {
     /// <summary>
-    /// ViewModel for Template Input Signal
+    /// ViewModel for <see cref="TemplateInputSignal"/>
     /// </summary>
     public class InputSignalVM: ViewModelBase
     {
         #region [ Members ]
 
         private bool m_removed;
+        private bool m_selected;
         private bool m_changed;
-        private int m_templateID;
         private TemplateInputSignal m_signal;
+        private InputDeviceVM m_DeviceVM;
         #endregion
 
         #region[ Properties ]
 
+        /// <summary>
+        /// The Name of the <see cref="TemplateInputSignal"/>.
+        /// </summary>
         public string Name
         {
             get => m_signal.Name;
@@ -59,21 +63,37 @@ namespace Adapt.ViewModels
             }
         }
 
+        /// <summary>
+        /// Flag indicating if this <see cref="TemplateInputSignal"/> has changed.
+        /// This is also set if the Signal is removed
+        /// </summary>
         public bool Changed => m_changed || m_removed;
+
+        /// <summary>
+        /// Flag  indicating if the Input Signal has been removed
+        /// </summary>
         public bool Removed => m_removed;
+
+        /// <summary>
+        /// The unique ID of the <see cref="TemplateInputSignal"/>
+        /// </summary>
+        public int ID => m_signal.ID;
+        
         #endregion
 
         #region [ Constructor ]
         /// <summary>
-        /// Creates a new <see cref="TemplateInputDevice"/> VieModel
+        /// Creates a new <see cref="TemplateInputSignal"/> VieModel
         /// </summary>
-        /// <param name="device"> The <see cref="TemplateInputDevice"/> associated with this ViewModel</param>
+        /// <param name="deviceViewModel"> The <see cref="TemplateInputDevice"/> ViewModel associated with this Device</param>
         /// <param name="signal">The <see cref="TemplateInputSignal"/> for this ViewModel </param>
-        public InputSignalVM(TemplateInputDevice device, TemplateInputSignal signal)
+        public InputSignalVM(InputDeviceVM deviceViewModel, TemplateInputSignal signal)
         {
             m_removed = false;
             m_changed = false;
             m_signal = signal;
+            m_DeviceVM = deviceViewModel;
+            m_selected = false;
             OnSignalChange();
         }
 

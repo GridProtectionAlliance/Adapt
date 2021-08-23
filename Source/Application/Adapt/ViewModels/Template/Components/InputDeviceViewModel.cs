@@ -31,26 +31,34 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Windows.Input;
 
 namespace Adapt.ViewModels
 {
     /// <summary>
-    /// ViewModel for Template Input Device
+    /// ViewModel for a <see cref="TemplateInputDevice"/>
     /// </summary>
     public class InputDeviceVM: ViewModelBase
     {
         #region [ Members ]
 
         private TemplateInputDevice m_device;
-        private ObservableCollection<InputSignalVM> m_signals;
-        private RelayCommand m_removeCmd;
-        private RelayCommand m_addSingalCmd;
         private bool m_removed;
+        private bool m_selected;
         private bool m_changed;
+        private TemplateVM m_templateViewModel;
+
         #endregion
 
         #region[ Properties ]
+        /// <summary>
+        /// The unique ID for the <see cref="TemplateInputDevice"/>
+        /// </summary>
+        public int ID => m_device.ID;
 
+        /// <summary>
+        /// The Name of the Device.
+        /// </summary>
         public string Name
         {
             get => m_device.Name;
@@ -63,46 +71,57 @@ namespace Adapt.ViewModels
             }
         }
 
-        public int NSignals => m_signals.Count(i => !i.Removed);
+        /// <summary>
+        /// The number of Signals associated with this Device
+        /// </summary>
+        public int NSignals => Signals.Count(i => !i.Removed);
 
+        /// <summary>
+        /// A Flag indicating if this device has been Removed by the User
+        /// </summary>
         public bool Removed => m_removed;
 
         /// <summary>
-        /// Indicates whether this Device or any of the associated signals have changed
+        /// A Flag indicating whether this Device or any of the associated signals have changed.
+        /// This is also true if the Device was Removed.
         /// </summary>
-        public bool Changed => m_changed || m_removed || m_signals.Where(item => item.Changed).Any();
-        /// <summary>
-        /// List of All <see cref="TemplateInputSignal"/> associated with this <see cref="TemplateInputDevice"/>
-        /// </summary>
-        public ObservableCollection<InputSignalVM> Signals => m_signals;
+        public bool Changed => m_changed || m_removed || Signals.Where(item => item.Changed).Any();
 
         /// <summary>
-        /// <see cref="RelayCommand"/> to remove this <see cref="TemplateInputDevice"/>
+        /// ViewModels for all <see cref="TemplateInputSignal"/> associated with this <see cref="TemplateInputDevice"/>
         /// </summary>
-        public RelayCommand Remove => m_removeCmd;
+        public ObservableCollection<InputSignalVM> Signals { get; private set; }
+
+        /// <summary>
+        /// <see cref="ICommand"/> associated with the remove Button if applicable.
+        /// </summary>
+        public ICommand Remove { get; }
 
 
         /// <summary>
-        /// <see cref="RelayCommand"/> to add a <see cref="TemplateInputSignal"/> to this <see cref="TemplateInputDevice"/>
+        /// <see cref="ICommand"/> to add a new Signal to this Device.
         /// </summary>
-        public RelayCommand AddSignal => m_addSingalCmd;
+        public ICommand AddSignal { get; }
 
+      
         #endregion
 
         #region [ Constructor ]
         /// <summary>
-        /// Creates a new <see cref="TemplateInputDevice"/> VieModel
+        /// Creates a new ViewModel for a <see cref="TemplateInputDevice"/>
         /// </summary>
+        /// <param name="templateViewModel"> The View model for this <see cref="Template"/> </param>
         /// <param name="device"> The <see cref="TemplateInputDevice"/> associated with this ViewModel</param>
-        /// <param name="DataSourceID">The ID of the <see cref="Template"/> </param>
-        public InputDeviceVM(TemplateInputDevice device)
+        public InputDeviceVM(TemplateVM templateViewModel, TemplateInputDevice device)
         {
             m_device = device;
-            m_signals = new ObservableCollection<InputSignalVM>();
+            m_selected = false;
+            Signals = new ObservableCollection<InputSignalVM>();
             m_removed = false;
-            m_removeCmd = new RelayCommand(Delete, () => true);
-            m_addSingalCmd = new RelayCommand(AddNewSignal, () => true);
+            Remove = new RelayCommand(Delete, () => true);
+            AddSignal = new RelayCommand(AddNewSignal, () => true);
             m_changed = !(device.ID > 0);
+            m_templateViewModel = templateViewModel;
         }
 
         #endregion
@@ -111,7 +130,7 @@ namespace Adapt.ViewModels
 
         public void Save()
         {
-            m_signals.ToList().ForEach(s => s.Save());
+            Signals.ToList().ForEach(s => s.Save());
             if (m_removed)
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     new TableOperations<TemplateInputDevice>(connection).DeleteRecord(m_device);
@@ -129,13 +148,13 @@ namespace Adapt.ViewModels
         public void LoadSignals() 
         {
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                m_signals = new ObservableCollection<InputSignalVM>(new TableOperations<TemplateInputSignal>(connection)
+                Signals = new ObservableCollection<InputSignalVM>(new TableOperations<TemplateInputSignal>(connection)
                         .QueryRecordsWhere("DeviceId = {0}", m_device.ID)
-                        .Select(d => new InputSignalVM(m_device,d)));
+                        .Select(d => new InputSignalVM(this,d)));
 
             OnPropertyChanged(nameof(Signals));
             OnPropertyChanged(nameof(NSignals));
-            m_signals.ToList().ForEach(s => s.PropertyChanged += SignalChanged);
+            Signals.ToList().ForEach(s => s.PropertyChanged += SignalChanged);
         }
 
         private void SignalChanged(object sender, PropertyChangedEventArgs arg)
@@ -149,24 +168,27 @@ namespace Adapt.ViewModels
         {
             string name = "Signal 1";
             int i = 1;
-            while (m_signals.Where(d => d.Name == name).Any())
+            while (Signals.Where(d => d.Name == name).Any())
             {
                 i++;
                 name = "Signal " + i.ToString();
             }
 
-            m_signals.Add(new InputSignalVM(m_device, new TemplateInputSignal() {
+            Signals.Add(new InputSignalVM(this, new TemplateInputSignal()
+            {
                 Name = name,
                 DeviceID = m_device.ID,
-                MeasurmentType=MeasurementType.VoltageMagnitude,
-                Phase=Phase.A
+                MeasurmentType = MeasurementType.VoltageMagnitude,
+                Phase = Phase.A,
+                ID = m_templateViewModel.CreateInputSignalID()
             }));
 
-            m_signals.Last().PropertyChanged += SignalChanged;
+            Signals.Last().PropertyChanged += SignalChanged;
             OnPropertyChanged(nameof(Signals));
             OnPropertyChanged(nameof(Changed));
             OnPropertyChanged(nameof(NSignals));
         }
+
         #endregion
 
         #region [ Static ]

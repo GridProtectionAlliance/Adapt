@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  DataSource.tsx - Gbtc
+//  PassThrough.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,29 +16,49 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  03/25/2020 - C. Lackner
+//  08/02/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
 
 
-using Gemstone.Data.Model;
+using Adapt.Models;
+using GemstoneCommon;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 
-namespace Adapt.Models
+namespace Adapt.DataSources
 {
     /// <summary>
-    /// Represents a DataSource saved in the SQL Lite DB.
+    /// A simple operation that just duplicates the input signal.
     /// </summary>
-    public class DataSource
+    
+    [AnalyticSection(AnalyticSection.DataCleanup)]
+    [Description("Duplicate Signal: This Analytic duplicates a signal for later use.")]
+    public class PassThrough: IAnalytic
     {
-        public string Name { get; set; }
+        public class Setting
+        {
+            public string TestString { get; set; }
+        }
+        public Type GetSettingType()
+        {
+            return typeof(Setting);
+        }
 
-        [PrimaryKey(true)]
-        public new int ID { get; set; }
-        public string TypeName { get; set; }
-        public string ConnectionString { get; set; }
+        public IEnumerable<string> OutputNames()
+        {
+            return new List<string>() { "Duplicate" };
+        }
 
-        public string AssemblyName { get; set; }
+        public IEnumerable<string> InputNames()
+        {
+            return new List<string>() { "Original" };
+        }
+
+
+
 
     }
 }
