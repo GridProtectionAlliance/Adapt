@@ -53,20 +53,8 @@ namespace Adapt.DataSources
         [DefaultValue("ecatest")]
         public string ServerName { get; set; }
 
-
-        [DefaultValue("")]
-        public string UserName { get; set; }
-
-        [DefaultValue("")]
-        public string Password { get; set; }
-
-        [DefaultValue(PIConnection.DefaultConnectTimeout)]
-        public int ConnectTimeout { get; set; }
-
         [DefaultValue("TVA_SHELBY:ABBF")]
         public string PITag { get; set; }
-
-        [DefaultValue(20)]
-        public int PageFactor { get; set; }
+        
     }
 }

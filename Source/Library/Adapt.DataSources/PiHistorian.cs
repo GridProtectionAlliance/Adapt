@@ -23,6 +23,11 @@
 
 
 using Adapt.Models;
+using AFSDKnetcore;
+using AFSDKnetcore.AF.Asset;
+using AFSDKnetcore.AF.Data;
+using AFSDKnetcore.AF.PI;
+using AFSDKnetcore.AF.Time;
 using Gemstone;
 using Gemstone.Collections.CollectionExtensions;
 using GemstoneCommon;
@@ -30,19 +35,18 @@ using GemstonePhasorProtocolls;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using OSIsoft.AF.Asset;
-using OSIsoft.AF.PI;
-using OSIsoft.AF.Time;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Net.NetworkInformation;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -59,12 +63,13 @@ namespace Adapt.DataSources
     [Description("OSISoft PI Historian: Imports Phasor data from a PI Instance.")]
     public class PIHistorian : IDataSource
     {
-        
+
 
         #region [ Members ]
 
+        private const int DefaultPort = 20401;
+        private PIServer m_server;
         private PIHistorianSettings m_settings;
-
         #endregion
 
         #region [ Constructor ]
@@ -82,37 +87,26 @@ namespace Adapt.DataSources
 
         public async IAsyncEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
         {
-           
-            using (PIConnection connection = new PIConnection() {
-                ServerName = m_settings.ServerName,
-                UserName = m_settings.UserName,
-                Password = m_settings.Password,
-                ConnectTimeout = m_settings.ConnectTimeout
-            })
+            if (m_server is null || !m_server.ConnectionInfo.IsConnected)
+                ConnectPI();
+
+            PIPointList pointList = new()
             {
-                if (!PIPoint.TryFindPIPoint(connection.Server, m_settings.PITag, out PIPoint point))
-                    yield break;
+                PIPoint.FindPIPoint(m_server, m_settings.PITag)
+            };
 
-                AFTime startTime = start;
-                AFTime stopTime = end;
+            PIPagingConfiguration pagingConfig = new(PIPageType.EventCount, 100);
+            AFTimeRange timeRange = new AFTimeRange(start, end);
 
-                IEnumerator<AFValue> PIenumerator = new PIScanner
+            IEnumerable<AFValues> results = pointList.RecordedValues(timeRange, AFBoundaryType.Inside, null, false, pagingConfig);
+
+            // Logic only supports single PiTag at the moment.
+            // We will need to use AF to get multiple based on PMU Name
+            foreach (AFValues values in results) // <- Group of read values
+            {
+
+                foreach (AFValue currentPoint in values)
                 {
-                    Points = new PIPointList() { point },
-                    StartTime = startTime,
-                    EndTime = stopTime,
-                    DataReadExceptionHandler = ex => throw ex
-                }
-                .Read(m_settings.PageFactor).GetEnumerator(); ;
-
-
-                while (PIenumerator.MoveNext())
-                {
-                    AFValue currentPoint = PIenumerator.Current;
-
-                    if ((object)currentPoint == null)
-                        throw new NullReferenceException("PI data read returned a null value.");
-
                     long timestamp = currentPoint.Timestamp.UtcTime.Ticks;
 
                     Dictionary<string, ITimeSeriesValue> data = new Dictionary<string, ITimeSeriesValue>();
@@ -127,10 +121,62 @@ namespace Adapt.DataSources
 
                     yield return frame;
                 }
-
-
-                yield break;
+                
             }
+
+
+
+            /*
+             using (PIConnection connection = new PIConnection() {
+                 ServerName = m_settings.ServerName,
+                 UserName = m_settings.UserName,
+                 Password = m_settings.Password,
+                 ConnectTimeout = m_settings.ConnectTimeout
+             })
+             {
+                 if (!PIPoint.TryFindPIPoint(connection.Server, m_settings.PITag, out PIPoint point))
+                     yield break;
+
+                 AFTime startTime = start;
+                 AFTime stopTime = end;
+
+                 IEnumerator<AFValue> PIenumerator = new PIScanner
+                 {
+                     Points = new PIPointList() { point },
+                     StartTime = startTime,
+                     EndTime = stopTime,
+                     DataReadExceptionHandler = ex => throw ex
+                 }
+                 .Read(m_settings.PageFactor).GetEnumerator(); ;
+
+
+                 while (PIenumerator.MoveNext())
+                 {
+                     AFValue currentPoint = PIenumerator.Current;
+
+                     if ((object)currentPoint == null)
+                         throw new NullReferenceException("PI data read returned a null value.");
+
+                     long timestamp = currentPoint.Timestamp.UtcTime.Ticks;
+
+                     Dictionary<string, ITimeSeriesValue> data = new Dictionary<string, ITimeSeriesValue>();
+                     data.Add(m_settings.PITag, new AdaptValue(m_settings.PITag, Convert.ToDouble(currentPoint.Value), timestamp));
+
+                     IFrame frame = new Frame()
+                     {
+                         Published = true,
+                         Timestamp = timestamp,
+                         Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(data)
+                     };
+
+                     yield return frame;
+                 }
+
+
+                 yield break;
+             }*/
+
+            yield break;
         }
 
       
@@ -183,20 +229,12 @@ namespace Adapt.DataSources
         /// <returns> A boolean indicating if it was able to connect to the PI and the requested Instance exists.</returns>
         public bool Test()
         {
-           try
-            {
-                using (PIConnection connection = new PIConnection
-                {
-                    ServerName = m_settings.ServerName,
-                    UserName = null, //m_settings.UserName,
-                    Password = null, //m_settings.Password,
-                    ConnectTimeout = m_settings.ConnectTimeout
-                })
-                {
+            InitializeHost();
 
-                    connection.Open();
-                    return PIPoint.TryFindPIPoint(connection.Server, m_settings.PITag, out PIPoint point);
-                }
+            try
+            {
+                ConnectPI();
+                return true;
             }
             catch (Exception ex)
             {
@@ -204,12 +242,54 @@ namespace Adapt.DataSources
             }
         }
 
-     
+        private void ConnectPI()
+        {
+            // Locate configured PI server
+            PIServers servers = new PIServers();
+            m_server = servers[m_settings.ServerName];
+
+            if (m_server is null)
+                throw new InvalidOperationException("Server not found in the PI servers collection.");
+
+            if (!m_server.ConnectionInfo.IsConnected)
+            {
+                // Attempt to open OSI-PI connection
+                m_server.Connect(true);
+            }
+        }
+        /// <summary>
+        /// Function to start AFSDKHost if necessary
+        /// </summary>
+        private void InitializeHost()
+        {
+            
+            if (AFSDKHost == null)
+            {
+                string hostApp = Path.GetFullPath($@".\AFSDKhost\AFSDKhost.exe");
+
+                if (!File.Exists(hostApp))
+                    throw new InvalidOperationException($"Failed to find \"AFSDKhost.exe\" build for testing, check path: {hostApp}");
+
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    UseShellExecute = true,
+                    WindowStyle =  ProcessWindowStyle.Hidden,
+                    CreateNoWindow = true,
+                    FileName = hostApp
+                };
+
+                AFSDKHost = Process.Start(startInfo);
+            }
+
+            // Make sure .NET core AFSDK API is initialized
+            API.Initialize("localhost");
+        }
 
         #endregion
 
         #region [ static ]
 
+        private static Process AFSDKHost = null;
         #endregion
     }
 }
