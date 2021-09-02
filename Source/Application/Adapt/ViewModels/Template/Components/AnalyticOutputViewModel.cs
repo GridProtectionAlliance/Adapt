@@ -92,6 +92,7 @@ namespace Adapt.ViewModels
 
         public int DeviceID => m_signal.DeviceID;
 
+        public int OutputIndex => m_signal.OutputIndex;
         public int ID => m_signal.ID;
         #endregion
 
@@ -139,6 +140,35 @@ namespace Adapt.ViewModels
             }
         }
 
+        public void Save()
+        {
+            if (!Changed)
+                return;
+
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            {
+                int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", m_analyticVM.SectionViewModel.TemplateViewModel.Name).Id;
+                int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("Order = {0} AND TemplateId = {1}", m_analyticVM.SectionViewModel.Order, templateId).ID;
+                int analyticID = new TableOperations<Analytic>(connection).QueryRecordWhere("Name = {0} AND TemplateID = {1} AND SectionID = {2}", m_analyticVM.Name, templateId, sectionId).ID;
+                int deviceId = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND TemplateID = {1}",
+                    m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().Find(d => d.ID == m_signal.DeviceID).Name, templateId).ID;
+
+                AnalyticOutputSignal sig = new AnalyticOutputSignal()
+                {
+                    AnalyticID = analyticID,
+                    DeviceID = deviceId,
+                    Name = m_signal.Name,
+                    OutputIndex = m_signal.OutputIndex,
+                    ID = (m_signal.ID < -1? 0 : m_signal.ID)
+                };
+
+                TableOperations<AnalyticOutputSignal> tbl = new TableOperations<AnalyticOutputSignal>(connection);
+                tbl.DeleteRecordWhere("AnalyticID = {0} AND OutputIndex = {1} AND ID <> {2}", analyticID, sig.OutputIndex, sig.ID);
+
+                tbl.AddNewOrUpdateRecord(sig);
+            }
+        }
+    
         #endregion
 
         #region [ Static ]

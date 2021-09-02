@@ -101,15 +101,24 @@ namespace Adapt.ViewModels
 
         public void LoadAnalytics()
         {
+            m_analytics = new ObservableCollection<AnalyticVM>();
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                m_analytics = new ObservableCollection<AnalyticVM>(new TableOperations<Analytic>(connection)
+                    .QueryRecordsWhere("TemplateID = {0} AND SectionID = {1}", TemplateViewModel.ID, m_section.ID)
+                    .Select(d => new AnalyticVM(d, this)));
 
+            m_analytics.ToList().ForEach(d => d.LoadOutputs());
+            m_analytics.ToList().ForEach(d => d.LoadInputs());
+
+            OnPropertyChanged(nameof(Analytics));
         }
         private void AddAnalytic()
         {
             m_analytics.Add(new AnalyticVM(new Analytic() { 
                 Name="Test name",
                 SectionID = m_section.ID,
-                TemplateID = m_templateVM.ID,
-                ID = m_templateVM.CreateAnalyticID()
+                TemplateID = TemplateViewModel.ID,
+                ID = TemplateViewModel.CreateAnalyticID()
             }, this));
 
             OnPropertyChanged(nameof(Analytics));

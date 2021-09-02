@@ -49,7 +49,6 @@ namespace Adapt.ViewModels
         private List<TypeDescription> m_analyticTypes;
 
         private ObservableCollection<AdapterSettingParameterVM> m_settings;
-        private ObservableCollection<AnalyticOutputVM> m_outputs;
         #endregion
 
         #region[ Properties ]
@@ -71,7 +70,11 @@ namespace Adapt.ViewModels
         public bool Removed => m_removed;
 
         public ObservableCollection<AdapterSettingParameterVM> Settings => m_settings;
-        public ObservableCollection<AnalyticOutputVM> Outputs => m_outputs;
+
+        /// <summary>
+        /// The Outputs of this <see cref="Analytic"/>.
+        /// </summary>
+        public ObservableCollection<AnalyticOutputVM> Outputs { get; private set; }
 
         /// <summary>
         /// The Inputs associated with this Analytic
@@ -158,19 +161,19 @@ namespace Adapt.ViewModels
                     IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
                     m_settings = new ObservableCollection<AdapterSettingParameterVM>(AdapterSettingParameterVM.GetSettingParameters(Instance, m_analytic?.ConnectionString ?? ""));
                     m_settings.ToList().ForEach(s => s.SettingChanged += OnSettingChanged);
-                    m_outputs = new ObservableCollection<AnalyticOutputVM>(GetOutputs(Instance));
+                    Outputs = new ObservableCollection<AnalyticOutputVM>(GetOutputs(Instance));
                     Inputs = new ObservableCollection<AnalyticInputVM>(GetInputs(Instance));
                 }
                 catch (Exception ex)
                 {
                     m_settings = new ObservableCollection<AdapterSettingParameterVM>();
-                    m_outputs = new ObservableCollection<AnalyticOutputVM>();
+                    Outputs = new ObservableCollection<AnalyticOutputVM>();
                     Inputs = new ObservableCollection<AnalyticInputVM>();
                 }
             }
             else
             {
-                m_outputs = new ObservableCollection<AnalyticOutputVM>();
+                Outputs = new ObservableCollection<AnalyticOutputVM>();
                 m_settings = new ObservableCollection<AdapterSettingParameterVM>();
                 Inputs = new ObservableCollection<AnalyticInputVM>();
             }
@@ -183,12 +186,24 @@ namespace Adapt.ViewModels
 
         private IEnumerable<AnalyticOutputVM> GetOutputs(IAnalytic Instance)
         {
-            return Instance.OutputNames().Select((n,i) => new AnalyticOutputVM(this, new AnalyticOutputSignal() { 
-                AnalyticID=m_analytic.ID, 
-                DeviceID=0,
-                Name=n,
-                OutputIndex=i
-            }, n));
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            {
+                TableOperations<AnalyticOutputSignal> tbl = new TableOperations<AnalyticOutputSignal>(connection);
+                return Instance.OutputNames().Select((n, i) =>
+                {
+                    int ct = tbl.QueryRecordCountWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i);
+                    if (ct > 0)
+                        return new AnalyticOutputVM(this,tbl.QueryRecordWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i),n);
+
+                    return new AnalyticOutputVM(this, new AnalyticOutputSignal()
+                    {
+                        AnalyticID = m_analytic.ID,
+                        DeviceID = SectionViewModel.TemplateViewModel.Devices.First().ID,
+                        Name = n,
+                        OutputIndex = i
+                    }, n);
+                });
+            }
         }
 
         private IEnumerable<AnalyticInputVM> GetInputs(IAnalytic Instance)
@@ -237,7 +252,25 @@ namespace Adapt.ViewModels
                 else
                     analyticTbl.UpdateRecord(m_analytic);
 
+                Outputs.ToList().ForEach(o => o.Save());
+                Inputs.ToList().ForEach(i => i.Save());
             }
+
+        }
+
+        /// <summary>
+        /// Loads all Inputs associated with this <see cref="Analytic"/>.
+        /// </summary>
+        public void LoadInputs()
+        {
+
+        }
+
+        /// <summary>
+        /// Loads all Outputs associated with this <see cref="Analytic"/>
+        /// </summary>
+        public void LoadOutputs()
+        {
 
         }
         #endregion

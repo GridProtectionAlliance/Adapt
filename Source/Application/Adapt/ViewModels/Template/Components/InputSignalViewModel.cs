@@ -78,7 +78,11 @@ namespace Adapt.ViewModels
         /// The unique ID of the <see cref="TemplateInputSignal"/>
         /// </summary>
         public int ID => m_signal.ID;
-        
+
+        /// <summary>
+        /// The ID of the Device this signal is associated with.
+        /// </summary>
+        public int DeviceID => m_signal.DeviceID;
         #endregion
 
         #region [ Constructor ]
