@@ -39,6 +39,8 @@ namespace Adapt.Models
         public int TemplateID { get; set; }
         public string Name { get; set; }
         public int AnalyticTypeID { get; set; }
+
+        [UseEscapedName]
 	    public int Order { get; set; }
 
     }

@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.Template"
-             mc:Ignorable="d" Width="456" Height="120" >
+             mc:Ignorable="d" Width="456" Height="150" >
     <Window.Resources>
         <CollectionViewSource Source="{Binding Path=TypeOptions}" x:Key="TypeOptions" />
     </Window.Resources>
