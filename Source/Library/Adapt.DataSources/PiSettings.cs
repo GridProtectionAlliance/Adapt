@@ -21,23 +21,8 @@
 //
 // ******************************************************************************************************
 
-
-using Adapt.Models;
-using Gemstone;
-using GemstoneCommon;
-using GemstonePhasorProtocolls;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Channels;
-using System.Threading.Tasks;
+using static Common.Constants;
 
 namespace Adapt.DataSources
 {
@@ -52,6 +37,9 @@ namespace Adapt.DataSources
 
         [DefaultValue("ecatest")]
         public string ServerName { get; set; }
+
+        [DefaultValue(DefaultPort)]
+        public int SDKHostPort { get; set; }
 
         [DefaultValue("TVA_SHELBY:ABBF")]
         public string PITag { get; set; }
