@@ -56,7 +56,7 @@ namespace Adapt.DataSources
 
         #region [ Constructors ]
 
-        PIHistorian()
+        public PIHistorian()
         {
             Interlocked.Increment(ref s_instanceCount);
         }
