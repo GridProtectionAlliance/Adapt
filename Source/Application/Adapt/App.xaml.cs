@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
+using Adapt.DataSources;
 
 namespace Adapt
 {
@@ -13,16 +8,22 @@ namespace Adapt
     /// </summary>
     public partial class App : Application
     {
-		/// <summary>
-		/// Called on Application startup to create SQLLite Database etc
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private void Application_Startup(object sender, StartupEventArgs e)
-		{
+        /// <summary>
+        /// Called on Application startup to create SQLLite Database etc
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Application_Startup(object sender, StartupEventArgs e)
+        {
+            PIHistorian.InitializeHost();
 
-			MainWindow wnd = new MainWindow();
-			wnd.Show();
-		}
-	}
+            MainWindow wnd = new MainWindow();
+            wnd.Show();
+        }
+
+        private void Application_Exit(object sender, ExitEventArgs e)
+        {
+            PIHistorian.ShutDownHost();
+        }
+    }
 }

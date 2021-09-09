@@ -35,9 +35,13 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.NetworkInformation;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using static Common.Constants;
+
+[assembly:InternalsVisibleTo("Adapt")]
 
 namespace Adapt.DataSources
 {
@@ -49,31 +53,11 @@ namespace Adapt.DataSources
     {
         #region [ Members ]
 
+        private const string AFSDKHost = "AFSDKhost";
+
         private PIServer m_server;
         private PIHistorianSettings m_settings;
-
-        #endregion
-
-        #region [ Constructors ]
-
-        public PIHistorian()
-        {
-            Interlocked.Increment(ref s_instanceCount);
-        }
-
-        ~PIHistorian()
-        {
-            Interlocked.Decrement(ref s_instanceCount);
-
-            lock (typeof(PIHistorian))
-            {
-                if (s_instanceCount == 0 && s_afSDKHost is not null)
-                {
-                    s_afSDKHost.Close();
-                    s_afSDKHost = null;
-                }
-            }
-        }
+        private double m_progress;
 
         #endregion
 
@@ -102,6 +86,10 @@ namespace Adapt.DataSources
                 EndTime = end
             };
 
+            long startTicks = start.Ticks;
+            double totalTicks = end.Ticks - startTicks;
+            m_progress = 0.0D;
+
             // Logic only supports single PiTag at the moment.
             // We will need to use AF to get multiple based on PMU Name
             await foreach (AFValues values in reader.ReadAsync()) // <- Group of read values
@@ -121,9 +109,12 @@ namespace Adapt.DataSources
                     };
 
                     yield return frame;
+
+                    m_progress = (timestamp - startTicks) / totalTicks;
                 }
             }
 
+            m_progress = 1.0D;
         }
 
         #region [ Old Code ]
@@ -193,7 +184,7 @@ namespace Adapt.DataSources
         /// <returns> This call Will Fail. </returns>
         public double GetProgress()
         {
-            throw new NotImplementedException();
+            return m_progress * 100.0D;
         }
 
         public Type GetSettingType()
@@ -218,10 +209,10 @@ namespace Adapt.DataSources
         /// <summary>
         /// The PI DataSource does not support Progress Reports.
         /// </summary>
-        /// <returns>Returns False.</returns>
+        /// <returns>Returns True.</returns>
         public bool SupportProgress()
         {
-            return false;
+            return true;
         }
 
         /// <summary>
@@ -261,17 +252,21 @@ namespace Adapt.DataSources
         /// <summary>
         /// Function to start AFSDKHost if necessary
         /// </summary>
-        private void InitializeHost()
-        {
-            if (m_settings.SDKHostPort <= 0 || m_settings.SDKHostPort > ushort.MaxValue)
-                m_settings.SDKHostPort = DefaultPort;
 
+        #endregion
+
+        #region [ static ]
+
+        private static Process s_afSDKHost;
+
+        internal static void InitializeHost()
+        {
             // Make sure AFSDK host application is running
             bool hostIsRunning = false;
 
             foreach (TcpConnectionInformation info in IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections())
             {
-                if (info.LocalEndPoint.Port == m_settings.SDKHostPort)
+                if (info.LocalEndPoint.Port == DefaultPort)
                 {
                     hostIsRunning = true;
                     break;
@@ -284,18 +279,18 @@ namespace Adapt.DataSources
                 {
                     if (s_afSDKHost is null)
                     {
-                        string hostApp = Path.GetFullPath($@".\AFSDKhost\AFSDKhost.exe");
+                        string hostApp = Path.GetFullPath($@".\{AFSDKHost}\{AFSDKHost}.exe");
 
                         if (!File.Exists(hostApp))
-                            throw new InvalidOperationException($"Failed to find \"AFSDKhost.exe\" build for testing, check path: {hostApp}");
+                            throw new InvalidOperationException($"Failed to find \"{AFSDKHost}.exe\" build for testing, check path: {hostApp}");
 
                         ProcessStartInfo startInfo = new ProcessStartInfo
                         {
                             UseShellExecute = true,
                             WindowStyle = ProcessWindowStyle.Hidden,
                             CreateNoWindow = true,
-                            FileName = hostApp,
-                            Arguments = m_settings.SDKHostPort.ToString()
+                            FileName = hostApp
+                            //Arguments = SDKHostPort.ToString()
                         };
 
                         s_afSDKHost = Process.Start(startInfo);
@@ -308,12 +303,29 @@ namespace Adapt.DataSources
                 API.Initialize("localhost");
         }
 
-        #endregion
+        internal static void ShutDownHost()
+        {
+            lock (typeof(PIHistorian))
+            {
+                try
+                {
+                    Debug.WriteLine($"Attempting to shutdown {AFSDKHost}.exe");
 
-        #region [ static ]
+                    s_afSDKHost?.Close();
+                    s_afSDKHost = null;
 
-        private static Process s_afSDKHost;
-        private static int s_instanceCount;
+                    IEnumerable<Process> hostProcesses = Process.GetProcesses().Where(
+                        process => process.ProcessName.Equals(AFSDKHost, StringComparison.OrdinalIgnoreCase));
+    
+                    foreach (Process process in hostProcesses)
+                        process.Kill();
+                }
+                catch
+                {
+                    // Not failing because process cannot be stopped
+                }
+            }
+        }
 
         #endregion
     }

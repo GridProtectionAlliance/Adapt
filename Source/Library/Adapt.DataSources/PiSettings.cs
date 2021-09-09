@@ -22,7 +22,6 @@
 // ******************************************************************************************************
 
 using System.ComponentModel;
-using static Common.Constants;
 
 namespace Adapt.DataSources
 {
@@ -37,9 +36,6 @@ namespace Adapt.DataSources
 
         [DefaultValue("ecatest")]
         public string ServerName { get; set; }
-
-        [DefaultValue(DefaultPort)]
-        public int SDKHostPort { get; set; }
 
         [DefaultValue("TVA_SHELBY:ABBF")]
         public string PITag { get; set; }
