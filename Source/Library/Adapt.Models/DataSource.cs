@@ -34,7 +34,7 @@ namespace Adapt.Models
         public string Name { get; set; }
 
         [PrimaryKey(true)]
-        public int ID { get; set; }
+        public new int ID { get; set; }
         public string TypeName { get; set; }
         public string ConnectionString { get; set; }
 

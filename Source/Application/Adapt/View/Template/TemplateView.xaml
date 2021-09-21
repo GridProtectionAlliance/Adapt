@@ -3,12 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Adapt.View.DataSource"
+             xmlns:local="clr-namespace:Adapt.View.Template"
              xmlns:localcv="clr-namespace:Adapt.Converter"
-             xmlns:localvm="clr-namespace:Adapt.ViewModels"
+             xmlns:localvm="clr-namespace:Adapt.ViewModels" 
+             xmlns:System="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-   
+    <UserControl.Resources>
+        <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
+        <System:Boolean x:Key="FalseValue">False</System:Boolean>
+        <System:Boolean x:Key="TrueValue">True</System:Boolean>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="15*" />
@@ -17,25 +22,30 @@
 
         <ScrollViewer>
             <StackPanel Orientation="Vertical">
-            <Expander ExpandDirection="Down" Grid.Row="0">
-                <Expander.Header>
-                    <TextBlock Text="0: General Settings">
-                    </TextBlock>
-                </Expander.Header>
-                    <StackPanel Orientation="Horizontal" Height="50">
+                <Expander ExpandDirection="Down" Grid.Row="0" Background="Gray">
+
+                    <Expander.Header>
+                        <TextBlock Text="General Settings" Background="Gray"  FontWeight="bold" FontSize="24"/>
+                    </Expander.Header>
+                    <StackPanel Orientation="Horizontal" Height="50" Background="LightGray">
                         <Label Margin="0,2" Width="60" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Name:"/>
                         <TextBox Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Name}">
                         </TextBox>
                     </StackPanel>
                 </Expander>
-                <Expander ExpandDirection="Down" Grid.Row="0">
+                <Expander ExpandDirection="Down" Grid.Row="0" Background="Gray">
                     <Expander.Header>
-                        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" >
+                        <TextBlock Text="Template Inputs" Background="Gray"  FontWeight="bold" FontSize="24"/>
+                    </Expander.Header>
+                    <StackPanel Orientation="Vertical" Height="auto" Background="LightGray">
+                        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800">
                             <TreeView.ItemTemplate>
                                 <HierarchicalDataTemplate DataType="{x:Type localvm:InputDeviceVM}" ItemsSource="{Binding Signals}">
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding Removed}">
-                                        <Label  Margin="0,2" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" Width="750">
+                                        <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
                                         <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
+                                        <Button Width="80" Height="18" Margin="2, 5" Command="{Binding AddSignal}">Add Signal</Button>
+                                        <Button Width="80" Height="18" Margin="2, 5" Command="{Binding Remove}">Remove</Button>
                                         <WrapPanel Margin="100,0">
                                             <TextBlock Text="{Binding NSignals}" />
                                             <TextBlock Text=" Signals" />
@@ -49,10 +59,34 @@
                                     </HierarchicalDataTemplate.ItemTemplate>
                                 </HierarchicalDataTemplate>
                             </TreeView.ItemTemplate>
+                            <TreeView.ItemContainerStyle>
+                                <Style TargetType="{x:Type TreeViewItem}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Removed}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TreeView.ItemContainerStyle>
                         </TreeView>
-                    </Expander.Header>
-                    
+                        <Button Width="200" Margin="5,0,5,15" Command="{Binding AddDeviceCommand}">Add Device</Button>
+                    </StackPanel>
                 </Expander>
+                <ItemsControl ItemsSource="{Binding Sections}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <local:SectionView />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" >
+                    <Button Margin="10,0" Height="20" Command="{Binding AddSectionCommand}">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
+                            <TextBlock Text="Add A Section" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
         <StackPanel Grid.Row="1"  Orientation="Horizontal" HorizontalAlignment="Left" >

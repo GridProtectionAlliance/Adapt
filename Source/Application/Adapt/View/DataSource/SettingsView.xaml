@@ -11,19 +11,13 @@
             <RowDefinition Height="auto" />
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
-        <Expander ExpandDirection="Down" Grid.Row="0">
-            <Expander.Header>
-                <TextBlock Text="General Settings">
-                </TextBlock>
-            </Expander.Header>
+        <StackPanel Orientation="Vertical" Grid.Row="0">
+            <TextBlock Text="General Settings" Background="Gray"  FontWeight="bold" FontSize="24"/>
             <local:GeneralSettingsView />
-        </Expander>
-        <Expander ExpandDirection="Down" Grid.Row="1">
-            <Expander.Header>
-                <TextBlock Text="Source System Settings">
-                </TextBlock>
-            </Expander.Header>
+        </StackPanel>
+        <StackPanel Orientation="Vertical" Grid.Row="1">
+            <TextBlock Text="Source System Settings" Background="Gray"  FontWeight="bold" FontSize="24"/>
             <local:DataSourceSettingView /> 
-        </Expander>
+        </StackPanel>
     </Grid>
 </UserControl>

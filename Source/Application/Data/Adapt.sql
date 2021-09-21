@@ -25,7 +25,7 @@
 -- *******************************************************************************************
 -- IMPORTANT NOTE: When making updates to this schema, please increment the version number!
 -- *******************************************************************************************
-CREATE VIEW SchemaVersion AS SELECT 2 AS VersionNumber;
+CREATE VIEW SchemaVersion AS SELECT 3 AS VersionNumber;
 
 CREATE Table DataSource (
 	ID INTEGER PRIMARY KEY NOT NULL,
@@ -73,11 +73,50 @@ CREATE Table TemplateInputDevice (
 );
 
 
-CREATE Table TemplateInputSignals (
+CREATE Table TemplateInputSignal (
 	ID INTEGER PRIMARY KEY NOT NULL,
 	DeviceID  INTEGER NOT NULL,
 	Name VARCHAR(200) NOT NULL,
 	Phase INTEGER NULL,
 	MeasurmentType INTEGER NULL,
-	FOREIGN KEY(DeviceID) REFERENCES TemplateInputDevices(ID)
+	FOREIGN KEY(DeviceID) REFERENCES TemplateInputDevice(ID)
 );
+
+CREATE Table TemplateSection (
+	ID INTEGER PRIMARY KEY NOT NULL,
+	TemplateID  INTEGER NOT NULL,
+	Name VARCHAR(200) NOT NULL,
+	AnalyticTypeID INTEGER NOT NULL,
+	[Order] INTEGER NOT NULL,
+	FOREIGN KEY(TemplateID) REFERENCES Template(ID)
+);
+
+CREATE Table Analytic (
+	ID INTEGER PRIMARY KEY NOT NULL,
+	TemplateID  INTEGER NOT NULL,
+	SectionID  INTEGER NOT NULL,
+	Name VARCHAR(200) NOT NULL,
+	TypeName VARCHAR(200) NOT NULL,
+	ConnectionString TEXT NOT NULL,
+	AssemblyName VARCHAR(200) NOT NULL,
+	FOREIGN KEY(TemplateID) REFERENCES Template(ID),
+	FOREIGN KEY(SectionID) REFERENCES TemplateSection(ID)
+);
+
+CREATE TABLE AnalyticInput (
+	ID INTEGER PRIMARY KEY NOT NULL,
+	AnalyticID  INTEGER NOT NULL,
+	[InputIndex] INTEGER NOT NULL,
+	IsInputSignal BIT NOT NULL,
+	SignalID Integer NOT NULL
+)
+
+CREATE TABLE AnalyticOutputSignal (
+	ID INTEGER PRIMARY KEY NOT NULL,
+	Name VARCHAR(200) NOT NULL,
+	AnalyticID  INTEGER NOT NULL,
+	DeviceID  INTEGER NOT NULL,
+	OutputIndex  INTEGER NOT NULL,
+	FOREIGN KEY(AnalyticID) REFERENCES Analytic(ID),
+	FOREIGN KEY(DeviceID) REFERENCES TemplateInputDevice(ID)
+)

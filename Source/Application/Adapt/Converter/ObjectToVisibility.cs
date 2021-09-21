@@ -44,7 +44,7 @@ namespace Adapt.Converter
         /// </summary>
         /// <param name="value">Object value to be converted.</param>
         /// <param name="targetType">The type of the binding target property.</param>
-        /// <param name="parameter">The converter parameter to use in conversion.</param>
+        /// <param name="parameter">true if a true value should indicate visibility.Hidden.</param>
         /// <param name="culture">The culture to use in conversion.</param>
         /// <returns><see cref="System.Windows.Visibility"/> enumeration.</returns>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
