@@ -75,11 +75,26 @@ namespace Adapt.DataSources
             }
 
             //GetConfigFrame();
+            //in this getconfigframe function, the jsiscsv reader might be called?
+
         }
 
-        public IAsyncEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
+        public async IAsyncEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
         {
-            throw new NotImplementedException();
+            //Create List of Relevant Files
+            List<DateTime> files = m_Files.Keys.Where(k => k < end && k > start).ToList();
+
+            if (m_Files.Keys.Where(k => k <= start).Count() > 0)
+            {
+                DateTime initial = start - m_Files.Keys.Where(k => k <= start).Min(k => (start - k));
+
+                files.Add(initial);
+            }
+
+            if (files.Count() == 0)
+                yield break;
+
+            // this is where actual signal data is read from csv files.
         }
 
         public IEnumerable<AdaptDevice> GetDevices()
