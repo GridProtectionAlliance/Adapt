@@ -21,6 +21,7 @@
 //
 // ******************************************************************************************************
 using Adapt.Models;
+using Adapt.View.Template;
 using Adapt.ViewModels.Common;
 using Gemstone.Data;
 using Gemstone.Data.Model;
@@ -31,13 +32,16 @@ using GemstoneWPF;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Transactions;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace Adapt.ViewModels
 {
@@ -52,7 +56,15 @@ namespace Adapt.ViewModels
         private RelayCommand m_saveCommand;
         private RelayCommand m_deleteCommand;
         private RelayCommand m_clearCommand;
-        private List<InputDeviceVM> m_Devices;
+        private RelayCommand m_addDeviceCommand;
+        private RelayCommand m_addSectionCommand;
+
+
+        private ObservableCollection<InputDeviceVM> m_Devices;
+
+        private bool m_changed;
+
+        private ObservableCollection<SectionVM> m_Sections;
 
         #endregion
 
@@ -75,6 +87,8 @@ namespace Adapt.ViewModels
             set
             {
                 m_template.Name = value;
+                m_changed = true;
+                OnPropertyChanged(nameof(Changed));
                 OnPropertyChanged();
             }
         }
@@ -92,10 +106,7 @@ namespace Adapt.ViewModels
             }
         }
 
-       
-
-     
-
+        public bool Changed => m_changed || m_Devices.Where(d => d.Changed).Any() || m_Sections.Where(s => s.Changed).Any();
         
         public ICommand SaveCommand => m_saveCommand;
 
@@ -103,11 +114,21 @@ namespace Adapt.ViewModels
 
         public ICommand ClearCommand => m_clearCommand;
 
-        public bool CanSave => true;
+        /// <summary>
+        /// Command that adds a <see cref="TemplateInputDevice"/> to this <see cref="Template"/>
+        /// </summary>
+        public ICommand AddDeviceCommand => m_addDeviceCommand;
+
+        /// <summary>
+        /// Command that adds a <see cref="SectionVM"/> to this <see cref="Template"/>
+        /// </summary>
+        public ICommand AddSectionCommand => m_addSectionCommand;
+
+        public bool CanSave => Changed;
 
         public bool CanDelete => false;
 
-        public bool CanClear => false;
+        public bool CanClear => !Changed;
         
 
         public event CancelEventHandler BeforeLoad;
@@ -120,7 +141,9 @@ namespace Adapt.ViewModels
         public int NumberPMU => m_Devices?.Count() ?? 0;
         public int NumberSignals => m_Devices?.Sum(pmu => pmu.NSignals) ?? 0;
 
-        public List<InputDeviceVM> Devices => m_Devices;
+        public ObservableCollection<InputDeviceVM> Devices => m_Devices;
+
+        public ObservableCollection<SectionVM> Sections => m_Sections;
 
         #endregion
 
@@ -133,18 +156,23 @@ namespace Adapt.ViewModels
         public TemplateVM()
         {
             m_template = null;
-            m_Devices = new List<InputDeviceVM>();
+            m_Devices = new ObservableCollection<InputDeviceVM>();
 
             m_clearCommand = new RelayCommand(Clear, () => CanClear);
             m_saveCommand = new RelayCommand(Save, () => CanSave);
             m_deleteCommand = new RelayCommand(Delete, () => CanDelete);
-
-            
+            m_addDeviceCommand = new RelayCommand(AddDevice, () => true);
+            m_changed = false;
+            m_Sections = new ObservableCollection<SectionVM>();
+            m_addSectionCommand = new RelayCommand(AddSection, () => m_Sections.Count() < 10);
         }
 
         #endregion
 
         #region [ Methods ]
+        /// <summary>
+        /// Saves the entire Template and all associated Elements.
+        /// </summary>
         public void Save()
         {
             Mouse.OverrideCursor = Cursors.Wait;
@@ -153,11 +181,21 @@ namespace Adapt.ViewModels
                 if (OnBeforeSaveCanceled())
                     throw new OperationCanceledException("Save was canceled.");
 
-             
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    new TableOperations<Template>(connection).AddNewOrUpdateRecord(m_template);
+                {
+                    TableOperations<Template> templateTbl = new TableOperations<Template>(connection);
+                    templateTbl.AddNewOrUpdateRecord(m_template);
+                }
+
+                // Save Devices
+                m_Devices.ToList().ForEach(d => d.Save());
+
+                // Save Sections
+                m_Sections.ToList().ForEach(s => s.Save());
+             
 
                 Load(m_template.Id);
+                m_changed = false;
                 OnSaved();
             }
             catch (Exception ex)
@@ -177,7 +215,49 @@ namespace Adapt.ViewModels
             }
         }
 
-       
+        private void AddDevice()
+        {
+            string name = "PMU 1";
+            int i = 1;
+            while (m_Devices.Where(d => d.Name == name).Any())
+            {
+                i++;
+                name = "PMU " + i.ToString();
+            }
+
+            m_Devices.Add(new InputDeviceVM(this, new TemplateInputDevice()
+            {
+                Name = name,
+                TemplateID = m_template?.Id ?? 0,
+                ID = CreateDeviceID()
+            }));
+                
+            m_Devices.Last().PropertyChanged += OnDeviceChange;
+            OnPropertyChanged(nameof(Devices));
+            OnPropertyChanged(nameof(Changed));
+        }
+
+        private void AddSection()
+        {
+            NewSectionView window = new NewSectionView();
+            NewSectionVM vm = new NewSectionVM((TemplateSection section) => {
+                section.TemplateID = m_template.Id;
+                section.Order = m_Sections.Count() > 0 ? m_Sections.Max(s => s.Order) + 1 : 1;
+                m_Sections.Add(new SectionVM(section, this));
+                m_Sections.Last().PropertyChanged += OnSectionChange;
+
+                OnPropertyChanged(nameof(Sections));
+                window.Dispatcher.Invoke(DispatcherPriority.Normal, new ThreadStart(() =>
+                {
+                    window.Close();
+                }));
+            });
+            window.DataContext = vm;
+            
+            window.Show();
+
+        }
+
         public void Delete() 
         {}
 
@@ -198,6 +278,7 @@ namespace Adapt.ViewModels
                     Template = new TableOperations<Template>(connection).QueryRecordWhere("Id = {0}", ID);
 
                 LoadDevices();
+                LoadSections();
                 OnLoaded();
             }
             catch(Exception ex)
@@ -208,7 +289,7 @@ namespace Adapt.ViewModels
                 }
                 else
                 {
-                    Popup(ex.Message, "Load DataSource Exception:", MessageBoxImage.Error);
+                    Popup(ex.Message, "Load Template Exception:", MessageBoxImage.Error);
                 }
             }
             finally
@@ -260,7 +341,6 @@ namespace Adapt.ViewModels
             if (Saved != null)
                 Saved(this, EventArgs.Empty);
         }
-
        
         private void OnTemplateChanged()
         {
@@ -272,22 +352,85 @@ namespace Adapt.ViewModels
         private void LoadDevices()
         {
             if (m_template == null)
-                m_Devices = new List<InputDeviceVM>();
+                m_Devices = new ObservableCollection<InputDeviceVM>();
             else
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    m_Devices = new TableOperations<TemplateInputDevice>(connection)
+                    m_Devices = new ObservableCollection<InputDeviceVM>(new TableOperations<TemplateInputDevice>(connection)
                         .QueryRecordsWhere("TemplateID = {0}", m_template.Id)
-                        .Select(d => new InputDeviceVM(d, m_template.Id)).ToList();
+                        .Select(d => new InputDeviceVM(this,d)));
 
-            m_Devices.ForEach(d => d.PropertyChanged += OnDeviceChange);
+            m_Devices.ToList().ForEach(d => d.PropertyChanged += OnDeviceChange);
+            m_Devices.ToList().ForEach(d => d.LoadSignals());
             OnPropertyChanged(nameof(Devices));
         }
 
         private void OnDeviceChange(object sender, PropertyChangedEventArgs args)
         {
-            if (args.PropertyName == "Status")
-                LoadDevices();
+            if (args.PropertyName == "Changed")
+                OnPropertyChanged(nameof(Changed));
         }
+
+        private void OnSectionChange(object sender, PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == "Changed")
+                OnPropertyChanged(nameof(Changed));
+        }
+
+        private void LoadSections()
+        {
+            if (m_template == null)
+                m_Sections = new ObservableCollection<SectionVM>();
+            else
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    m_Sections = new ObservableCollection<SectionVM>(new TableOperations<TemplateSection>(connection)
+                        .QueryRecordsWhere("TemplateID = {0}", m_template.Id).OrderBy(item => item.Order)
+                        .Select(d => new SectionVM(d, this)));
+
+            m_Sections.ToList().ForEach(d => d.PropertyChanged += OnSectionChange);
+            m_Sections.ToList().ForEach(d => d.LoadAnalytics());           
+
+            OnPropertyChanged(nameof(Sections));
+        }
+
+        /// <summary>
+        /// Creates a unique ID for a new Device. 
+        /// All IDs < 0 to indicate they have never been saved to the Database.
+        /// </summary>
+        /// <returns> a negative unique deviceID</returns>
+        public int CreateDeviceID()
+        {
+            if (m_Devices.Count() == 0)
+                return -1;
+            int min =  m_Devices.Min(item => item.ID);
+            return (min < 0 ? (min - 1) : -1);
+        }
+
+        /// <summary>
+        /// Creates a unique ID for a new InputSignal. 
+        /// All IDs < 0 to indicate they have never been saved to the Database.
+        /// </summary>
+        /// <returns> a negative unique inpusSignalID</returns>
+        public int CreateInputSignalID()
+        {
+            if (m_Devices.Count() == 0)
+                return -1;
+            int min = m_Devices.Min(item => item.NSignals > 0 ? item.Signals.Min(s => s.ID) : 0 );
+            return (min < 0 ? (min - 1) : -1);
+        }
+
+        /// <summary>
+        /// Creates a unique ID for a new Analytic. 
+        /// All IDs < 0 to indicate they have never been saved to the Database.
+        /// </summary>
+        /// <returns> a negative unique analyticID</returns>
+        public int CreateAnalyticID()
+        {
+            if (m_Sections.Count() == 0)
+                return -1;
+            int min = m_Sections.Min(item => item.Analytics.Count() > 0 ? item.Analytics.Min(a => a.ID) : 0);
+            return (min < 0 ? (min - 1) : -1);
+        }
+
         #endregion
 
         #region [ Static ]

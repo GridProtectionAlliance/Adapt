@@ -30,9 +30,12 @@ using Gemstone.TypeExtensions;
 using GemstoneWPF;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Windows;
+using System.Windows.Input;
 
 namespace Adapt.ViewModels.Vizsalization
 {
@@ -48,9 +51,10 @@ namespace Adapt.ViewModels.Vizsalization
         private DateTime m_endVisualization;
 
         private List<SignalReader> m_reader;
-        private List<IDisplayWidget> m_widgets;
+        private ObservableCollection<IDisplayWidget> m_widgets;
 
-        private List<Tuple<Type, string>> m_loadedWigets;
+        private Dictionary<string, Type> m_loadedWigets;
+        private RelayCommand m_addWidgetCmd;
         #endregion
 
         #region[ Properties ]
@@ -95,16 +99,26 @@ namespace Adapt.ViewModels.Vizsalization
             get => m_reader.Count();
         }
 
-       
+        /// <summary>
+        /// Command to Add Widget
+        /// </summary>
+        public ICommand AddWidgetCommand => m_addWidgetCmd;
 
         /// <summary>
         /// List of Widgets to be displayed
         /// </summary>
-        public List<IDisplayWidget> Widgets
+        public ObservableCollection<IDisplayWidget> Widgets
         {
             get { return m_widgets; }
         }
 
+        /// <summary>
+        /// List of Widgets available for use
+        /// </summary>
+        public List<string> AvailableWidgets
+        {
+            get { return m_loadedWigets.Keys.ToList(); }
+        }
         #endregion
 
         #region[ Constructor]
@@ -115,20 +129,22 @@ namespace Adapt.ViewModels.Vizsalization
             m_startVisualization = start;
             m_endVisualization = end;
 
-            m_loadedWigets = new List<Tuple<Type, string>>();
+            m_loadedWigets = new Dictionary<string, Type>();
             LoadWidgets();
+
+            m_addWidgetCmd = new RelayCommand( AddWidget, (p) => true);
 
             m_reader = SignalReader.GetAvailableReader();
 
             // Temporary Setup is Linechart followed by Table.
             // meant for testing and development only.
             if (m_reader.Count > 0)
-                m_widgets = new List<IDisplayWidget>() {
+                m_widgets = new ObservableCollection<IDisplayWidget>() {
                     new LineChartVM(),
                     new StatisticsTableVM()
                 };
             else
-                m_widgets = new List<IDisplayWidget>();
+                m_widgets = new ObservableCollection<IDisplayWidget>();
 
             InitalizeCharts();
             
@@ -159,16 +175,37 @@ namespace Adapt.ViewModels.Vizsalization
 
         private void LoadWidgets()
         {
-            
-            m_loadedWigets = typeof(IDisplayWidget).LoadImplementations(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar), true)
+
+            m_loadedWigets = typeof(IDisplayWidget).LoadImplementations(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar), true, false)
                 .Distinct()
                 .Where(type => GetEditorBrowsableState(type) == EditorBrowsableState.Always)
-                .Select( type => new Tuple<Type,string>(type,GetDescription(type)))
-                .OrderByDescending(pair => pair.Item2)
-                .ToList();
+                .ToDictionary(item => GetDescription(item));
+
+            OnPropertyChanged(nameof(AvailableWidgets));
         }
 
-
+        public void AddWidget(object Description)
+        {
+            try
+            {
+                string desc = (string)Description;
+                if (m_loadedWigets.ContainsKey(desc))
+                {
+                    m_widgets.Add((IDisplayWidget)Activator.CreateInstance(m_loadedWigets[desc]));
+                    m_widgets.Last().Zoom(m_startAvailable, m_endAvailable);
+                    if (m_reader.Count > 0)
+                        m_widgets.Last().AddReader(m_reader[0]);
+                    m_widgets.Last().ChangedWindow += ChangedWindow;
+                    OnPropertyChanged(nameof(Widgets));
+                }
+                else
+                    Popup("Unable to find widget", "Load Widget Exception:", MessageBoxImage.Error);
+            }
+            catch (Exception ex)
+            {
+                Popup(ex.Message, "Load Widget Exception:", MessageBoxImage.Error);
+            }
+        }
         #endregion
 
         #region [ static ]

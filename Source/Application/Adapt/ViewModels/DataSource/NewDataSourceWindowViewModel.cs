@@ -50,7 +50,7 @@ namespace Adapt.ViewModels
         private DataSource m_dataSource;
         private RelayCommand m_saveCommand;
 
-        private List<DataSourceTypeDescription> m_dataSourceTypes;
+        private List<TypeDescription> m_dataSourceTypes;
         
         #endregion
 
@@ -114,7 +114,7 @@ namespace Adapt.ViewModels
         }
 
         
-        public List<DataSourceTypeDescription> DataSourceTypes
+        public List<TypeDescription> DataSourceTypes
         {
             get => m_dataSourceTypes;
             set
@@ -142,7 +142,7 @@ namespace Adapt.ViewModels
 
             m_saveCommand = new RelayCommand(Save, () => CanSave);
                         
-            m_dataSourceTypes = DataSourceTypeDescription.LoadDataSourceTypes(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar));
+            m_dataSourceTypes = TypeDescription.LoadDataSourceTypes(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar),typeof(IDataSource));
 
         }
 

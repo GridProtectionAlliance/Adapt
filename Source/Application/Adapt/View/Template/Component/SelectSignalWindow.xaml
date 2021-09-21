@@ -1,0 +1,44 @@
+﻿<Window x:Class="Adapt.View.Template.SelectSignalWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Adapt.View.Common"
+        xmlns:localcv="clr-namespace:Adapt.Converter"
+        xmlns:localvm="clr-namespace:Adapt.ViewModels"
+        xmlns:System="clr-namespace:System;assembly=System.Runtime"
+        mc:Ignorable="d"
+        Title="Select a Signal" Height="600" Width="400" x:Name="SelectionWindow">
+    <Window.Resources>
+        <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
+        <System:Boolean x:Key="FalseValue">False</System:Boolean>
+        <System:Boolean x:Key="TrueValue">True</System:Boolean>
+    </Window.Resources>
+    <StackPanel Orientation="Vertical">
+        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800" SelectedItemChanged="TreeView_SelectedItemChanged">
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate DataType="{x:Type localvm:InputDeviceVM}" ItemsSource="{Binding Signals}">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" Width="600">
+                        <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
+                        <TextBlock Text="{Binding Path=Name}"  Height="20" Width="150"/>
+                        <WrapPanel Margin="100,0">
+                            <TextBlock Text="{Binding NSignals}" />
+                            <TextBlock Text=" Signals" />
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <HierarchicalDataTemplate.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </HierarchicalDataTemplate.ItemTemplate>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+
+        <StackPanel Margin="0,10,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Margin="10,0" Command="{Binding CancelCommand}" CommandParameter="{Binding ElementName=SelectionWindow}">Cancel</Button>
+            <Button Margin="10,0" Command="{Binding SelectCommand}" CommandParameter="{Binding ElementName=SelectionWindow}">Select</Button>
+        </StackPanel>
+    </StackPanel>
+</Window>

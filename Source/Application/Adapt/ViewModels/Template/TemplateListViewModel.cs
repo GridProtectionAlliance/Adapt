@@ -81,6 +81,7 @@ namespace Adapt.ViewModels
         public TemplateListVM()
         {
             AddNewCommand = new RelayCommand(AddNewTemplate, () => true);
+            m_selectedIndex = -1;
             Load();
         }
 

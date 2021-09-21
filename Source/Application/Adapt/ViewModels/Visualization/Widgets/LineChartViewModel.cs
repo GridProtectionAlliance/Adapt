@@ -30,6 +30,7 @@ using OxyPlot.Axes;
 using OxyPlot.Series;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,6 +38,7 @@ using System.Windows;
 
 namespace Adapt.ViewModels.Visualization.Widgets
 {
+    [Description("Average Line Chart")]
     public class LineChartVM: WidgetBaseVM
     {
         #region [ Member ]

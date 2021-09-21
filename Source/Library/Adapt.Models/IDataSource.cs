@@ -32,12 +32,12 @@ namespace Adapt.Models
     /// <summary>
     /// Interface for an ADAPT DataSource
     /// </summary>
-    public interface IDataSource
+    public interface IDataSource: IAdapter
     {
         /// <summary>
         /// Returns the <see cref="Type"/> of the Settings object that defines all Parameters
         /// </summary>
-        public Type GetSettingType();
+        public new Type GetSettingType();
 
         /// <summary>
         /// Tests the dataSource with the Current Settings
