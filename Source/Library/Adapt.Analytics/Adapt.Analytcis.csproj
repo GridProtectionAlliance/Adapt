@@ -1,11 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>D:\Projects\PNNL\Adapt\Build\Outputs\($Configuration)\Library\Adapt.Analytics\</OutputPath>
+    <OutputPath>C:\Users\wang690\Desktop\Projects\ArchiveWalker\ADAPT\Adapt\Build\Outputs\($Configuration)\Library\Adapt.Analytics\</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -13,10 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gemstone.Common" Version="1.0.67" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\gemstone\common\src\Gemstone\Gemstone.Common.csproj" />
     <ProjectReference Include="..\Adapt.Models\Adapt.Models.csproj" />
     <ProjectReference Include="..\GemstoneAnalytic\GemstoneAnalytic.csproj" />
     <ProjectReference Include="..\GemstoneCommon\GemstoneCommon.csproj" />
