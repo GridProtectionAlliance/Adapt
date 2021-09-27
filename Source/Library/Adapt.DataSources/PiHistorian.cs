@@ -17,43 +17,31 @@
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
 //  06/02/2021 - C. Lackner
-//       Generated original version of source code.
+//      Generated original version of source code.
+//  09/08/2021 - J. Ritchie Carroll
+//      Improved async read operations and host SDK process startup and shutdown
 //
 // ******************************************************************************************************
-
 
 using Adapt.Models;
 using AFSDKnetcore;
 using AFSDKnetcore.AF.Asset;
-using AFSDKnetcore.AF.Data;
 using AFSDKnetcore.AF.PI;
-using AFSDKnetcore.AF.Time;
-using Gemstone;
-using Gemstone.Collections.CollectionExtensions;
 using GemstoneCommon;
-using GemstonePhasorProtocolls;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Net.NetworkInformation;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Channels;
-using System.Threading.Tasks;
+using static Common.Constants;
+
+[assembly:InternalsVisibleTo("Adapt")]
 
 namespace Adapt.DataSources
 {
@@ -63,22 +51,18 @@ namespace Adapt.DataSources
     [Description("OSISoft PI Historian: Imports Phasor data from a PI Instance.")]
     public class PIHistorian : IDataSource
     {
-
-
         #region [ Members ]
 
-        private const int DefaultPort = 20401;
+        private const string AFSDKHost = "AFSDKhost";
+
         private PIServer m_server;
         private PIHistorianSettings m_settings;
-        #endregion
+        private double m_progress;
 
-        #region [ Constructor ]
-
-        public PIHistorian()
-        {}
         #endregion
 
         #region [ Methods ]
+
         public void Configure(IConfiguration config)
         {
             m_settings = new PIHistorianSettings();
@@ -95,16 +79,21 @@ namespace Adapt.DataSources
                 PIPoint.FindPIPoint(m_server, m_settings.PITag)
             };
 
-            PIPagingConfiguration pagingConfig = new(PIPageType.EventCount, 100);
-            AFTimeRange timeRange = new AFTimeRange(start, end);
+            PagedValueReader reader = new()
+            {
+                Points = pointList,
+                StartTime = start,
+                EndTime = end
+            };
 
-            IEnumerable<AFValues> results = pointList.RecordedValues(timeRange, AFBoundaryType.Inside, null, false, pagingConfig);
+            long startTicks = start.Ticks;
+            double totalTicks = end.Ticks - startTicks;
+            m_progress = 0.0D;
 
             // Logic only supports single PiTag at the moment.
             // We will need to use AF to get multiple based on PMU Name
-            foreach (AFValues values in results) // <- Group of read values
+            await foreach (AFValues values in reader.ReadAsync()) // <- Group of read values
             {
-
                 foreach (AFValue currentPoint in values)
                 {
                     long timestamp = currentPoint.Timestamp.UtcTime.Ticks;
@@ -120,66 +109,69 @@ namespace Adapt.DataSources
                     };
 
                     yield return frame;
+
+                    m_progress = (timestamp - startTicks) / totalTicks;
                 }
-                
             }
 
-
-
-            /*
-             using (PIConnection connection = new PIConnection() {
-                 ServerName = m_settings.ServerName,
-                 UserName = m_settings.UserName,
-                 Password = m_settings.Password,
-                 ConnectTimeout = m_settings.ConnectTimeout
-             })
-             {
-                 if (!PIPoint.TryFindPIPoint(connection.Server, m_settings.PITag, out PIPoint point))
-                     yield break;
-
-                 AFTime startTime = start;
-                 AFTime stopTime = end;
-
-                 IEnumerator<AFValue> PIenumerator = new PIScanner
-                 {
-                     Points = new PIPointList() { point },
-                     StartTime = startTime,
-                     EndTime = stopTime,
-                     DataReadExceptionHandler = ex => throw ex
-                 }
-                 .Read(m_settings.PageFactor).GetEnumerator(); ;
-
-
-                 while (PIenumerator.MoveNext())
-                 {
-                     AFValue currentPoint = PIenumerator.Current;
-
-                     if ((object)currentPoint == null)
-                         throw new NullReferenceException("PI data read returned a null value.");
-
-                     long timestamp = currentPoint.Timestamp.UtcTime.Ticks;
-
-                     Dictionary<string, ITimeSeriesValue> data = new Dictionary<string, ITimeSeriesValue>();
-                     data.Add(m_settings.PITag, new AdaptValue(m_settings.PITag, Convert.ToDouble(currentPoint.Value), timestamp));
-
-                     IFrame frame = new Frame()
-                     {
-                         Published = true,
-                         Timestamp = timestamp,
-                         Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(data)
-                     };
-
-                     yield return frame;
-                 }
-
-
-                 yield break;
-             }*/
-
-            yield break;
+            m_progress = 1.0D;
         }
 
-      
+        #region [ Old Code ]
+
+        /*
+            using (PIConnection connection = new PIConnection() {
+                ServerName = m_settings.ServerName,
+                UserName = m_settings.UserName,
+                Password = m_settings.Password,
+                ConnectTimeout = m_settings.ConnectTimeout
+            })
+            {
+                if (!PIPoint.TryFindPIPoint(connection.Server, m_settings.PITag, out PIPoint point))
+                    yield break;
+
+                AFTime startTime = start;
+                AFTime stopTime = end;
+
+                IEnumerator<AFValue> PIenumerator = new PIScanner
+                {
+                    Points = new PIPointList() { point },
+                    StartTime = startTime,
+                    EndTime = stopTime,
+                    DataReadExceptionHandler = ex => throw ex
+                }
+                .Read(m_settings.PageFactor).GetEnumerator(); ;
+
+
+                while (PIenumerator.MoveNext())
+                {
+                    AFValue currentPoint = PIenumerator.Current;
+
+                    if ((object)currentPoint == null)
+                        throw new NullReferenceException("PI data read returned a null value.");
+
+                    long timestamp = currentPoint.Timestamp.UtcTime.Ticks;
+
+                    Dictionary<string, ITimeSeriesValue> data = new Dictionary<string, ITimeSeriesValue>();
+                    data.Add(m_settings.PITag, new AdaptValue(m_settings.PITag, Convert.ToDouble(currentPoint.Value), timestamp));
+
+                    IFrame frame = new Frame()
+                    {
+                        Published = true,
+                        Timestamp = timestamp,
+                        Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(data)
+                    };
+
+                    yield return frame;
+                }
+
+
+                yield break;
+            }*/
+
+        //yield break;
+
+        #endregion
 
         public IEnumerable<AdaptDevice> GetDevices()
         {
@@ -192,7 +184,7 @@ namespace Adapt.DataSources
         /// <returns> This call Will Fail. </returns>
         public double GetProgress()
         {
-            throw new NotImplementedException();
+            return m_progress * 100.0D;
         }
 
         public Type GetSettingType()
@@ -207,7 +199,7 @@ namespace Adapt.DataSources
         public IEnumerable<AdaptSignal> GetSignals()
         {
             return new List<AdaptSignal>() { new AdaptSignal(m_settings.PITag, "Signal", m_settings.InstanceName)
-            { 
+            {
                 FramesPerSecond = 30.0,
                 Phase = Phase.NONE,
                 Type = MeasurementType.Frequency
@@ -217,10 +209,10 @@ namespace Adapt.DataSources
         /// <summary>
         /// The PI DataSource does not support Progress Reports.
         /// </summary>
-        /// <returns>Returns False.</returns>
+        /// <returns>Returns True.</returns>
         public bool SupportProgress()
         {
-            return false;
+            return true;
         }
 
         /// <summary>
@@ -229,14 +221,12 @@ namespace Adapt.DataSources
         /// <returns> A boolean indicating if it was able to connect to the PI and the requested Instance exists.</returns>
         public bool Test()
         {
-            InitializeHost();
-
             try
             {
                 ConnectPI();
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
                 return false;
             }
@@ -244,6 +234,8 @@ namespace Adapt.DataSources
 
         private void ConnectPI()
         {
+            InitializeHost();
+
             // Locate configured PI server
             PIServers servers = new PIServers();
             m_server = servers[m_settings.ServerName];
@@ -260,36 +252,81 @@ namespace Adapt.DataSources
         /// <summary>
         /// Function to start AFSDKHost if necessary
         /// </summary>
-        private void InitializeHost()
-        {
-            
-            if (AFSDKHost == null)
-            {
-                string hostApp = Path.GetFullPath($@".\AFSDKhost\AFSDKhost.exe");
-
-                if (!File.Exists(hostApp))
-                    throw new InvalidOperationException($"Failed to find \"AFSDKhost.exe\" build for testing, check path: {hostApp}");
-
-                ProcessStartInfo startInfo = new ProcessStartInfo
-                {
-                    UseShellExecute = true,
-                    WindowStyle =  ProcessWindowStyle.Hidden,
-                    CreateNoWindow = true,
-                    FileName = hostApp
-                };
-
-                AFSDKHost = Process.Start(startInfo);
-            }
-
-            // Make sure .NET core AFSDK API is initialized
-            API.Initialize("localhost");
-        }
 
         #endregion
 
         #region [ static ]
 
-        private static Process AFSDKHost = null;
+        private static Process s_afSDKHost;
+
+        internal static void InitializeHost()
+        {
+            // Make sure AFSDK host application is running
+            bool hostIsRunning = false;
+
+            foreach (TcpConnectionInformation info in IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections())
+            {
+                if (info.LocalEndPoint.Port == DefaultPort)
+                {
+                    hostIsRunning = true;
+                    break;
+                }
+            }
+
+            if (!hostIsRunning)
+            {
+                lock (typeof(PIHistorian))
+                {
+                    if (s_afSDKHost is null)
+                    {
+                        string hostApp = Path.GetFullPath($@".\{AFSDKHost}\{AFSDKHost}.exe");
+
+                        if (!File.Exists(hostApp))
+                            throw new InvalidOperationException($"Failed to find \"{AFSDKHost}.exe\" build for testing, check path: {hostApp}");
+
+                        ProcessStartInfo startInfo = new ProcessStartInfo
+                        {
+                            UseShellExecute = true,
+                            WindowStyle = ProcessWindowStyle.Hidden,
+                            CreateNoWindow = true,
+                            FileName = hostApp
+                            //Arguments = SDKHostPort.ToString()
+                        };
+
+                        s_afSDKHost = Process.Start(startInfo);
+                    }
+                }
+            }
+
+            // Make sure .NET core AFSDK API is initialized
+            if (!API.Initialized)
+                API.Initialize("localhost");
+        }
+
+        internal static void ShutDownHost()
+        {
+            lock (typeof(PIHistorian))
+            {
+                try
+                {
+                    Debug.WriteLine($"Attempting to shutdown {AFSDKHost}.exe");
+
+                    s_afSDKHost?.Close();
+                    s_afSDKHost = null;
+
+                    IEnumerable<Process> hostProcesses = Process.GetProcesses().Where(
+                        process => process.ProcessName.Equals(AFSDKHost, StringComparison.OrdinalIgnoreCase));
+    
+                    foreach (Process process in hostProcesses)
+                        process.Kill();
+                }
+                catch
+                {
+                    // Not failing because process cannot be stopped
+                }
+            }
+        }
+
         #endregion
     }
 }
