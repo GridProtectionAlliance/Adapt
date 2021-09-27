@@ -20,6 +20,9 @@
         <DataTemplate DataType="{x:Type localvm:TemplateVM}">
             <localv:TemplateView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type localvm:TaskVM}">
+            <localv:TaskView/>
+        </DataTemplate>
     </Window.Resources>
     
     <Grid>
@@ -66,18 +69,14 @@
 
         <Expander ExpandDirection="Right" Grid.Column="0"  Grid.Row="2" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=3}">
             <Expander.Header>
-                <TextBlock Text="Tasks" FontSize="16">
+                <TextBlock Text="Task" FontSize="16">
                     <TextBlock.LayoutTransform>
                         <RotateTransform Angle="-90"/>
                     </TextBlock.LayoutTransform>
                 </TextBlock>
             </Expander.Header>
         </Expander>
-
-        <StackPanel Grid.RowSpan="4" Grid.Column="1" Visibility="{Binding ActiveExpander, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=3}" >
-            <TextBlock Text="To Be Implemented" FontSize="16"/>
-        </StackPanel>
-
+        
         <Expander ExpandDirection="Right" Grid.Column="0"  Grid.Row="3" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=4}">
             <Expander.Header>
                 <TextBlock Text="Results" FontSize="16">
