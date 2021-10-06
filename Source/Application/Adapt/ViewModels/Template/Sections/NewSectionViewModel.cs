@@ -26,6 +26,8 @@ using GemstoneWPF;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+
 namespace Adapt.ViewModels
 {
     /// <summary>
@@ -53,6 +55,7 @@ namespace Adapt.ViewModels
         private string m_Name;
         private int m_selectedType;
         private Action<TemplateSection> m_complete;
+        private TemplateVM m_templateViemodel;
         #endregion
 
         #region[ Properties ]
@@ -83,9 +86,11 @@ namespace Adapt.ViewModels
         /// Viewmodel for Creating a new <see cref="TemplateSection"/>
         /// </summary>
         /// <param name="onComplete"> The Action do be done once the new <see cref="TemplateSection"/> is created </param>
-        public NewSectionVM(Action<TemplateSection> onComplete)
+        /// <param name="templateViemodel"> The Viemodel of the full <see cref="Template"/></param>
+        public NewSectionVM(Action<TemplateSection> onComplete, TemplateVM templateViemodel)
         {
             m_Name = "Section";
+            m_templateViemodel = templateViemodel;
             m_selectedType = 0;
             m_complete = onComplete;
             TypeOptions = new List<SectionTypeDescriptionVM>() {
@@ -104,6 +109,12 @@ namespace Adapt.ViewModels
 
         private void CreateSection()
         {
+            if (m_templateViemodel.Sections.Where(s => s.Name.ToLower() == m_Name.ToLower()).Count() > 1)
+            {
+                Popup("Section Already Exists", "A Section with this Name already exists. Please choose a unique name.", System.Windows.MessageBoxImage.Error);
+            return;
+            }
+
             TemplateSection section = new TemplateSection()
             {
                 Name = m_Name,
@@ -112,18 +123,7 @@ namespace Adapt.ViewModels
             m_complete.Invoke(section);
         }
        
-        /*private string GetDescription()
-        {
-            DescriptionAttribute descriptionAttribute;
-            string description;
-
-            if (typeof(AnalyticSection).GetMember(m_section.ToString()).First().TryGetAttribute(out descriptionAttribute))
-                description = descriptionAttribute.Description.ToNonNullNorEmptyString(m_section.ToString());
-            else
-                description = m_section.ToString();
-
-            return description;
-        }*/
+        
         #endregion
 
         #region [ Static ]

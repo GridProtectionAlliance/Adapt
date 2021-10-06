@@ -23,8 +23,12 @@
 
 
 using Gemstone;
+using Gemstone.Data;
 using GemstoneCommon;
 using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 
 namespace Adapt.Models
 {
@@ -79,5 +83,37 @@ namespace Adapt.Models
         private static AdaptDevice s_unknown;
 
         public static AdaptDevice Unknown => s_unknown;
+
+        /// <summary>
+        /// Gets a List of all Devices available from a DataSource, including any Metadata adjustments saved to the Database
+        /// </summary>
+        /// <param name="DataSource"> The <see cref="IDataSource"/></param>
+        /// <param name="DataSourceId"> The ID of the <see cref="DataSource"/></param>
+        /// <param name="ConnectionString"> The connection string to connect to the database.</param>
+        /// <param name="DataProviderString">The Data Provider string for the database.</param>
+        /// <returns> An <see cref="IEnumerable{AdaptDevice}"/> with all Devices for the specified DataSource. </returns>
+        public static IEnumerable<AdaptDevice> Get(IDataSource DataSource, int DataSourceId, string ConnectionString, string DataProviderString)
+        {
+            IEnumerable<AdaptDevice> result = DataSource.GetDevices();
+
+            Dictionary<string, string> CustomDeviceNames;
+
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            {
+                
+                DataTable NameTbl = connection.RetrieveData("SELECT DeviceID, Value FROM DeviceMetaData WHERE DataSourceID={0} AND Field='Name'", DataSourceId);
+
+
+                CustomDeviceNames = NameTbl.Select().ToDictionary(r => r["SignalID"].ToString(), r => r["Value"].ToString());
+
+            }
+            foreach (AdaptDevice device in result)
+            {
+                if (CustomDeviceNames.ContainsKey(device.ID))
+                    device.Name = CustomDeviceNames[device.ID];
+            }
+
+            return result;
+        }
     }
 }

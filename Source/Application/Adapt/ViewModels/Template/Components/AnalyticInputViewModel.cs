@@ -173,8 +173,14 @@ namespace Adapt.ViewModels
             {
                 AnalyticOutputVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Sections
                     .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == signal.SignalID).FirstOrDefault();
-                signalVM.PropertyChanged += SignalNameChanged;
-                m_name = signalVM?.Name ?? "";
+                if (signalVM == null)
+
+                    m_name = "";
+                else
+                {
+                    signalVM.PropertyChanged += SignalNameChanged;
+                    m_name = signalVM?.Name ?? "";
+                }
             }
 
             OnPropertyChanged(nameof(Name));
@@ -212,7 +218,7 @@ namespace Adapt.ViewModels
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
                 int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", m_analyticVM.SectionViewModel.TemplateViewModel.Name).Id;
-                int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("Order = {0} AND TemplateId = {1}", m_analyticVM.SectionViewModel.Order, templateId).ID;
+                int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("[Order] = {0} AND TemplateId = {1}", m_analyticVM.SectionViewModel.Order, templateId).ID;
                 int analyticID = new TableOperations<Analytic>(connection).QueryRecordWhere("Name = {0} AND TemplateID = {1} AND SectionID = {2}", m_analyticVM.Name, templateId, sectionId).ID;
                 int signalID = 0;
                 if (m_signal.IsInputSignal)
