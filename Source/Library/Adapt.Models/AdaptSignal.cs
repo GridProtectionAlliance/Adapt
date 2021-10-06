@@ -23,9 +23,12 @@
 
 
 using Gemstone;
+using Gemstone.Data;
 using GemstoneCommon;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 
 namespace Adapt.Models
 {
@@ -53,8 +56,14 @@ namespace Adapt.Models
             set => m_fps = value;
         }
            
-
-        public string Name => m_Name;
+        /// <summary>
+        /// The Name of this Signal in user readable form.
+        /// </summary>
+        public string Name
+        {
+            get => m_Name;
+            set { m_Name = value; }
+        }
 
         public string Device => m_DeviceKey;
 
@@ -78,6 +87,7 @@ namespace Adapt.Models
         #endregion
 
         #region [ Constructors ]
+
         /*public AdaptSignal(string name, IDevice device)
         {
             m_Data = new List<AdaptValue>();
@@ -143,6 +153,52 @@ namespace Adapt.Models
             m_Key = Key;
             m_description = "";
         }
+        #endregion
+
+        #region[ Statics ]
+
+        /// <summary>
+        /// Gets a List of all Signals available from a DataSource, including any Metadata adjustments saved to the Database
+        /// </summary>
+        /// <param name="DataSource"> The <see cref="IDataSource"/></param>
+        /// <param name="DataSourceId"> The ID of the <see cref="DataSource"/></param>
+        /// <param name="ConnectionString"> The connection string to connect to the database.</param>
+        /// <param name="DataProviderString">The Data Provider string for the database.</param>
+        /// <returns> An <see cref="IEnumerable{AdaptSignal}"/> with all Signals for the specified DataSource. </returns>
+        public static IEnumerable<AdaptSignal> Get(IDataSource DataSource, int DataSourceId, string ConnectionString, string DataProviderString)
+        {
+            IEnumerable<AdaptSignal> result = DataSource.GetSignals();
+            Dictionary<string, MeasurementType> CustomSignalTypes;
+            Dictionary<string, Phase> CustomSignalPhases;
+            Dictionary<string, string> CustomSignalNames;
+
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            {
+                DataTable TypeTbl = connection.RetrieveData("SELECT SignalID, Value FROM SignalMetaData WHERE DataSourceID={0} AND Field='Type' ", DataSourceId);
+                DataTable PhaseTbl = connection.RetrieveData("SELECT SignalID, Value FROM SignalMetaData WHERE DataSourceID={0} AND Field='Phase' ", DataSourceId);
+                DataTable SignalNameTbl = connection.RetrieveData("SELECT SignalID, Value FROM SignalMetaData WHERE DataSourceID={0} AND Field='Name' ", DataSourceId);
+
+                CustomSignalTypes = TypeTbl.Select().ToDictionary(r => r["SignalID"].ToString(), r => Enum.Parse<MeasurementType>(r["Value"].ToString()));
+                CustomSignalPhases = PhaseTbl.Select().ToDictionary(r => r["SignalID"].ToString(), r => Enum.Parse<Phase>(r["Value"].ToString()));
+                CustomSignalNames = SignalNameTbl.Select().ToDictionary(r => r["SignalID"].ToString(), r => r["Value"].ToString());
+               
+            }
+            foreach (AdaptSignal signal in result)
+            {
+                if (CustomSignalTypes.ContainsKey(signal.ID))
+                    signal.Type = CustomSignalTypes[signal.ID];
+
+                if (CustomSignalPhases.ContainsKey(signal.ID))
+                    signal.Phase = CustomSignalPhases[signal.ID];
+
+                if (CustomSignalNames.ContainsKey(signal.ID))
+                    signal.Name = CustomSignalNames[signal.ID];
+            }
+
+            return result;
+
+        }
+        
         #endregion
     }
 }

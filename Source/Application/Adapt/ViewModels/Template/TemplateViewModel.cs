@@ -243,6 +243,7 @@ namespace Adapt.ViewModels
             NewSectionVM vm = new NewSectionVM((TemplateSection section) => {
                 section.TemplateID = m_template.Id;
                 section.Order = m_Sections.Count() > 0 ? m_Sections.Max(s => s.Order) + 1 : 1;
+                section.ID = CreateSectionID();
                 m_Sections.Add(new SectionVM(section, this));
                 m_Sections.Last().PropertyChanged += OnSectionChange;
 
@@ -251,7 +252,7 @@ namespace Adapt.ViewModels
                 {
                     window.Close();
                 }));
-            });
+            },this);
             window.DataContext = vm;
             
             window.Show();
@@ -428,6 +429,19 @@ namespace Adapt.ViewModels
             if (m_Sections.Count() == 0)
                 return -1;
             int min = m_Sections.Min(item => item.Analytics.Count() > 0 ? item.Analytics.Min(a => a.ID) : 0);
+            return (min < 0 ? (min - 1) : -1);
+        }
+
+        /// <summary>
+        /// Creates a unique ID for a new Section. 
+        /// All IDs < 0 to indicate they have never been saved to the Database.
+        /// </summary>
+        /// <returns> a negative unique sectionID</returns>
+        public int CreateSectionID()
+        {
+            if (m_Sections.Count() == 0)
+                return -1;
+            int min = m_Sections.Min(item => item.ID);
             return (min < 0 ? (min - 1) : -1);
         }
 

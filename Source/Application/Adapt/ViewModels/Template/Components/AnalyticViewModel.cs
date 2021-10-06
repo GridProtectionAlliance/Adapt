@@ -106,7 +106,10 @@ namespace Adapt.ViewModels
             set
             {
                 if (value >= 0 && value < m_analyticTypes.Count)
+                {
                     TypeName = m_analyticTypes[value].Type.FullName;
+                    m_analytic.AssemblyName = m_analyticTypes[value].Type.Assembly.FullName;
+                }
 
                 OnAdapterTypeSelectedIndexChanged();
                 
@@ -202,7 +205,7 @@ namespace Adapt.ViewModels
                         Name = n,
                         OutputIndex = i
                     }, n);
-                });
+                }).ToList();
             }
         }
 
@@ -238,7 +241,7 @@ namespace Adapt.ViewModels
                 if (m_analytic.ID < 0)
                 {
                     int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", SectionViewModel.TemplateViewModel.Name).Id;
-                    int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("Order = {0} AND TemplateId = {1}", SectionViewModel.Order, templateId).ID;
+                    int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("[Order] = {0} AND TemplateId = {1}", SectionViewModel.Order, templateId).ID;
                     analyticTbl.AddNewRecord(new Analytic()
                     {
                         Name = m_analytic.Name,
@@ -270,6 +273,14 @@ namespace Adapt.ViewModels
         /// Loads all Outputs associated with this <see cref="Analytic"/>
         /// </summary>
         public void LoadOutputs()
+        {
+
+        }
+
+        /// <summary>
+        /// Removes this <see cref="Analytic"/>
+        /// </summary>
+        private void Delete()
         {
 
         }

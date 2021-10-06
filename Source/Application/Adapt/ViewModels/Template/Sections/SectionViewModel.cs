@@ -58,6 +58,10 @@ namespace Adapt.ViewModels
         public string Title => m_section.Name + " (" + GetTitle((AnalyticSection)m_section.AnalyticTypeID) + ")";
 
         /// <summary>
+        /// user generated Name of the <see cref="TemplateSection"/>
+        /// </summary>
+        public string Name => m_section.Name;
+        /// <summary>
         /// Indicates if the Section has changed.
         /// </summary>
         public bool Changed => true;
@@ -78,6 +82,11 @@ namespace Adapt.ViewModels
         /// The associated Template ViewModel
         /// </summary>
         public TemplateVM TemplateViewModel { get; set; }
+
+        /// <summary>
+        /// The ID of the <see cref="AnalyticSection"/>
+        /// </summary>
+        public int ID => m_section.ID;
         #endregion
 
         #region [ Constructor ]

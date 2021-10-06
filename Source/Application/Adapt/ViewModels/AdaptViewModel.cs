@@ -40,6 +40,7 @@ namespace Adapt.ViewModels
         private ViewModelBase m_currentView;
         private DataSourceViewModel m_dataSource;
         private TemplateVM m_template;
+        private TaskVM m_task;
         #endregion
 
         #region[ Properties ]
@@ -98,6 +99,8 @@ namespace Adapt.ViewModels
             m_dataSource = new DataSourceViewModel(m_dataSourceList.SelectedID);
             m_dataSourceList.PropertyChanged += DataSourceList_Changed;
 
+            m_task = new TaskVM();
+
             m_dataSource.PropertyChanged += DataSource_Changed;
             m_template.PropertyChanged += Template_Changed;
 
@@ -151,6 +154,8 @@ namespace Adapt.ViewModels
                 m_currentView = m_dataSource;
             else if (m_currentExpander == SelectedExpander.Template)
                 m_currentView = m_template;
+            else if (m_currentExpander == SelectedExpander.Task)
+                m_currentView = m_task;
             OnPropertyChanged(nameof(CurrentView));
         }
         #endregion
