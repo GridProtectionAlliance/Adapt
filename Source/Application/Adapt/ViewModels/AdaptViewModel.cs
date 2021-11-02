@@ -41,6 +41,8 @@ namespace Adapt.ViewModels
         private DataSourceViewModel m_dataSource;
         private TemplateVM m_template;
         private TaskVM m_task;
+        private ResultViewVM m_results;
+
         #endregion
 
         #region[ Properties ]
@@ -75,6 +77,8 @@ namespace Adapt.ViewModels
             }
         }
 
+
+
         public ViewModelBase CurrentView
         {
             get => m_currentView;
@@ -99,12 +103,15 @@ namespace Adapt.ViewModels
             m_dataSource = new DataSourceViewModel(m_dataSourceList.SelectedID);
             m_dataSourceList.PropertyChanged += DataSourceList_Changed;
 
-            m_task = new TaskVM();
+            m_task = new TaskVM(this);
+
+            m_results = new ResultViewVM();
 
             m_dataSource.PropertyChanged += DataSource_Changed;
             m_template.PropertyChanged += Template_Changed;
 
             m_currentView = m_dataSource;
+
         }
 
 
@@ -156,7 +163,19 @@ namespace Adapt.ViewModels
                 m_currentView = m_template;
             else if (m_currentExpander == SelectedExpander.Task)
                 m_currentView = m_task;
+            else if (m_currentExpander == SelectedExpander.Visualization)
+                m_currentView = m_results;
             OnPropertyChanged(nameof(CurrentView));
+        }
+
+        /// <summary>
+        /// Start Processing a Task 
+        /// </summary>
+        public void ProcessTask()
+        {
+            ActiveExpander = SelectedExpander.Visualization;
+            m_results.ProcessTask(m_task);
+
         }
         #endregion
     }
@@ -172,5 +191,7 @@ namespace Adapt.ViewModels
         Task = 3,
         Visualization = 4
     }
+
+
        
 }
