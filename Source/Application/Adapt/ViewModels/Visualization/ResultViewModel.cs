@@ -52,7 +52,7 @@ namespace Adapt.ViewModels
     /// <summary>
     /// Primary ViewModel for <see cref="Adapt.View.Visualization.ResultView"/>
     /// </summary>
-    public class ResultViewVM : ViewModelBase
+    public class ResultViewVM : AdaptTabViewModelBase
     {
         #region [ Members ]
         private ResultState m_resultStatus;

@@ -51,6 +51,16 @@ namespace GemstoneWPF
             }
         }
 
+        /// <summary>
+        /// Gets a message box to display message to users and ask them for Confirmation.
+        /// </summary>
+        public static Func<string, string, MessageBoxImage, bool> Confirmation
+        {
+            get
+            {
+                return (message, caption, messageBoxImage) => MessageBox.Show(Application.Current.MainWindow, message, caption, MessageBoxButton.YesNo, messageBoxImage) == MessageBoxResult.Yes;
+            }
+        }
 
         protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName()] string propertyName = null)
         {

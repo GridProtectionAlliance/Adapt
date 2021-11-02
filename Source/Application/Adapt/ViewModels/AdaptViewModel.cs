@@ -37,7 +37,7 @@ namespace Adapt.ViewModels
         private TemplateListVM m_templateList;
         private SelectedExpander m_currentExpander;
 
-        private ViewModelBase m_currentView;
+        private AdaptTabViewModelBase m_currentView;
         private DataSourceViewModel m_dataSource;
         private TemplateVM m_template;
         private TaskVM m_task;
@@ -71,15 +71,15 @@ namespace Adapt.ViewModels
             get => m_currentExpander;
             set
             {
+                if (!m_currentView.ChangeTab())
+                    return;
                 m_currentExpander = value;
                 TabChanged();
                 OnPropertyChanged();
             }
         }
 
-
-
-        public ViewModelBase CurrentView
+        public AdaptTabViewModelBase CurrentView
         {
             get => m_currentView;
             set
@@ -91,6 +91,7 @@ namespace Adapt.ViewModels
         #endregion
 
         #region[ Constructor]
+
         public AdaptViewModel()
         {
             m_currentExpander = SelectedExpander.DataSource;
@@ -113,7 +114,6 @@ namespace Adapt.ViewModels
             m_currentView = m_dataSource;
 
         }
-
 
         #endregion
 
@@ -177,6 +177,7 @@ namespace Adapt.ViewModels
             m_results.ProcessTask(m_task);
 
         }
+        
         #endregion
     }
 

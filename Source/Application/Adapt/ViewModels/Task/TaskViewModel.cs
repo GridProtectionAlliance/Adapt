@@ -49,7 +49,7 @@ namespace Adapt.ViewModels
     /// <summary>
     /// ViewModel for Task Window
     /// </summary>
-    public class TaskVM : ViewModelBase
+    public class TaskVM : AdaptTabViewModelBase
     {
         #region [ Members ]
         private int m_SelectedTemplateIndex;

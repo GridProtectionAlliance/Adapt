@@ -5,8 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.DataSource"
              xmlns:localcv="clr-namespace:Adapt.Converter"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             mc:Ignorable="d" >
     <UserControl.Resources>
         <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
     </UserControl.Resources>
@@ -15,13 +14,13 @@
             <RowDefinition Height="15*" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TabControl TabStripPlacement="Top" Grid.Row="0" >
-            <TabItem Header="Settings">
+        <TabControl TabStripPlacement="Top" Grid.Row="0" SelectedIndex="{Binding Path=SelectedTabIndex, Mode=TwoWay}">
+            <TabItem Header="Settings" TabIndex="0">
                 <ScrollViewer>
                     <local:SettingsView/>
                 </ScrollViewer>
             </TabItem>
-            <TabItem Header="General MetaData">
+            <TabItem Header="General MetaData" TabIndex="1">
                 <ScrollViewer>
                     <local:MetaDataView/>
                 </ScrollViewer>
@@ -36,6 +35,9 @@
                           Width="20" Fill="DarkRed" Stretch="Uniform" HorizontalAlignment="Right" Data="F1M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
                     <TextBlock Text="Test Data Source and Save Changes" />
                 </StackPanel>
+            </Button>
+            <Button Margin="10,0" Height="20" Command="{Binding ClearCommand}">
+                Clear Changes
             </Button>
         </StackPanel>
     </Grid>

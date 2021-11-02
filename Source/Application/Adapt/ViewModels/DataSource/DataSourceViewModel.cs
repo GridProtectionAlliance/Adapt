@@ -37,6 +37,7 @@ using System.IO;
 using System.Linq;
 using System.Transactions;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace Adapt.ViewModels
@@ -44,7 +45,7 @@ namespace Adapt.ViewModels
     /// <summary>
     /// ViewModel for DataSource Window
     /// </summary>
-    public class DataSourceViewModel : ViewModelBase, IViewModel
+    public class DataSourceViewModel : AdaptTabViewModelBase, IViewModel
     {
         #region [ Members ]
 
@@ -55,7 +56,9 @@ namespace Adapt.ViewModels
 
         private bool m_isTested;
         private bool m_passedTest;
+        private bool m_hasChanged;
 
+        private int m_selectedTabIndex;
         private List<DeviceViewModel> m_Devices;
 
         private List<TypeDescription> m_dataSourceTypes;
@@ -82,7 +85,24 @@ namespace Adapt.ViewModels
             set
             {
                 m_dataSource.Name = value;
+               
                 OnSettingsChanged();
+                OnPropertyChanged();
+            }
+        }
+
+        public int SelectedTabIndex 
+        { 
+            get => m_selectedTabIndex;
+            set 
+            {
+                if (!PassedTest && value != 0)
+                {
+                    Popup("The DataSource needs to be able to connect to the Source System. Please Test the Datasource to ensure it can connect to the Source System.", "Test DataSource", MessageBoxImage.Exclamation);
+                    m_selectedTabIndex = 0;
+                }
+                else
+                    m_selectedTabIndex = value;
                 OnPropertyChanged();
             }
         }
@@ -201,7 +221,7 @@ namespace Adapt.ViewModels
 
         public bool CanDelete => false;
 
-        public bool CanClear => false;
+        public bool CanClear => m_hasChanged;
         
 
         public event CancelEventHandler BeforeLoad;
@@ -221,12 +241,15 @@ namespace Adapt.ViewModels
         #region [ Constructor ]
         public DataSourceViewModel(int ID): this() 
         {
+            m_selectedTabIndex = 0;
             Load(ID);
         }
 
         public DataSourceViewModel()
         {
+            m_selectedTabIndex = 0;
             m_dataSource = null;
+            m_hasChanged = true;
             m_settings = new List<AdapterSettingParameterVM>();
 
             m_clearCommand = new RelayCommand(Clear, () => CanClear);
@@ -325,7 +348,9 @@ namespace Adapt.ViewModels
         {}
 
         public void Clear()
-        {}
+        {
+            Load(ID);
+        }
 
         public void Load() => Load(m_dataSource?.ID ?? 1);
         
@@ -357,6 +382,8 @@ namespace Adapt.ViewModels
             finally
             {
                 Mouse.OverrideCursor = null;
+                m_hasChanged = false;
+                OnPropertyChanged(nameof(CanClear));
             }
         }
 
@@ -443,6 +470,8 @@ namespace Adapt.ViewModels
         private void OnSettingsChanged()
         {
             m_isTested = false;
+            m_hasChanged = true;
+            OnPropertyChanged(nameof(CanClear));
             OnPropertyChanged(nameof(PassedTest));
             OnPropertyChanged(nameof(FailedTest));
         }
@@ -505,6 +534,36 @@ namespace Adapt.ViewModels
             OnPropertyChanged(nameof(Devices));
             OnPropertyChanged(nameof(NumberPMU));
             OnPropertyChanged(nameof(NumberSignals));
+
+        }
+
+        /// <summary>
+        /// Gets called when the user tries to change away from the current View
+        /// </summary>
+        /// <returns></returns>
+        public override bool ChangeTab()
+        {
+            if (PassedTest)
+                return true;
+            if (m_hasChanged)
+            {
+                if (Confirmation("Changes to this DataSource have not been saved. Would you like to test and save the DataSource and continue?", "Changes not Saved", MessageBoxImage.Warning))
+                {
+                    Save();
+                    return true;
+                }
+                return false;
+            }
+
+            return base.ChangeTab();
+        }
+
+        /// <summary>
+        /// Fires whenthe user clicks the MetaData Tab. Necessary to Inform them that the dataSource needs to be Saved and Tested first.
+        /// </summary>
+        public void tabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            int a = 0;
 
         }
         #endregion
