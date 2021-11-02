@@ -124,7 +124,10 @@ namespace Adapt.ViewModels
             if (e.PropertyName == nameof(m_dataSourceList.SelectedIndex))
             {
                 if (m_dataSource.ID != m_dataSourceList.SelectedID)
-                    m_dataSource.ID = m_dataSourceList.SelectedID;
+                    if (m_dataSource.ChangeTab())
+                        m_dataSource.ID = m_dataSourceList.SelectedID;
+                    else
+                        m_dataSourceList.SelectedID = m_dataSource.ID;
             }
         }
 

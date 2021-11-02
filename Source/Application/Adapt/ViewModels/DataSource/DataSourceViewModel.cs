@@ -558,14 +558,6 @@ namespace Adapt.ViewModels
             return base.ChangeTab();
         }
 
-        /// <summary>
-        /// Fires whenthe user clicks the MetaData Tab. Necessary to Inform them that the dataSource needs to be Saved and Tested first.
-        /// </summary>
-        public void tabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            int a = 0;
-
-        }
         #endregion
 
         #region [ Static ]
