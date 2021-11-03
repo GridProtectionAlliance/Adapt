@@ -38,5 +38,9 @@ namespace Adapt.DataSources
         [DefaultValue("C:\\Users\\clackner\\Desktop\\Adapt")]
         [CustomConfigurationEditor("GemstoneWPF.dll", "GemstoneWPF.Editors.FolderBrowser", "showNewFolderButton=true; description=Select Root Folder")]
         public string RootFolder { get; set; }
+
+        [DefaultValue(30)]
+        [Description("Maximum length of a single File in minutes")]
+        public int MaxFileLength { get; set; }
     }
 }

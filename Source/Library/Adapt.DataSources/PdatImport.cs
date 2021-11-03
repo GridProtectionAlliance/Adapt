@@ -117,7 +117,8 @@ namespace Adapt.DataSources
             {
                 DateTime initial = start - m_Files.Keys.Where(k => k <= start).Min(k => (start - k));
 
-                files.Add(initial);
+                if ((start - initial).TotalMinutes < m_settings.MaxFileLength)
+                    files.Add(initial);
             }
 
             if (files.Count() == 0)
@@ -217,6 +218,7 @@ namespace Adapt.DataSources
                     parser.ConnectionTerminated += ConnectionTerminated;
                     parser.ReceivedDataFrame += RecievedDataFrame;
                     parser.DefinedFrameRate = 10000000;
+                    parser.DisconnectAtEOF = true;
                     parser.Start();
                     WaitHandle.WaitAny(new WaitHandle[] { m_FileComplete, cancellationToken.WaitHandle });
                     parser.Stop();
