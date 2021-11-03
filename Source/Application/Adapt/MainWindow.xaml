@@ -8,7 +8,7 @@
         xmlns:localvViz="clr-namespace:Adapt.View.Visualization"
         xmlns:localcv="clr-namespace:Adapt.Converter"
         mc:Ignorable="d"
-        Title="ADAPT" Height="450" Width="800" WindowState="Maximized">
+        Title="SciSync" Height="450" Width="800" WindowState="Maximized">
     <Window.DataContext>
         <localvm:AdaptViewModel/>
     </Window.DataContext>
