@@ -11,39 +11,37 @@
         <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
     </UserControl.Resources>
 
-    <StackPanel Orientation="Horizontal" Margin="10,0,0,0">
+    <WrapPanel Margin="0,0,10,0">
         <Label Margin="0,2" Width="150" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Name}"/>
-        <StackPanel Margin="5" Width="150" Grid.Column="1"
+        <WrapPanel Margin="5" Width="150" Grid.Column="1"
                 Visibility="{Binding Path=IsBoolean, Converter={StaticResource ObjectToVisibility}}">
             <RadioButton Content="True" IsChecked="{Binding Path=Value}" />
             <RadioButton Content="False" IsChecked="{Binding Mode=OneWay, Path=IsFalseChecked}" />
-        </StackPanel>
-        <StackPanel Margin="5" Visibility="{Binding Path=IsEnum, Converter={StaticResource ObjectToVisibility}}">
-            <StackPanel.Resources>
+        </WrapPanel>
+        <WrapPanel Margin="5" Visibility="{Binding Path=IsEnum, Converter={StaticResource ObjectToVisibility}}">
+            <WrapPanel.Resources>
                 <CollectionViewSource Source="{Binding Path=EnumValues}" x:Key="EnumValues" />
-            </StackPanel.Resources>
+            </WrapPanel.Resources>
             <ComboBox Width="150" ItemsSource="{Binding Source={StaticResource EnumValues}}" SelectedItem="{Binding Path=Value}" />
-        </StackPanel>
-        <StackPanel Margin="5"  Visibility="{Binding Path=IsOther, Converter={StaticResource ObjectToVisibility}}">
+        </WrapPanel>
+        <WrapPanel Margin="5"  Visibility="{Binding Path=IsOther, Converter={StaticResource ObjectToVisibility}}">
             <TextBox Width="200" Text="{Binding Path=Value}" TextWrapping="Wrap"
                                       VerticalScrollBarVisibility="Auto"/>
-        </StackPanel>
-        <StackPanel Width="150" Margin="5" Visibility="{Binding Path=IsText, Converter={StaticResource ObjectToVisibility}}">
+        </WrapPanel>
+        <WrapPanel Width="150" Margin="5" Visibility="{Binding Path=IsText, Converter={StaticResource ObjectToVisibility}}">
             <TextBox Text="{Binding Path=Value}" />
-        </StackPanel>
-        <StackPanel Width="150" Margin="5" Visibility="{Binding Path=IsNumeric, Converter={StaticResource ObjectToVisibility}}">
+        </WrapPanel>
+        <WrapPanel Width="150" Margin="5" Visibility="{Binding Path=IsNumeric, Converter={StaticResource ObjectToVisibility}}">
             <TextBox Text="{Binding Path=Value}" />
-        </StackPanel>
-        <StackPanel Width="150" Margin="5" Visibility="{Binding Path=IsCustom, Converter={StaticResource ObjectToVisibility}}">
-            <StackPanel  Margin="0,0" Orientation="Horizontal">
-                <TextBox Text="{Binding Path=Value}" IsReadOnly="True" Width="100" Height="18"/>
-                <Button Width="80" Height="20" Margin="10,2" Command="{Binding OpenCustomPopup}" >Edit</Button>
-                <Popup x:Name="CustomConfigurationPopup" Placement="Center" Visibility="Collapsed" IsOpen="{Binding Path=CustomPopupOpen}">
-                    <Border CornerRadius="5" BorderThickness="2" Background="White" BorderBrush="Blue">
-                        <ContentPresenter x:Name="ContentCustomPopup" Content="{Binding Path=CustomPopup}" />
-                    </Border>
-                </Popup>
-            </StackPanel>
-        </StackPanel>
-    </StackPanel>
+        </WrapPanel>
+        <WrapPanel Margin="5" Visibility="{Binding Path=IsCustom, Converter={StaticResource ObjectToVisibility}}">
+            <TextBox Text="{Binding Path=Value}" IsReadOnly="True" Width="100" Height="18"/>
+            <Button Width="80" Height="20" Margin="10,2" Command="{Binding OpenCustomPopup}" >Edit</Button>
+            <Popup x:Name="CustomConfigurationPopup" Placement="Center" Visibility="Collapsed" IsOpen="{Binding Path=CustomPopupOpen}">
+                <Border CornerRadius="5" BorderThickness="2" Background="White" BorderBrush="Blue">
+                    <ContentPresenter x:Name="ContentCustomPopup" Content="{Binding Path=CustomPopup}" />
+                </Border>
+            </Popup>
+        </WrapPanel>
+    </WrapPanel>
 </UserControl>

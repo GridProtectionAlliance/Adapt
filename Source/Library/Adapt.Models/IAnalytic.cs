@@ -26,6 +26,7 @@ using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Adapt.Models
 {
@@ -48,6 +49,13 @@ namespace Adapt.Models
         /// Returns a List of strings indicating the names of the Input Signals
         /// </summary>
         public IEnumerable<string> InputNames();
+
+        /// <summary>
+        /// The actual Analytic Process
+        /// </summary>
+        /// <param name="frame">The <see cref="IFrame"/> containing the input Data. </param>
+        /// <returns> a <see cref="ITimeSeriesValue[]"/> that contains the results. </returns>
+        public Task<ITimeSeriesValue[]> Run(IFrame frame);
 
     }
 }

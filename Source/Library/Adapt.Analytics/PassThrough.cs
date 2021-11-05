@@ -24,9 +24,12 @@
 
 using Adapt.Models;
 using GemstoneCommon;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Adapt.DataSources
 {
@@ -57,8 +60,14 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
+        public Task<ITimeSeriesValue[]> Run(IFrame frame)
+        {
+            return Task.FromResult<ITimeSeriesValue[]>(frame.Measurements.ToList().Select(item => item.Value).ToArray());
+        }
 
-
-
+        public void Configure(IConfiguration config)
+        {
+            return;
+        }
     }
 }

@@ -58,12 +58,6 @@ namespace Adapt.Models
         public IEnumerable<AdaptSignal> GetSignals();
 
         /// <summary>
-        /// Provides current configuration to the DataSource
-        /// </summary>
-        /// <param name="config">The <see cref="IConfiguration"/> object for this Datasource.</param>
-        public void Configure(IConfiguration config);
-
-        /// <summary>
         /// Obtains data from Source system
         /// </summary>
         /// <param name="signals">The <see cref="AdaptSignal"/> list that should be obtained. </param>

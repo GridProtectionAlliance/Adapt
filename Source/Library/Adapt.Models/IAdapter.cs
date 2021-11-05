@@ -39,6 +39,10 @@ namespace Adapt.Models
         /// </summary>
         public Type GetSettingType();
 
-
+        /// <summary>
+        /// Provides current configuration to the Adapter
+        /// </summary>
+        /// <param name="config">The <see cref="IConfiguration"/> object for this Adapter.</param>
+        public void Configure(IConfiguration config);
     }
 }

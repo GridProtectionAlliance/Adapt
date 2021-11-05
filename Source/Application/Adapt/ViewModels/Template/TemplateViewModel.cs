@@ -48,7 +48,7 @@ namespace Adapt.ViewModels
     /// <summary>
     /// ViewModel for DataSource Window
     /// </summary>
-    public class TemplateVM : ViewModelBase, IViewModel
+    public class TemplateVM : AdaptTabViewModelBase, IViewModel
     {
         #region [ Members ]
 

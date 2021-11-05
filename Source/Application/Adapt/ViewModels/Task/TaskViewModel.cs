@@ -49,7 +49,7 @@ namespace Adapt.ViewModels
     /// <summary>
     /// ViewModel for Task Window
     /// </summary>
-    public class TaskVM : ViewModelBase
+    public class TaskVM : AdaptTabViewModelBase
     {
         #region [ Members ]
         private int m_SelectedTemplateIndex;
@@ -76,7 +76,10 @@ namespace Adapt.ViewModels
             get => m_SelectedDataSourceIndex; 
             set
             {
-                m_SelectedDataSourceIndex = value;
+                if (value > -1)
+                    m_SelectedDataSourceIndex = value;
+                else
+                    m_SelectedDataSourceIndex = 0;
 
                 OnPropertyChanged();
             }
@@ -90,7 +93,10 @@ namespace Adapt.ViewModels
             get => m_SelectedTemplateIndex;
             set
             {
-                m_SelectedTemplateIndex = value;
+                if (value > -1)
+                    m_SelectedTemplateIndex = value;
+                else
+                    m_SelectedTemplateIndex = 0;
                 MappingViewModel = new MappingVM(Templates[m_SelectedTemplateIndex]);
                 ValidateDataSource();
                 
@@ -103,12 +109,18 @@ namespace Adapt.ViewModels
         /// The Viewmodel containing the mapping between Template Devices and DataSourceDevices
         /// </summary>
         public MappingVM MappingViewModel { get; set; }
+
+        public ICommand RunTask { get; set; }
         #endregion
 
         #region [ Constructor ]
 
         // #ToDo: Add logic to save Task to temporary File to avoid having to set it up every time Adapt/SciSync is opened
-        public TaskVM()
+        /// <summary>
+        /// Creates a new <see cref="TaskVM"/>
+        /// </summary>
+        /// <param name="ParentVM"> The parent <see cref="AdaptViewModel"/> used to trigger processing of a Task. </param>
+        public TaskVM(AdaptViewModel ParentVM)
         {
             
             LoadDataSources();
@@ -120,6 +132,8 @@ namespace Adapt.ViewModels
 
             MappingViewModel = new MappingVM(Templates[SelectedTemplateIndex]);
             ValidateDataSource();
+
+            RunTask = new RelayCommand(() => ParentVM.ProcessTask(), () => true);
         }
 
         #endregion
@@ -175,6 +189,7 @@ namespace Adapt.ViewModels
 
             }
         }
+
         #endregion
 
         #region [ Static ]

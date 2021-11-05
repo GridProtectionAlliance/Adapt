@@ -46,10 +46,13 @@ namespace AdaptLogic
         private IDataSource m_Source;
         private Channel<IFrame> m_sourceQueue;
         private ConcurrentDictionary<string, SignalWritter> m_writers;
+        private List<SignalProcessor> m_processors;
         private List<AdaptSignal> m_sourceSignals;
         private DateTime m_start;
         private DateTime m_end;
         private Task m_mainProcess;
+
+        private List<Channel<IFrame>> m_sectionQueue;
 
         private CancellationTokenSource m_cancelationSource;
         private int m_DataSourceProgress;
@@ -79,7 +82,9 @@ namespace AdaptLogic
             SignalWritter.CleanAppData();
             CreateSourceInstance(Source);
             m_writers = new ConcurrentDictionary<string,SignalWritter>(Signals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
+            m_processors = new List<SignalProcessor>();
             m_sourceQueue = Channel.CreateUnbounded<IFrame>();
+            m_sectionQueue = new List<Channel<IFrame>>();
             m_start = start;
             m_end = end;
             m_sourceSignals = Signals;
@@ -87,6 +92,35 @@ namespace AdaptLogic
             m_DataSourceProgress = 0;
         }
 
+        /// <summary>
+        /// Creates a new <see cref="TaskProcessor"/> based on a <see cref="Task"/>
+        /// </summary>
+        /// <param name="task"> The <see cref="Task"/></param>
+        /// <returns></returns>
+        public TaskProcessor(AdaptTask task)
+        {
+            SignalWritter.CleanAppData();
+            CreateSourceInstance(task.DataSource);
+            List<AdaptSignal> inputSignals = m_Source.GetSignals().Where(s => task.InputSignalIds.Contains(s.ID)).ToList();
+
+            List<AdaptSignal> tmp = task.TempSignalIds.Select(item => new AdaptSignal(item, item, new AdaptDevice("Temporary Signals"))).ToList();
+
+            m_writers = new ConcurrentDictionary<string, SignalWritter>(inputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
+            tmp.ForEach(item => m_writers.AddOrUpdate(item.ID, (key) => new SignalWritter(item),(key,old) => old));
+
+            m_sourceQueue = Channel.CreateUnbounded<IFrame>();
+            m_start = task.Start;
+            m_end = task.End;
+            m_sourceSignals = inputSignals;
+            m_cancelationSource = new CancellationTokenSource();
+            m_DataSourceProgress = 0;
+            m_sectionQueue = task.Sections.Select(sec => Channel.CreateUnbounded<IFrame>()).ToList();
+            m_processors = task.Sections.Select((sec, i) => {
+                if (i == 0)
+                    return new SignalProcessor(m_sourceQueue, m_sectionQueue[0], sec);
+                return new SignalProcessor(m_sectionQueue[i-1], m_sectionQueue[i], sec);
+            }).ToList();
+        }
         #endregion
 
         #region [ Methods ]
@@ -121,11 +155,18 @@ namespace AdaptLogic
             {
 
                 Task getData = Task.Run(() => GetData(m_cancelationSource.Token));
-                Task writeData = Task.Run(() => WriteData(m_cancelationSource.Token));
+                Task[] processTask = m_processors.Select(item => item.StartProcessor(m_cancelationSource.Token)).ToArray();
+
+                Task writeData;
+                if (m_processors.Count == 0)
+                    writeData = Task.Run(() => WriteData(m_cancelationSource.Token,m_sourceQueue));
+                else
+                    writeData = Task.Run(() => WriteData(m_cancelationSource.Token, m_sectionQueue.Last()));
 
                 Task[] writterTasks = m_writers.Select(item => item.Value.StartWritter(m_cancelationSource.Token)).ToArray();
 
                 getData.Wait();
+                Task.WaitAll(processTask);
                 writeData.Wait();
                 Task.WaitAll(writterTasks);
 
@@ -161,11 +202,11 @@ namespace AdaptLogic
             }
         }
 
-        private async void WriteData(CancellationToken cancelationToken)
+        private async void WriteData(CancellationToken cancelationToken, Channel<IFrame> sourceQueue)
         {
             try
             {
-                await foreach (IFrame frame in m_sourceQueue.Reader.ReadAllAsync(cancelationToken))
+                await foreach (IFrame frame in sourceQueue.Reader.ReadAllAsync(cancelationToken))
                 {
 
                     foreach (KeyValuePair<string, ITimeSeriesValue> value in frame.Measurements)

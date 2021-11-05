@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PdatSettings.tsx - Gbtc
+//  Task.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,31 +16,70 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  05/03/2021 - C. Lackner
+//  04/04/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
 
 using Adapt.Models;
+using Gemstone;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.Loader;
+using System.Threading;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 
-namespace Adapt.DataSources
+namespace AdaptLogic
 {
     /// <summary>
-    /// The Settings for a <see cref="PdatImporter"/> Data Source
+    /// A Task to be Processed 
     /// </summary>
-    public class PdatSettings
+    public class AdaptTask
     {
-        [DefaultValue("C:\\Users\\clackner\\Desktop\\Adapt")]
-        [CustomConfigurationEditor("GemstoneWPF.dll", "GemstoneWPF.Editors.FolderBrowser", "showNewFolderButton=true; description=Select Root Folder")]
-        public string RootFolder { get; set; }
+        #region [ Members ]
 
-        [DefaultValue(30)]
-        [Description("Maximum length of a single File in minutes")]
-        public int MaxFileLength { get; set; }
+        #endregion
+
+        #region [ Properties ]
+        public DataSource DataSource { get; set; }
+        public List<string> InputSignalIds {get; set;}
+
+        /// <summary>
+        /// This will be removed eventually it is only necessary until we can defined OutputSignals Properly in the UI
+        /// </summary>
+        public List<string> TempSignalIds { get; set; }
+        public DateTime Start { get; set; }
+        public DateTime End { get; set; }
+        public List<TaskSection> Sections { get; set; }
+        #endregion
+
+        #region [ Constructor ]
+
+        #endregion
+
+        #region [ Methods ]
+
+
+        #endregion
     }
+
+    public class TaskSection
+    {
+        public List<Analytic> Analytics { get; set; }
+    }
+
+    public class Analytic
+    {
+        public Type AdapterType { get; set; }
+        public List<string> Inputs { get; set; }
+        public List<string> Outputs { get; set; }
+        public IConfiguration Configuration { get; set; }
+    }
+
 }

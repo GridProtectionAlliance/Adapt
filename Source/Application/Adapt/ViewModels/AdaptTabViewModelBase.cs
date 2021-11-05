@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PdatSettings.tsx - Gbtc
+//  AdaptTabViewModelBase.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,31 +16,40 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  05/03/2021 - C. Lackner
+//  11/02/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
-
 using Adapt.Models;
-using GemstoneCommon;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
+using GemstoneWPF;
 using System.ComponentModel;
 
-namespace Adapt.DataSources
+namespace Adapt.ViewModels
 {
     /// <summary>
-    /// The Settings for a <see cref="PdatImporter"/> Data Source
+    /// Primary ViewModel Base for Tabs use when switching Tab or item.
     /// </summary>
-    public class PdatSettings
+    public abstract class AdaptTabViewModelBase: ViewModelBase
     {
-        [DefaultValue("C:\\Users\\clackner\\Desktop\\Adapt")]
-        [CustomConfigurationEditor("GemstoneWPF.dll", "GemstoneWPF.Editors.FolderBrowser", "showNewFolderButton=true; description=Select Root Folder")]
-        public string RootFolder { get; set; }
+        #region [ Members ]
 
-        [DefaultValue(30)]
-        [Description("Maximum length of a single File in minutes")]
-        public int MaxFileLength { get; set; }
-    }
+        #endregion
+
+        #region[ Properties ]
+
+        #endregion
+
+        #region[ Constructor]
+      
+        #endregion
+
+        #region [ Methods ]
+
+        public virtual bool ChangeTab()
+        {
+            return true;
+        }
+       
+        #endregion
+    }       
 }

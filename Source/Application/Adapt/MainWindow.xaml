@@ -5,9 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:localvm="clr-namespace:Adapt.ViewModels"
         xmlns:localv="clr-namespace:Adapt.View"
+        xmlns:localvViz="clr-namespace:Adapt.View.Visualization"
         xmlns:localcv="clr-namespace:Adapt.Converter"
         mc:Ignorable="d"
-        Title="ADAPT" Height="450" Width="800" WindowState="Maximized">
+        Title="SciSync" Height="450" Width="800" WindowState="Maximized">
     <Window.DataContext>
         <localvm:AdaptViewModel/>
     </Window.DataContext>
@@ -22,6 +23,9 @@
         </DataTemplate>
         <DataTemplate DataType="{x:Type localvm:TaskVM}">
             <localv:TaskView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type localvm:ResultViewVM}">
+            <localvViz:ResultView/>
         </DataTemplate>
     </Window.Resources>
     
@@ -76,7 +80,7 @@
                 </TextBlock>
             </Expander.Header>
         </Expander>
-        
+
         <Expander ExpandDirection="Right" Grid.Column="0"  Grid.Row="3" IsExpanded="{Binding ActiveExpander, Mode=TwoWay, Converter={StaticResource ExpanderToBoolean}, ConverterParameter=4}">
             <Expander.Header>
                 <TextBlock Text="Results" FontSize="16">
@@ -87,10 +91,6 @@
             </Expander.Header>
         </Expander>
 
-        <StackPanel Grid.RowSpan="4" Grid.Column="1" Visibility="{Binding ActiveExpander, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=4}" >
-            <TextBlock Text="To Be Implemented" FontSize="16"/>
-        </StackPanel>
-        
         <GridSplitter Grid.Column="2" Width="5" VerticalAlignment="Stretch" ResizeBehavior="PreviousAndNext" HorizontalAlignment="Center" Grid.RowSpan="4"/>
         <ContentPresenter Content="{Binding CurrentView}" Grid.Column="3" Grid.RowSpan="4"/>
     </Grid>
