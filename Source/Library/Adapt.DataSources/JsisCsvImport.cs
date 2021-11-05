@@ -11,6 +11,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using JsisCsvReader;
+using Gemstone;
+using GemstonePhasorProtocolls;
+using System.Threading.Channels;
+using System.Collections.Concurrent;
 
 namespace Adapt.DataSources
 {
@@ -25,11 +30,14 @@ namespace Adapt.DataSources
         private JsisCsvSettings m_settings;
         private Dictionary<DateTime, string> m_Files = new Dictionary<DateTime, string>();
         private ManualResetEvent m_FileComplete;
+        private Channel<JsisCsvDataRow> m_dataQueue;
+        private TaskCompletionSource<JsisCsvHeader> m_jsisCsvFileSource;
         #endregion
 
         #region [ Constructor ]
         public JsisCsvImport()
         {
+            m_jsisCsvFileSource = new TaskCompletionSource<JsisCsvHeader>();
         }
         #endregion
         #region [ Methods ]
@@ -74,7 +82,7 @@ namespace Adapt.DataSources
                     m_Files.Add(dateTime, fileInfo.FullName);
             }
 
-            //GetConfigFrame();
+            GetJsisCsvHeader();
             //in this getconfigframe function, the jsiscsv reader might be called?
 
         }
@@ -94,12 +102,126 @@ namespace Adapt.DataSources
             if (files.Count() == 0)
                 yield break;
 
+            //Start File Read Process
+            m_dataQueue = Channel.CreateUnbounded<JsisCsvDataRow>();
+
             // this is where actual signal data is read from csv files.
+            CancellationTokenSource tokenSource = new CancellationTokenSource();
+            ReadFile(files, tokenSource.Token).Start();
+
+
+            await foreach (JsisCsvDataRow frame in m_dataQueue.Reader.ReadAllAsync())
+            {
+                if (frame.Timestamp < new Ticks(start))
+                    continue;
+                if (frame.Timestamp > new Ticks(end))
+                {
+                    tokenSource.Cancel();
+                    continue;
+                }
+
+                //IEnumerable<ITimeSeriesValue> magnitudes = frame.Cells.SelectMany(item => item.PhasorValues)
+                //    .Select(item => new Tuple<int, IPhasorValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label + "-Mag"), item))
+                //    .Where(item => item.Item1 != -1)
+                //    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                //    {
+                //        Value = item.Item2.Magnitude,
+                //        Timestamp = frame.Timestamp,
+                //    });
+
+                //IEnumerable<ITimeSeriesValue> phases = frame.Cells.SelectMany(item => item.PhasorValues)
+                //    .Select(item => new Tuple<int, IPhasorValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label + "-Ph"), item))
+                //    .Where(item => item.Item1 != -1)
+                //    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                //    {
+                //        Value = item.Item2.Angle.ToDegrees(),
+                //        Timestamp = frame.Timestamp,
+                //    });
+
+                //IEnumerable<ITimeSeriesValue> analogs = frame.Cells.SelectMany(item => item.AnalogValues)
+                //    .Select(item => new Tuple<int, IAnalogValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label), item))
+                //    .Where(item => item.Item1 != -1)
+                //    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                //    {
+                //        Value = item.Item2.Value,
+                //        Timestamp = frame.Timestamp,
+                //    });
+
+                //IEnumerable<ITimeSeriesValue> frequencies = frame.Cells.Select(item => item.FrequencyValue)
+                //    .Select(item => new Tuple<int, IFrequencyValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Parent.IDCode.ToString() + item.Label), item))
+                //    .Where(item => item.Item1 != -1)
+                //    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                //    {
+                //        Value = item.Item2.Frequency,
+                //        Timestamp = frame.Timestamp,
+                //    }); ;
+
+                //IEnumerable<ITimeSeriesValue> digitals = frame.Cells.SelectMany(item => item.DigitalValues)
+                //    .Select(item => new Tuple<int, IDigitalValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label), item))
+                //    .Where(item => item.Item1 != -1)
+                //    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                //    {
+                //        Value = item.Item2.Value,
+                //        Timestamp = frame.Timestamp,
+                //    });
+
+                IFrame outFrame = new Frame()
+                {
+                    Published = true,
+                    Timestamp = frame.Timestamp,
+                    //Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(phases.Concat(magnitudes).Concat(analogs).Concat(digitals).Concat(frequencies).Select(item => new KeyValuePair<string, ITimeSeriesValue>(item.ID, item)))
+                };
+
+                yield return outFrame;
+
+            }
+
+
+            tokenSource.Cancel();
         }
 
+        public Task ReadFile(List<DateTime> files, CancellationToken cancellationToken)
+        {
+            return new Task(() => {
+
+                if (m_FileComplete != null)
+                    m_FileComplete.Set();
+
+                for (int i = 0; i < files.Count; i++)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+                    JsisCsvParser parser = new JsisCsvParser();
+                    m_FileComplete = new ManualResetEvent(false);
+                    //parser.PhasorProtocol = PhasorProtocol.Jsis_CSV;
+                    parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
+                    parser.ConnectionString = $"file={m_Files[files[i]]}";
+                    parser.ConnectionTerminated += ConnectionTerminated;
+                    parser.ReceivedDataFrame += RecievedDataFrame;
+                    parser.DefinedFrameRate = 10000000;
+                    parser.Start();
+                    WaitHandle.WaitAny(new WaitHandle[] { m_FileComplete, cancellationToken.WaitHandle });
+                    parser.Stop();
+                }
+
+                m_dataQueue.Writer.Complete();
+            }, cancellationToken);
+        }
+
+        /// <summary>
+        /// Get list of PMUs
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<AdaptDevice> GetDevices()
         {
-            return new List<AdaptDevice>();
+            var devices = new List<AdaptDevice>();
+            if (!m_jsisCsvFileSource.Task.IsCompleted && m_jsisCsvFileSource.Task.Status != TaskStatus.WaitingForActivation)
+                return devices;
+
+            JsisCsvHeader configuration = (JsisCsvHeader)m_jsisCsvFileSource.Task.Result;
+            devices.Add(new AdaptDevice(configuration.PMUName));
+
+            return devices;
         }
 
         public double GetProgress()
@@ -111,10 +233,46 @@ namespace Adapt.DataSources
         {
             return typeof(JsisCsvSettings);
         }
-
+        /// <summary>
+        /// Get list of Signals of each PMU
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<AdaptSignal> GetSignals()
         {
-            return new List<AdaptSignal>();
+            if (!m_jsisCsvFileSource.Task.IsCompleted && m_jsisCsvFileSource.Task.Status != TaskStatus.WaitingForActivation)
+                return new List<AdaptSignal>();
+            JsisCsvHeader configuration = (JsisCsvHeader)m_jsisCsvFileSource.Task.Result;
+            IEnumerable<AdaptSignal> analogs = configuration.AnalogDefinitions.Select(aD => new AdaptSignal(aD.Name, aD.Name, aD.Device)
+            {
+                FramesPerSecond = aD.FramesPerSecond,
+                Phase = aD.Phase,
+                Type = aD.Type
+            });
+            IEnumerable<AdaptSignal> digitals = configuration.DigitalDefinitions.Select(aD => new AdaptSignal(aD.Name, aD.Name, aD.Device)
+            {
+                FramesPerSecond = aD.FramesPerSecond,
+                Phase = aD.Phase,
+                Type = aD.Type
+            });
+            IEnumerable<AdaptSignal> phases = configuration.PhasorDefinitions.Select(aD => new AdaptSignal(aD.Name, aD.Name, aD.Device)
+            {
+                FramesPerSecond = aD.FramesPerSecond,
+                Phase = aD.Phase,
+                Type = aD.Type
+            });
+            IEnumerable<AdaptSignal> frequency = configuration.FrequencyDefinition.Select(aD => new AdaptSignal(aD.Name, aD.Name, aD.Device)
+            {
+                FramesPerSecond = aD.FramesPerSecond,
+                Phase = aD.Phase,
+                Type = aD.Type
+            });
+            IEnumerable<AdaptSignal> custom = configuration.CustomDefinitions.Select(aD => new AdaptSignal(aD.Name, aD.Name, aD.Device)
+            {
+                FramesPerSecond = aD.FramesPerSecond,
+                Phase = aD.Phase,
+                Type = aD.Type
+            });
+            return phases.Concat(digitals).Concat(analogs).Concat(frequency).Concat(frequency).Concat(custom);
         }
 
         public bool SupportProgress()
@@ -128,6 +286,44 @@ namespace Adapt.DataSources
                 return false;
 
             return m_Files.Count > 0;
+        }
+
+        private void GetJsisCsvHeader()
+        {
+            if (m_Files.Count == 0)
+                return;
+
+            if (m_jsisCsvFileSource.Task.IsCompleted)
+                return;
+
+            JsisCsvParser parser = new JsisCsvParser();
+            //parser.PhasorProtocol = PhasorProtocol.Jsis_CSV;
+            parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
+            parser.ConnectionString = $"file={m_Files.First().Value}";
+
+            parser.ReceivedHeaderFrame += RecievedHeader;
+
+            parser.GetHeaders();
+
+            m_jsisCsvFileSource.Task.ContinueWith((t) => {
+                parser.Stop();
+            });
+            return;
+        }
+
+        private void RecievedHeader(object sender, EventArgs<JsisCsvHeader> conf)
+        {
+            m_jsisCsvFileSource.SetResult(conf.Argument);
+
+        }
+        private void RecievedDataFrame(object sender, EventArgs<JsisCsvDataRow> conf)
+        {
+            bool a = m_dataQueue.Writer.TryWrite(conf.Argument);
+        }
+
+        private void ConnectionTerminated(object sender, EventArgs conf)
+        {
+            m_FileComplete.Set();
         }
         #endregion
 

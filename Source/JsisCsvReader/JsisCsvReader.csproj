@@ -1,7 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\gemstone\common\src\Gemstone\Gemstone.Common.csproj" />
+    <ProjectReference Include="..\Library\Adapt.Models\Adapt.Models.csproj" />
+    <ProjectReference Include="..\Library\GemstonePhasorProtocolls\GemstonePhasorProtocolls.csproj" />
+  </ItemGroup>
 
 </Project>
