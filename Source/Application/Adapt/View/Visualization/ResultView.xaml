@@ -1,0 +1,24 @@
+﻿<UserControl x:Class="Adapt.View.Visualization.ResultView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:localcv="clr-namespace:Adapt.Converter"
+             xmlns:local="clr-namespace:Adapt.View.Visualization" xmlns:local1="clr-namespace:Adapt.View.Common"
+             mc:Ignorable="d">
+    <UserControl.Resources>
+        <localcv:TaskStateToVisibility x:Key="ExpanderToVisibility" />
+    </UserControl.Resources>
+    <StackPanel>
+        <StackPanel Visibility="{Binding ResultStatus, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=0}" Orientation="Vertical">
+            <TextBlock Text="No Task has been Run" FontSize="26" />
+            <TextBlock Text="Go to the TASK tab to set up and run a task." FontSize="16" />
+        </StackPanel>
+        <StackPanel Visibility="{Binding ResultStatus, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=1}" Orientation="Vertical">
+            <local1:ProcessNotification DataContext="{Binding ProgressVM}" HorizontalAlignment="Center"/>
+        </StackPanel>
+        <StackPanel Visibility="{Binding ResultStatus, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=2}" Orientation="Vertical">
+            <local:MainVisualization DataContext="{Binding VisualizationVM}" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

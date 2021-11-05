@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  IAdapter.tsx - Gbtc
+//  AdaptTabViewModelBase.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,33 +16,40 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  08/04/2021 - C. Lackner
+//  11/02/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
+using Adapt.Models;
+using GemstoneWPF;
+using System.ComponentModel;
 
-
-using GemstoneCommon;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-
-namespace Adapt.Models
+namespace Adapt.ViewModels
 {
     /// <summary>
-    /// Interface for an ADAPT Adapter (Datasource or Analytic)
+    /// Primary ViewModel Base for Tabs use when switching Tab or item.
     /// </summary>
-    public interface IAdapter
+    public abstract class AdaptTabViewModelBase: ViewModelBase
     {
-        /// <summary>
-        /// Returns the <see cref="Type"/> of the Settings object that defines all Parameters
-        /// </summary>
-        public Type GetSettingType();
+        #region [ Members ]
 
-        /// <summary>
-        /// Provides current configuration to the Adapter
-        /// </summary>
-        /// <param name="config">The <see cref="IConfiguration"/> object for this Adapter.</param>
-        public void Configure(IConfiguration config);
-    }
+        #endregion
+
+        #region[ Properties ]
+
+        #endregion
+
+        #region[ Constructor]
+      
+        #endregion
+
+        #region [ Methods ]
+
+        public virtual bool ChangeTab()
+        {
+            return true;
+        }
+       
+        #endregion
+    }       
 }

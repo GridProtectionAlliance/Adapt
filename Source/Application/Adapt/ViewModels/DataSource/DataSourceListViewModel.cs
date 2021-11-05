@@ -58,7 +58,22 @@ namespace Adapt.ViewModels
             }
         }
 
-        public int SelectedID => (m_selectedIndex > -1? m_dataSources[m_selectedIndex].ID : -1);
+        public int SelectedID 
+        {
+            get => (m_selectedIndex > -1 ? m_dataSources[m_selectedIndex].ID : -1);
+            set 
+            {
+                int current = (m_selectedIndex > -1 ? m_dataSources[m_selectedIndex].ID : -1);
+                if (current == value)
+                    return;
+                int i = m_dataSources.FindIndex(ds => ds.ID == value);
+                if (i == -1)
+                    return;
+                SelectedIndex = i;
+            }
+
+        }
+
         
         public int SelectedIndex
         {

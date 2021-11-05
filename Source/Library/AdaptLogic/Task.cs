@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  IAdapter.tsx - Gbtc
+//  Task.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,33 +16,70 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  08/04/2021 - C. Lackner
+//  04/04/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
 
-
+using Adapt.Models;
+using Gemstone;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.Loader;
+using System.Threading;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 
-namespace Adapt.Models
+namespace AdaptLogic
 {
     /// <summary>
-    /// Interface for an ADAPT Adapter (Datasource or Analytic)
+    /// A Task to be Processed 
     /// </summary>
-    public interface IAdapter
+    public class AdaptTask
     {
-        /// <summary>
-        /// Returns the <see cref="Type"/> of the Settings object that defines all Parameters
-        /// </summary>
-        public Type GetSettingType();
+        #region [ Members ]
+
+        #endregion
+
+        #region [ Properties ]
+        public DataSource DataSource { get; set; }
+        public List<string> InputSignalIds {get; set;}
 
         /// <summary>
-        /// Provides current configuration to the Adapter
+        /// This will be removed eventually it is only necessary until we can defined OutputSignals Properly in the UI
         /// </summary>
-        /// <param name="config">The <see cref="IConfiguration"/> object for this Adapter.</param>
-        public void Configure(IConfiguration config);
+        public List<string> TempSignalIds { get; set; }
+        public DateTime Start { get; set; }
+        public DateTime End { get; set; }
+        public List<TaskSection> Sections { get; set; }
+        #endregion
+
+        #region [ Constructor ]
+
+        #endregion
+
+        #region [ Methods ]
+
+
+        #endregion
     }
+
+    public class TaskSection
+    {
+        public List<Analytic> Analytics { get; set; }
+    }
+
+    public class Analytic
+    {
+        public Type AdapterType { get; set; }
+        public List<string> Inputs { get; set; }
+        public List<string> Outputs { get; set; }
+        public IConfiguration Configuration { get; set; }
+    }
+
 }
