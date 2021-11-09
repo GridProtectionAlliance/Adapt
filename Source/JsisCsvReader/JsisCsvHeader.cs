@@ -38,6 +38,217 @@ namespace JsisCsvReader
         public List<JsisCsvChannel> CustomDefinitions { get; set; }
         public Dictionary<int, JsisCsvChannel> ColumnSignalDict { get; set; }
         public string PMUName => m_device;
+        public string[] SignalNames { get; set; }
+        public string[] SignalTypes { get; set; }
+        public string[] SignalUnits { get; set; }
+        public string[] SignalDescription { get; set; }
+
+        internal void ParseChannels()
+        {
+
+            for (int i = 1; i < SignalNames.Length; i++)
+            {
+                string type = SignalTypes[i];
+                string name = SignalNames[i];
+                string unit = SignalUnits[i];
+                string description = SignalDescription[i];
+                JsisCsvChannel newChannel = new JsisCsvChannel(PMUName);
+                newChannel.Name = name;
+                newChannel.Description = description;
+                newChannel.Unit = unit;
+                //newChannel.FramesPerSecond = samplingRate;
+                bool isCustom = false;
+                if (!string.IsNullOrEmpty(type))
+                {
+                    char[] tp = type.ToArray();
+                    switch (tp[0])
+                    {
+                        case 'V':
+                            if (tp.Length == 3)
+                            {
+                                switch (tp[2])
+                                {
+                                    case 'M':
+                                        newChannel.Type = MeasurementType.VoltageMagnitude;
+                                        switch (tp[1])
+                                        {
+                                            case 'P':
+                                                newChannel.Phase = Phase.Pos;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'A':
+                                                newChannel.Phase = Phase.A;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'B':
+                                                newChannel.Phase = Phase.B;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'C':
+                                                newChannel.Phase = Phase.C;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            default:
+                                                isCustom = true;
+                                                break;
+                                        }
+                                        break;
+                                    case 'A':
+                                        newChannel.Type = MeasurementType.VoltagePhase;
+                                        switch (tp[1])
+                                        {
+                                            case 'P':
+                                                newChannel.Phase = Phase.Pos;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'A':
+                                                newChannel.Phase = Phase.A;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'B':
+                                                newChannel.Phase = Phase.B;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'C':
+                                                newChannel.Phase = Phase.C;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            default:
+                                                isCustom = true;
+                                                break;
+                                        }
+                                        break;
+                                    default:
+                                        isCustom = true;
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                isCustom = true;
+                            }
+                            break;
+                        case 'I':
+                            if (tp.Length == 3)
+                            {
+                                switch (tp[2])
+                                {
+                                    case 'M':
+                                        newChannel.Type = MeasurementType.CurrentMagnitude;
+                                        switch (tp[1])
+                                        {
+                                            case 'P':
+                                                newChannel.Phase = Phase.Pos;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'A':
+                                                newChannel.Phase = Phase.A;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'B':
+                                                newChannel.Phase = Phase.B;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'C':
+                                                newChannel.Phase = Phase.C;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            default:
+                                                isCustom = true;
+                                                break;
+                                        }
+                                        break;
+                                    case 'A':
+                                        newChannel.Type = MeasurementType.CurrentPhase;
+                                        switch (tp[1])
+                                        {
+                                            case 'P':
+                                                newChannel.Phase = Phase.Pos;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'A':
+                                                newChannel.Phase = Phase.A;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'B':
+                                                newChannel.Phase = Phase.B;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            case 'C':
+                                                newChannel.Phase = Phase.C;
+                                                PhasorDefinitions.Add(newChannel);
+                                                break;
+                                            default:
+                                                isCustom = true;
+                                                break;
+                                        }
+                                        break;
+                                    default:
+                                        isCustom = true;
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                isCustom = true;
+                            }
+                            break;
+                        case 'P':
+                        case 'Q':
+                            if (tp.Length == 1)
+                            {
+                                newChannel.Type = MeasurementType.Analog;
+                                newChannel.Phase = Phase.NONE;
+                                AnalogDefinitions.Add(newChannel);
+                            }
+                            else
+                            {
+                                isCustom = true;
+                            }
+                            break;
+                        case 'F':
+                            if (tp.Length == 1)
+                            {
+                                newChannel.Type = MeasurementType.Frequency;
+                                newChannel.Phase = Phase.NONE;
+                                FrequencyDefinition.Add(newChannel);
+                            }
+                            else
+                            {
+                                isCustom = true;
+                            }
+                            break;
+                        case 'D':
+                            if (tp.Length == 1)
+                            {
+                                newChannel.Type = MeasurementType.Digital;
+                                newChannel.Phase = Phase.NONE;
+                                DigitalDefinitions.Add(newChannel);
+                            }
+                            else
+                            {
+                                isCustom = true;
+                            }
+                            break;
+                        default:
+                            isCustom = true;
+                            break;
+                    }
+                }
+                else
+                {
+                    isCustom = true;
+                }
+                if (isCustom)
+                {
+                    newChannel.Type = MeasurementType.Other;
+                    newChannel.Phase = Phase.NONE;
+                    CustomDefinitions.Add(newChannel);
+                }
+                ColumnSignalDict[i] = newChannel;
+            }
+        }
+
         ///// <summary>
         //                                           /// Gets a reference to the <see cref="PhasorDefinitionCollection"/> of this <see cref="IConfigurationCell"/>.
         //                                           /// </summary>

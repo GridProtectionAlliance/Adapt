@@ -19,10 +19,11 @@ namespace JsisCsvReader
 
         internal void ParseHeader(EventArgs<List<string[]>> e)
         {
-            string[] signalNames = e.Argument[0];
-            string[] signalTypes = e.Argument[1];
-            string[] signalUnits = e.Argument[2];
-            string[] signalDescription = e.Argument[3];
+            m_header = new JsisCsvHeader(Device);
+            m_header.SignalNames = e.Argument[0];
+            m_header.SignalTypes = e.Argument[1];
+            m_header.SignalUnits = e.Argument[2];
+            m_header.SignalDescription = e.Argument[3];
             string[] dataRow1 = e.Argument[4];
             string[] dataRow2 = e.Argument[5];
             double samplingRate = -1d;
@@ -31,13 +32,12 @@ namespace JsisCsvReader
                 samplingRate = (int)Math.Round(1 / ((value2 - value1) * 10)) * 10;
             }
 
-            m_header = new JsisCsvHeader(Device);
-            for (int i = 1; i < signalNames.Length; i++)
+            for (int i = 1; i < m_header.SignalNames.Length; i++)
             {
-                string type = signalTypes[i];
-                string name = signalNames[i];
-                string unit = signalUnits[i];
-                string description = signalDescription[i];
+                string type = m_header.SignalTypes[i];
+                string name = m_header.SignalNames[i];
+                string unit = m_header.SignalUnits[i];
+                string description = m_header.SignalDescription[i];
                 JsisCsvChannel newChannel = new JsisCsvChannel(Device);
                 newChannel.Name = name;
                 newChannel.Description = description;
@@ -238,5 +238,10 @@ namespace JsisCsvReader
         }
 
         public DateTime BaseDateTime { get; internal set; }
+
+        internal void stop()
+        {
+
+        }
     }
 }

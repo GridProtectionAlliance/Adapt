@@ -19,12 +19,24 @@ namespace JsisCsvReader
         private string m_device;
         private string m_pmuName;
         private double m_fps;
+        private double m_measurement;
         #endregion
 
         #region [ Constructor ]
         public JsisCsvChannel(string device)
         {
             m_pmuName = device;
+        }
+
+        public JsisCsvChannel(JsisCsvChannel signal)
+        {
+            m_phase = signal.Phase;
+            m_type = signal.Type;
+            m_Name = signal.Name;
+            m_description = signal.Description;
+            m_unit = signal.Unit;
+            m_pmuName = signal.Device;
+            m_fps = signal.FramesPerSecond;
         }
         #endregion
 
@@ -68,6 +80,12 @@ namespace JsisCsvReader
         {
             get => m_unit;
             set => m_unit = value;
+
+        }
+        public double Measurement
+        {
+            get => m_measurement;
+            set => m_measurement = value;
 
         }
 

@@ -190,6 +190,7 @@ namespace JsisCsvReader
         public event EventHandler<EventArgs<Exception>> ReceiveDataException;
         public event EventHandler Disposed;
         public event EventHandler<EventArgs<List<string[]>>> ReceiveCsvHeader;
+        public string Filename { get; set; }
 
         public JsisCsvFileClient()
         {
@@ -398,6 +399,7 @@ namespace JsisCsvReader
                     m_fileClient.Provider.TextFieldType = FieldType.Delimited;
                     m_fileClient.Provider.SetDelimiters(",");
                     m_fileClient.Provider.HasFieldsEnclosedInQuotes = true;
+                    Filename = m_connectData["file"];
 
                     // Move to the specified offset.
                     //m_fileClient.Provider.Seek(m_startingOffset, SeekOrigin.Begin);
@@ -451,7 +453,14 @@ namespace JsisCsvReader
                     //m_fileClient.Statistics.UpdateBytesReceived(m_fileClient.BytesReceived);
 
                     // Notify of the retrieved data.
-                    OnReceiveDataComplete(m_fileClient.Provider.ReadFields(), 1);
+                    //ReceiveCsvData?.SafeInvoke(this, new EventArgs<string[], int>(m_fileClient.Provider.ReadFields(), (int)Statistics.TotalBytesReceived));
+                    int lineNumber = (int)m_fileClient.Provider.LineNumber;
+                    string[] data = m_fileClient.Provider.ReadFields();
+                    //JsisCsvRowDataWithIndex source = new JsisCsvRowDataWithIndex
+                    //{
+
+                    //}
+                    OnReceiveDataComplete(data, lineNumber);
 
                     // Re-read the file if the user wants to repeat when done reading the file.
                     if (m_autoRepeat && m_fileClient.Provider.LineNumber == -1) 
@@ -466,6 +475,10 @@ namespace JsisCsvReader
                     // Stop processing the file if user has either opted to receive data on demand or receive data at a predefined interval.
                     //if (m_receiveOnDemand || m_receiveInterval > 0)
                     //    break;
+                }
+                else
+                {
+                    //disconnect
                 }
             }
             catch (Exception ex)
@@ -484,13 +497,13 @@ namespace JsisCsvReader
             // Update transport statistics
             Statistics.LastReceive = DateTime.UtcNow;
             Statistics.LastBytesReceived = line;
-            Statistics.TotalBytesReceived += line;
+            Statistics.TotalBytesReceived = line;
 
             //// Reset buffer index used by read method
             //ReadIndex = 0;
 
             // Notify users of data ready
-            ReceiveCsvData?.SafeInvoke(this, new EventArgs<string[], int>(data, (int)Statistics.TotalBytesReceived));
+            ReceiveCsvData?.SafeInvoke(this, new EventArgs<string[], int>(data, line));
 
             //// Most inheritors of this class "reuse" an existing buffer, as such you cannot assume what the user is going to do
             //// with the buffer provided, so we pass in a "copy" of the buffer for the user since they may assume control of and

@@ -120,14 +120,13 @@ namespace Adapt.DataSources
                     continue;
                 }
 
-                //IEnumerable<ITimeSeriesValue> magnitudes = frame.Cells.SelectMany(item => item.PhasorValues)
-                //    .Select(item => new Tuple<int, IPhasorValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label + "-Mag"), item))
-                //    .Where(item => item.Item1 != -1)
-                //    .Select(item => new AdaptValue(signals[item.Item1].ID)
-                //    {
-                //        Value = item.Item2.Magnitude,
-                //        Timestamp = frame.Timestamp,
-                //    });
+                IEnumerable<ITimeSeriesValue> magnitudes = frame.PhasorDefinitions.Select(item => new Tuple<int, JsisCsvChannel>(signals.FindIndex(s => s.Device == item.Device && s.ID == item.Name), item))
+                    .Where(item => item.Item1 != -1)
+                    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                    {
+                        Value = item.Item2.Measurement,
+                        Timestamp = frame.Timestamp,
+                    });
 
                 //IEnumerable<ITimeSeriesValue> phases = frame.Cells.SelectMany(item => item.PhasorValues)
                 //    .Select(item => new Tuple<int, IPhasorValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label + "-Ph"), item))
@@ -138,38 +137,35 @@ namespace Adapt.DataSources
                 //        Timestamp = frame.Timestamp,
                 //    });
 
-                //IEnumerable<ITimeSeriesValue> analogs = frame.Cells.SelectMany(item => item.AnalogValues)
-                //    .Select(item => new Tuple<int, IAnalogValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label), item))
-                //    .Where(item => item.Item1 != -1)
-                //    .Select(item => new AdaptValue(signals[item.Item1].ID)
-                //    {
-                //        Value = item.Item2.Value,
-                //        Timestamp = frame.Timestamp,
-                //    });
+                IEnumerable<ITimeSeriesValue> analogs = frame.AnalogDefinitions.Select(item => new Tuple<int, JsisCsvChannel>(signals.FindIndex(s => s.Device == item.Device && s.ID == item.Name), item))
+                    .Where(item => item.Item1 != -1)
+                    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                    {
+                        Value = item.Item2.Measurement,
+                        Timestamp = frame.Timestamp,
+                    });
 
-                //IEnumerable<ITimeSeriesValue> frequencies = frame.Cells.Select(item => item.FrequencyValue)
-                //    .Select(item => new Tuple<int, IFrequencyValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Parent.IDCode.ToString() + item.Label), item))
-                //    .Where(item => item.Item1 != -1)
-                //    .Select(item => new AdaptValue(signals[item.Item1].ID)
-                //    {
-                //        Value = item.Item2.Frequency,
-                //        Timestamp = frame.Timestamp,
-                //    }); ;
+                IEnumerable<ITimeSeriesValue> frequencies = frame.FrequencyDefinition.Select(item => new Tuple<int, JsisCsvChannel>(signals.FindIndex(s => s.Device == item.Device && s.ID == item.Name), item))
+                    .Where(item => item.Item1 != -1)
+                    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                    {
+                        Value = item.Item2.Measurement,
+                        Timestamp = frame.Timestamp,
+                    }); ;
 
-                //IEnumerable<ITimeSeriesValue> digitals = frame.Cells.SelectMany(item => item.DigitalValues)
-                //    .Select(item => new Tuple<int, IDigitalValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label), item))
-                //    .Where(item => item.Item1 != -1)
-                //    .Select(item => new AdaptValue(signals[item.Item1].ID)
-                //    {
-                //        Value = item.Item2.Value,
-                //        Timestamp = frame.Timestamp,
-                //    });
+                IEnumerable<ITimeSeriesValue> digitals = frame.DigitalDefinitions.Select(item => new Tuple<int, JsisCsvChannel>(signals.FindIndex(s => s.Device == item.Device && s.ID == item.Name), item))
+                    .Where(item => item.Item1 != -1)
+                    .Select(item => new AdaptValue(signals[item.Item1].ID)
+                    {
+                        Value = item.Item2.Measurement,
+                        Timestamp = frame.Timestamp,
+                    });
 
                 IFrame outFrame = new Frame()
                 {
                     Published = true,
                     Timestamp = frame.Timestamp,
-                    //Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(phases.Concat(magnitudes).Concat(analogs).Concat(digitals).Concat(frequencies).Select(item => new KeyValuePair<string, ITimeSeriesValue>(item.ID, item)))
+                    Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(magnitudes.Concat(analogs).Concat(digitals).Concat(frequencies).Select(item => new KeyValuePair<string, ITimeSeriesValue>(item.ID, item)))
                 };
 
                 yield return outFrame;

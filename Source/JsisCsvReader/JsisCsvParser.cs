@@ -19,6 +19,10 @@ namespace JsisCsvReader
 {
     public class JsisCsvParser
     {
+        #region [ Members ]
+
+
+        // Fields
         private bool disposedValue;
         private JsisCsvRowParser m_rowParser;
         private JsisCsvHeaderParser m_headerParser;
@@ -42,6 +46,7 @@ namespace JsisCsvReader
         private DateTime m_baseDateTime;
         private string m_device;
         private JsisCsvHeader m_header;
+        #endregion
 
         public int QueuedBuffers => m_rowParser?.QueuedBuffers ?? 0;
 
@@ -345,18 +350,20 @@ namespace JsisCsvReader
 
             // Parse connection string to check for special parameters
             Dictionary<string, string> settings = m_connectionString.ParseKeyValuePairs();
-
+            m_header = new JsisCsvHeader(m_device);
             // Reset connection attempt counter
             m_connectionAttempts = 0;
 
             // Validate that the high-precision input timer is necessary
             if (m_transportProtocol != TransportProtocol.File && UseHighResolutionInputTimer)
                 UseHighResolutionInputTimer = false;
-            m_rowParser = new JsisCsvRowParser();
+            m_rowParser = new JsisCsvRowParser(m_device);
             m_rowParser.BaseDateTime = m_baseDateTime;
-            m_rowParser.Device = m_device;
+            //m_rowParser.Device = m_device;
             //m_headerParser.HeaderParsingDone += m_headerParser_ReceiveCsvHeader;
             m_rowParser.DataParsed += m_frameParser_ReceivedDataFrame;
+            m_rowParser.HeaderParsed += m_rowPraser_receivedHeaderRow;
+            m_rowParser.ReadNextRow += m_frameParser_ReceivedHeaderRow;
             // Start parsing engine
             m_rowParser.Start();
             m_dataChannel = new JsisCsvFileClient();
@@ -380,6 +387,30 @@ namespace JsisCsvReader
                 m_dataChannel.ConnectAsync();
             }
         }
+
+        private void m_frameParser_ReceivedHeaderRow(object sender, EventArgs e)
+        {
+            m_readNextBuffer?.TryRunAsync();
+        }
+
+        private void m_rowPraser_receivedHeaderRow(object sender, EventArgs<int, Dictionary<int, string>> e)
+        {
+            int rowNumber = e.Argument1;
+            Dictionary<int, string> fields = e.Argument2;
+            if (rowNumber == 1)
+            {
+                foreach (var item in fields)
+                {
+                    int columnNumber = item.Key;
+                    string channelName = item.Value;
+                    if (!m_header.ColumnSignalDict.ContainsKey(columnNumber))
+                    {
+
+                    }
+                }
+            }
+        }
+
         private void ReadNextFileBuffer()
         {
             if (!(m_dataChannel is JsisCsvFileClient fileClient))
@@ -462,6 +493,7 @@ namespace JsisCsvReader
                 }
                 finally
                 {
+                    m_dataChannel.ConnectionEstablished -= m_dataChannel_ConnectionEstablished;
                     //m_dataChannel.ConnectionEstablished -= m_dataChannel_ConnectionEstablished;
                     //m_dataChannel.ConnectionAttempt -= m_dataChannel_ConnectionAttempt;
                     //m_dataChannel.ConnectionException -= m_dataChannel_ConnectionException;
@@ -477,57 +509,6 @@ namespace JsisCsvReader
 
             m_readNextBuffer = null;
 
-            //if (!(m_serverBasedDataChannel is null))
-            //{
-            //    try
-            //    {
-            //        m_serverBasedDataChannel.DisconnectAll();
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        OnParsingException(new ConnectionException($"Failed to properly disconnect server based data channel: {ex.Message}", ex));
-            //    }
-            //    finally
-            //    {
-            //        m_serverBasedDataChannel.ClientConnected -= m_serverBasedDataChannel_ClientConnected;
-            //        m_serverBasedDataChannel.ClientDisconnected -= m_serverBasedDataChannel_ClientDisconnected;
-            //        m_serverBasedDataChannel.ClientConnectingException -= m_serverBasedDataChannel_ClientConnectingException;
-            //        m_serverBasedDataChannel.ServerStarted -= m_serverBasedDataChannel_ServerStarted;
-            //        m_serverBasedDataChannel.ServerStopped -= m_serverBasedDataChannel_ServerStopped;
-            //        m_serverBasedDataChannel.ReceiveClientData -= m_serverBasedDataChannel_ReceiveClientData;
-            //        m_serverBasedDataChannel.ReceiveClientDataException -= m_serverBasedDataChannel_ReceiveClientDataException;
-            //        m_serverBasedDataChannel.SendClientDataException -= m_serverBasedDataChannel_SendClientDataException;
-            //        m_serverBasedDataChannel.Dispose();
-            //    }
-
-            //    m_serverBasedDataChannel = null;
-            //}
-
-            //if (!(m_commandChannel is null))
-            //{
-            //    try
-            //    {
-            //        m_commandChannel.Disconnect();
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        OnParsingException(new ConnectionException($"Failed to properly disconnect command channel: {ex.Message}", ex));
-            //    }
-            //    finally
-            //    {
-            //        m_commandChannel.ConnectionEstablished -= m_commandChannel_ConnectionEstablished;
-            //        m_commandChannel.ConnectionAttempt -= m_commandChannel_ConnectionAttempt;
-            //        m_commandChannel.ConnectionException -= m_commandChannel_ConnectionException;
-            //        m_commandChannel.ConnectionTerminated -= m_commandChannel_ConnectionTerminated;
-            //        m_commandChannel.ReceiveData -= m_commandChannel_ReceiveData;
-            //        m_commandChannel.ReceiveDataException -= m_commandChannel_ReceiveDataException;
-            //        m_commandChannel.SendDataException -= m_commandChannel_SendDataException;
-            //        m_commandChannel.Dispose();
-            //    }
-
-            //    m_commandChannel = null;
-            //}
-
             if (!(m_rowParser is null))
             {
                 try
@@ -536,10 +517,11 @@ namespace JsisCsvReader
                 }
                 catch (Exception ex)
                 {
-                    OnParsingException(ex, "Failed to properly stop frame parser: {0}", ex.Message);
+                    OnParsingException(ex, "Failed to properly stop csv row parser: {0}", ex.Message);
                 }
                 finally
                 {
+                    m_rowParser.DataParsed -= m_frameParser_ReceivedDataFrame;
                     //m_rowParser.ReceivedCommandFrame -= m_frameParser_ReceivedCommandFrame;
                     //m_rowParser.ReceivedConfigurationFrame -= m_frameParser_ReceivedConfigurationFrame;
                     //m_rowParser.ReceivedDataFrame -= m_frameParser_ReceivedDataFrame;
@@ -557,6 +539,22 @@ namespace JsisCsvReader
                 }
 
                 m_rowParser = null;
+            }
+            if (!(m_headerParser is null))
+            {
+                try
+                {
+                    m_headerParser.stop();
+                }
+                catch (Exception ex)
+                {
+                    OnParsingException(ex, "Failed to properly stop csv header parser: {0}", ex.Message);
+                }
+                finally
+                {
+                    m_headerParser.HeaderParsingDone -= m_headerParser_ReceiveCsvHeader;
+                }
+                m_headerParser = null;
             }
         }
 
@@ -590,7 +588,7 @@ namespace JsisCsvReader
         }
         private void m_frameParser_ReceivedDataFrame(object sender, EventArgs<JsisCsvDataRow> e)
         {
-            m_frameRateTotal++;
+            //m_frameRateTotal++;
 
             // We don't stop parsing for exceptions thrown in consumer event handlers
             try
@@ -623,9 +621,10 @@ namespace JsisCsvReader
         }
         private void m_dataChannel_ReceiveData(object sender, EventArgs<string[], int> e)
         {
-            string[] data = e.Argument1;
-            int line = e.Argument2;
-
+            //string[] data = e.Argument1;
+            //int line = e.Argument2;
+            m_rowParser.ParseDataRow(e);
+            
             //// Logic to skip Header on .pdat Files
             //if (!m_skippedHeader)
             //{
@@ -638,16 +637,38 @@ namespace JsisCsvReader
 
             //    return;
             //}
-            if (line > 4)
-            {
-                m_rowParser.ParseDataRow(e.Argument1);
-            }
-            else
-            {
-                m_rowParser.ParseHeaderRow(e.Argument1);
-                return;
-
-            }
+            //if (line == 1)
+            //{
+            //    m_header.SignalNames = data;
+            //    m_readNextBuffer?.TryRunAsync();
+            //    return;
+            //}
+            //else if (line == 2)
+            //{
+            //    m_header.SignalTypes = data;
+            //    m_readNextBuffer?.TryRunAsync();
+            //    return;
+            //}
+            //else if (line == 3)
+            //{
+            //    m_header.SignalUnits = data;
+            //    m_readNextBuffer?.TryRunAsync();
+            //    return;
+            //}
+            //else if (line == 4)
+            //{
+            //    m_header.SignalDescription = data;
+            //    m_readNextBuffer?.TryRunAsync();
+            //    return;
+            //}
+            //else
+            //{
+            //    if (line == 5)
+            //    {
+            //        m_header.ParseChannels();
+            //    }
+            //    m_rowParser.ParseDataRow(data, line);
+            //}
 
             //length = m_dataChannel.Read(buffer, 0, length);
             //Parse(SourceChannel.Data, buffer, 0, length);

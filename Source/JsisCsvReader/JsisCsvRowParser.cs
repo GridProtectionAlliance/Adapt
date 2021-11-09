@@ -14,12 +14,56 @@ namespace JsisCsvReader
     public class JsisCsvRowParser : IFrameParser
     {
         #region [ Members ]
+        // Nested Types
+        public class JsisCsvRowDataWithIndex
+        {
+            #region [ Members ]
+
+            // Fields
+
+            private int m_count;
+
+            #endregion
+
+            #region [ Properties ]
+            public string[] RowData;
+
+            /// <summary>
+            /// the index of the row data in the csv file, starts from 1.
+            /// </summary>
+            public int RowIndex;
+
+            ///// <summary>
+            ///// Gets or sets enabled state of <see cref="SourceIdentifiableBuffer"/>.
+            ///// </summary>
+            //public bool Enabled { get; set; }
+
+            ///// <summary>
+            ///// Gets or sets valid number of bytes within the <see cref="Buffer"/>.
+            ///// </summary>
+            ///// <remarks>   
+            ///// This property will automatically initialize buffer. Set to zero to release buffer. 
+            ///// </remarks>
+            //public int Count
+            //{
+            //    get => m_count;
+            //    set
+            //    {
+            //        m_count = value;
+            //        Buffer = new byte[m_count];
+            //    }
+            //}
+
+            #endregion
+        }
         // Fields
         private readonly AsyncQueue<EventArgs<JsisCsvDataRow>> m_outputQueue;
-        private readonly AsyncDoubleBufferedQueue<List<string>> m_bufferQueue;
+        private readonly AsyncDoubleBufferedQueue<JsisCsvRowDataWithIndex> m_bufferQueue;
         //private readonly List<JsisCsvDataRow> m_parsedSourceData;
         private bool m_disposed;
         private bool m_enabled;
+        private JsisCsvHeader m_header;
+        private JsisCsvHeaderParser m_headerParser;
         // Events
 
         /// <summary>
@@ -50,6 +94,8 @@ namespace JsisCsvReader
         /// <see cref="EventArgs{T}.Argument"/> is the object that was deserialized from the binary image.
         /// </remarks>
         public event EventHandler<EventArgs<JsisCsvDataRow>>? DataParsed;
+        public event EventHandler<EventArgs<int, Dictionary<int, string>>>? HeaderParsed;
+        public event EventHandler ReadNextRow;
         #endregion
 
 
@@ -60,7 +106,7 @@ namespace JsisCsvReader
         /// </summary>
         public JsisCsvRowParser()
         {
-            m_bufferQueue = new AsyncDoubleBufferedQueue<List<string>>
+            m_bufferQueue = new AsyncDoubleBufferedQueue<JsisCsvRowDataWithIndex>
             {
                 ProcessItemsFunction = ParseQueuedBuffers
             };
@@ -73,12 +119,19 @@ namespace JsisCsvReader
             };
 
             m_outputQueue.ProcessException += m_parsedOutputQueue_ProcessException;
+            m_headerParser = new JsisCsvHeaderParser();
 
             //if (ProtocolUsesSyncBytes)
             //    m_sourceInitialized = new ConcurrentDictionary<TSourceIdentifier, bool>();
 
             //m_unparsedBuffers = new ConcurrentDictionary<TSourceIdentifier, byte[]?>();
             //m_parsedSourceData = new List<JsisCsvDataRow>();
+        }
+
+        public JsisCsvRowParser(string device) : this()
+        {
+            Device = device;
+            m_header = new JsisCsvHeader(device);
         }
 
         #endregion
@@ -122,7 +175,7 @@ namespace JsisCsvReader
         #region [ Methods ]
         public void Dispose()
         {
-            throw new NotImplementedException();
+
         }
 
         public void Parse(SourceChannel source, byte[] buffer, int offset, int count)
@@ -138,10 +191,10 @@ namespace JsisCsvReader
 
         public void Stop()
         {
-            throw new NotImplementedException();
+
         }
         // This method is used to process all queued data buffers.
-        private void ParseQueuedBuffers(IList<List<string>> buffers)
+        private void ParseQueuedBuffers(IList<JsisCsvRowDataWithIndex> buffers)
         {
             if (!Enabled)
                 return;
@@ -149,7 +202,7 @@ namespace JsisCsvReader
             try
             {
                 // Process all queued data buffers...
-                foreach (List<string> buffer in buffers)
+                foreach (JsisCsvRowDataWithIndex buffer in buffers)
                 {
                     //// Track current buffer source
                     //m_source = buffer.Source;
@@ -164,15 +217,17 @@ namespace JsisCsvReader
                     // Start parsing sequence for this buffer - this will begin publication of new parsed outputs
                     //if (buffer.Buffer != null && buffer.Count > 0)
                     JsisCsvDataRow newRow = new JsisCsvDataRow();
-                    ParseRow(buffer, newRow);
-                    OnDataParsed(newRow);
+                    if (ParseRow(buffer, newRow))
+                    {
+                        OnDataParsed(newRow);
+                    }
                     //// Track last unparsed buffer for this data source
                     //m_unparsedBuffers[m_source] = UnparsedBuffer;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-
+                Console.WriteLine(ex);
             }
             //finally
             //{
@@ -203,26 +258,102 @@ namespace JsisCsvReader
             //m_parsedSourceData.Add(row);
         }
 
-        private void ParseRow(List<string> buffer, JsisCsvDataRow newRow)
+        private bool ParseRow(JsisCsvRowDataWithIndex buffer, JsisCsvDataRow newRow)
         {
-            for (int i = 0; i < buffer.Count; i++)
+            string[] data = buffer.RowData;
+            int line = buffer.RowIndex;
+            if (line == 1)
             {
-                var success = double.TryParse(buffer[i], out double value);
-                if (!success)
+                m_header.SignalNames = data;
+                ReadNextRow?.SafeInvoke(this, EventArgs.Empty);
+                return false;
+            }
+            else if (line == 2)
+            {
+                m_header.SignalTypes = data;
+                ReadNextRow?.SafeInvoke(this, EventArgs.Empty);
+                return false;
+            }
+            else if (line == 3)
+            {
+                m_header.SignalUnits = data;
+                ReadNextRow?.SafeInvoke(this, EventArgs.Empty);
+                return false;
+            }
+            else if (line == 4)
+            {
+                m_header.SignalDescription = data;
+                ReadNextRow?.SafeInvoke(this, EventArgs.Empty);
+                return false;
+            }
+            else
+            {
+                if (line == 5)
                 {
-                    value = double.NaN; //if conversion fail, set value to NAN, is this the behaviour we want?
+                    m_header.ParseChannels();
                 }
-                if (i == 0)
+
+                Console.WriteLine(line);
+
+                for (int i = 0; i < buffer.RowData.Count(); i++)
                 {
-                    var ts = BaseDateTime.AddSeconds(value);
-                    newRow.Timestamp = ts;
-                    //timeStamps.Add(datetimed); //might need to change if the first time column changes
-                    //timeStampeNumberInDays.Add(datetimed.ToOADate());
+                    var success = double.TryParse(buffer.RowData[i], out double value);
+                    if (!success)
+                    {
+                        value = double.NaN; //if conversion fail, set value to NAN, is this the behaviour we want?
+                    }
+                    if (i == 0)
+                    {
+                        var ts = BaseDateTime.AddSeconds(value);
+                        newRow.Timestamp = ts;
+                        //timeStamps.Add(datetimed); //might need to change if the first time column changes
+                        //timeStampeNumberInDays.Add(datetimed.ToOADate());
+                    }
+                    else
+                    {
+                        var signal = m_header.ColumnSignalDict[i];
+                        var newSignal = new JsisCsvChannel(signal);
+                        newSignal.Measurement = value;
+                        switch (newSignal.Type)
+                        {
+                            case Adapt.Models.MeasurementType.VoltageMagnitude:
+                                newRow.PhasorDefinitions.Add(newSignal);
+                                break;
+                            case Adapt.Models.MeasurementType.VoltagePhase:
+                                newRow.PhasorDefinitions.Add(newSignal);
+                                break;
+                            case Adapt.Models.MeasurementType.CurrentMagnitude:
+                                newRow.PhasorDefinitions.Add(newSignal);
+                                break;
+                            case Adapt.Models.MeasurementType.CurrentPhase:
+                                newRow.PhasorDefinitions.Add(newSignal);
+                                break;
+                            case Adapt.Models.MeasurementType.VoltageRMS:
+                                break;
+                            case Adapt.Models.MeasurementType.CurrentRMS:
+                                break;
+                            case Adapt.Models.MeasurementType.Frequency:
+                                newRow.FrequencyDefinition.Add(newSignal);
+                                break;
+                            case Adapt.Models.MeasurementType.Digital:
+                                newRow.DigitalDefinitions.Add(newSignal);
+                                break;
+                            case Adapt.Models.MeasurementType.Analog:
+                                newRow.AnalogDefinitions.Add(newSignal);
+                                break;
+                            case Adapt.Models.MeasurementType.DeltaFrequency:
+                                break;
+                            case Adapt.Models.MeasurementType.ROCOF:
+                                break;
+                            case Adapt.Models.MeasurementType.Other:
+                                newRow.CustomDefinitions.Add(newSignal);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
                 }
-                else
-                {
-                    //signalList[i - 1].Data.Add(value);
-                }
+                return true;
             }
         }
 
@@ -248,18 +379,26 @@ namespace JsisCsvReader
         // Expose exceptions encountered via async queue processing to parsing exception event
         private void m_parsedOutputQueue_ProcessException(object sender, EventArgs<Exception> e) => OnParsingException(e.Argument);
 
-        internal void ParseHeaderRow(string[] row)
+        //internal void ParseHeaderRow(string[] row, int rowNumber)
+        //{
+        //    Dictionary<int, string> headerRow = new Dictionary<int, string>();
+        //    for (int i = 0; i < row.Length; i++)
+        //    {
+        //        headerRow.Add(i, row[i]);
+        //    }
+        //    HeaderParsed?.SafeInvoke(this, new EventArgs<int, Dictionary<int, string>>(rowNumber, headerRow));
+        //}
+
+        internal void ParseDataRow(EventArgs<string[], int> e)
         {
-            for (int i = 0; i < row.Length; i++)
+            string[] data = e.Argument1;
+            int line = e.Argument2;
+            JsisCsvRowDataWithIndex source = new JsisCsvRowDataWithIndex
             {
-
-            }
-            DataParsed?.SafeInvoke(this, EventArgs.Empty);
-        }
-
-        internal void ParseDataRow(string[] row)
-        {
-            m_bufferQueue.Enqueue(new[] { row.ToList() });
+                RowData = data,
+                RowIndex = line
+            };
+            m_bufferQueue.Enqueue(new[] { source });
         }
         #endregion
     }
