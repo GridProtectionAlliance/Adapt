@@ -124,6 +124,7 @@ namespace Adapt.DataSources
             if (files.Count() == 0)
                 yield break;
 
+            files.Sort();
             //Start File Read Process
             m_dataQueue = Channel.CreateUnbounded<IDataFrame>();
 

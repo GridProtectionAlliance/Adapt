@@ -16,7 +16,6 @@ namespace JsisCsvReader
         private string m_Name;
         private string m_description;
         private string m_unit;
-        private string m_device;
         private string m_pmuName;
         private double m_fps;
         private double m_measurement;
