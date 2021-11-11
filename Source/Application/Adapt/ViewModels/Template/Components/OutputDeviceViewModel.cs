@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  DeviceViewModel.tsx - Gbtc
+//  OutputDeviceViewModel.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,7 +16,7 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  04/01/2021 - C. Lackner
+//  11/11/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
@@ -38,7 +38,7 @@ namespace Adapt.ViewModels
     /// <summary>
     /// ViewModel for a <see cref="TemplateInputDevice"/>
     /// </summary>
-    public class InputDeviceVM: ViewModelBase
+    public class OutputDeviceVM: ViewModelBase
     {
         #region [ Members ]
 
@@ -81,12 +81,6 @@ namespace Adapt.ViewModels
         /// </summary>
         public bool Removed => m_removed;
 
-
-        /// <summary>
-        /// A Flag indicating if this device is visible in the Input List
-        /// </summary>
-        public bool Visible => !m_removed && m_device.IsInput;
-
         /// <summary>
         /// A Flag indicating whether this Device or any of the associated signals have changed.
         /// This is also true if the Device was Removed.
@@ -118,7 +112,7 @@ namespace Adapt.ViewModels
         /// </summary>
         /// <param name="templateViewModel"> The View model for this <see cref="Template"/> </param>
         /// <param name="device"> The <see cref="TemplateInputDevice"/> associated with this ViewModel</param>
-        public InputDeviceVM(TemplateVM templateViewModel, TemplateInputDevice device)
+        public OutputDeviceVM(TemplateVM templateViewModel, TemplateInputDevice device)
         {
             m_device = device;
             m_selected = false;
@@ -156,7 +150,7 @@ namespace Adapt.ViewModels
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 Signals = new ObservableCollection<InputSignalVM>(new TableOperations<TemplateInputSignal>(connection)
                         .QueryRecordsWhere("DeviceId = {0}", m_device.ID)
-                        .Select(d => new InputSignalVM(this,d)));
+                        .Select(d => new InputSignalVM(null,d)));
 
             OnPropertyChanged(nameof(Signals));
             OnPropertyChanged(nameof(NSignals));
@@ -180,7 +174,7 @@ namespace Adapt.ViewModels
                 name = "Signal " + i.ToString();
             }
 
-            Signals.Add(new InputSignalVM(this, new TemplateInputSignal()
+            Signals.Add(new InputSignalVM(null, new TemplateInputSignal()
             {
                 Name = name,
                 DeviceID = m_device.ID,

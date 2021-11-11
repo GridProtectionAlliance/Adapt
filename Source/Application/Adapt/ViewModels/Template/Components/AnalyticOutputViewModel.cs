@@ -80,10 +80,8 @@ namespace Adapt.ViewModels
                     m_signal.DeviceID = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList()[m_deviceIndex].ID;
                 }
                 else
-                {
-                    m_analyticVM.SectionViewModel.TemplateViewModel.AddDeviceCommand.Execute(null);
-                    m_signal.DeviceID = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.Last().ID;
-                }
+                    m_signal.DeviceID = m_analyticVM.SectionViewModel.TemplateViewModel.AddDevice(false).ID;
+                 
                 m_changed = true;
                 OnPropertyChanged(nameof(Changed));
                 OnPropertyChanged();
