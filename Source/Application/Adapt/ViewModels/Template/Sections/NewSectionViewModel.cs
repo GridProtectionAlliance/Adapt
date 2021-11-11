@@ -44,8 +44,8 @@ namespace Adapt.ViewModels
             public SectionTypeDescriptionVM(AnalyticSection section)
             {
                 Type = section;
-                Name = section.ToString();
-                Description = "Test Description";
+                Name = GemstoneCommon.EnumDescriptionHelper.GetDisplayName(section);
+                Description = GemstoneCommon.EnumDescriptionHelper.GetEnumDescription(section);
             }
         }
         #endregion
