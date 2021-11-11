@@ -44,7 +44,6 @@ namespace Adapt.ViewModels
 
         private TemplateInputDevice m_device;
         private bool m_removed;
-        private bool m_selected;
         private bool m_changed;
         private TemplateVM m_templateViewModel;
 
@@ -72,6 +71,26 @@ namespace Adapt.ViewModels
         }
 
         /// <summary>
+        /// The OutputName of the Device.
+        /// </summary>
+        public string OutputName
+        {
+            get => m_device.OutputName;
+            set
+            {
+                m_device.OutputName = value;
+                m_changed = true;
+                OnPropertyChanged(nameof(Changed));
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// A Flag indicating if this Device was selected as an Output
+        /// </summary>
+        public bool SelectedOutput { get; set; }
+
+        /// <summary>
         /// The number of Signals associated with this Device
         /// </summary>
         public int NSignals => Signals.Count(i => !i.Removed);
@@ -85,7 +104,12 @@ namespace Adapt.ViewModels
         /// <summary>
         /// A Flag indicating if this device is visible in the Input List
         /// </summary>
-        public bool Visible => !m_removed && m_device.IsInput;
+        public bool VisibleInput => !m_removed && m_device.IsInput;
+
+        /// <summary>
+        /// A Flag indicating if this device is visible in the Input List
+        /// </summary>
+        public bool VisibleOutput => !m_removed;
 
         /// <summary>
         /// A Flag indicating whether this Device or any of the associated signals have changed.
@@ -121,7 +145,6 @@ namespace Adapt.ViewModels
         public InputDeviceVM(TemplateVM templateViewModel, TemplateInputDevice device)
         {
             m_device = device;
-            m_selected = false;
             Signals = new ObservableCollection<InputSignalVM>();
             m_removed = false;
             Remove = new RelayCommand(Delete, () => true);
@@ -135,15 +158,54 @@ namespace Adapt.ViewModels
         #region [ Methods ]
 
         public void Save()
-        {
+        {            
             Signals.ToList().ForEach(s => s.Save());
-            if (m_removed)
-                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    new TableOperations<TemplateInputDevice>(connection).DeleteRecord(m_device);
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                new TableOperations<TemplateInputDevice>(connection).AddNewOrUpdateRecord(m_device);
+            {
+                if (m_removed)
+                        new TableOperations<TemplateInputDevice>(connection).DeleteRecord(m_device);
+                else
+                        new TableOperations<TemplateInputDevice>(connection).AddNewOrUpdateRecord(m_device);
+            }
         }
 
+        public void SaveOutputs()
+        {
+            List<AnalyticOutputVM> analyticOutputs = m_templateViewModel.Sections.SelectMany(item => item.Analytics.SelectMany(a => a.Outputs)).Where(item => item.DeviceID == ID).ToList();
+
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            {
+                foreach (AnalyticOutputVM analyticSignal in analyticOutputs)
+                {
+                    if (!m_removed && SelectedOutput)
+                        new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
+                        {
+                            IsInputSignal = false,
+                            SignalID = analyticSignal.ID,
+                            Name = analyticSignal.Name,
+                            Phase = (int)Phase.NONE,
+                            Type = (int)MeasurementType.Other,
+                            TemplateID = m_templateViewModel.ID
+                        });
+                }
+
+                foreach (InputSignalVM inputSignal in Signals)
+                {
+                    if (!m_removed && SelectedOutput)
+                        new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
+                        {
+                            IsInputSignal = true,
+                            SignalID = inputSignal.ID,
+                            Name = inputSignal.Name,
+                            Phase = (int)Phase.NONE,
+                            Type = (int)MeasurementType.Other,
+                            TemplateID = m_templateViewModel.ID
+                        });
+                }
+
+            }
+            
+        }
         public void Delete()
         {
             m_removed = true;

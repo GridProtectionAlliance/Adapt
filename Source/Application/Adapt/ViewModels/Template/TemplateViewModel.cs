@@ -187,12 +187,19 @@ namespace Adapt.ViewModels
                     templateTbl.AddNewOrUpdateRecord(m_template);
                 }
 
+                // Remove Outputs
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    connection.ExecuteNonQuery("DELETE TemplateOutputSignal WHERE TemplateID = {1}", m_template.Id);
+
                 // Save Devices
                 m_Devices.ToList().ForEach(d => d.Save());
 
                 // Save Sections
                 m_Sections.ToList().ForEach(s => s.Save());
-             
+
+                // Save outputs
+                m_Devices.ToList().ForEach(d => d.SaveOutputs());
+
 
                 Load(m_template.Id);
                 m_changed = false;

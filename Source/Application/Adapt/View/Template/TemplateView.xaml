@@ -41,7 +41,7 @@
                         <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800">
                             <TreeView.ItemTemplate>
                                 <HierarchicalDataTemplate DataType="{x:Type localvm:InputDeviceVM}" ItemsSource="{Binding Signals}">
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding Visible, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}" Width="750">
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding VisibleInput, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}" Width="750">
                                         <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
                                         <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
                                         <Button Width="80" Height="18" Margin="2, 5" Command="{Binding AddSignal}">Add Signal</Button>
@@ -90,15 +90,11 @@
                         <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800">
                             <TreeView.ItemTemplate>
                                 <HierarchicalDataTemplate DataType="{x:Type localvm:InputDeviceVM}" ItemsSource="{Binding Signals}">
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding Visible, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}" Width="750">
-                                        <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
-                                        <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
-                                        <Button Width="80" Height="18" Margin="2, 5" Command="{Binding AddSignal}">Add Signal</Button>
-                                        <Button Width="80" Height="18" Margin="2, 5" Command="{Binding Remove}">Remove</Button>
-                                        <WrapPanel Margin="100,0">
-                                            <TextBlock Text="{Binding NSignals}" />
-                                            <TextBlock Text=" Signals" />
-                                        </WrapPanel>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding VisibleOutput, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}" Width="750">
+                                        <CheckBox Margin="0, 6,0,0" IsChecked="{Binding SelectedOutput}"/>
+                                        <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Name}"/>
+                                        <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Output Name:"/>
+                                        <TextBox Text="{Binding Path=OutputName}"  Height="20" Width="150"/>
                                     </StackPanel>
 
                                     <HierarchicalDataTemplate.ItemTemplate>
