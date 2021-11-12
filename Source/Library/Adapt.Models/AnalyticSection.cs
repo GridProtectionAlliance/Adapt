@@ -24,7 +24,6 @@ using GemstoneCommon;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Reflection;
 using System.Windows;
 
 namespace Adapt.Models
@@ -48,6 +47,4 @@ namespace Adapt.Models
         
 
     }
-    
-
 }
