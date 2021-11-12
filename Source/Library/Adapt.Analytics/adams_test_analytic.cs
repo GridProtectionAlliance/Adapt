@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  AnalyticSection.tsx - Gbtc
+//  PassThrough.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -20,34 +20,65 @@
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
+
+
+using Adapt.Models;
 using GemstoneCommon;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Reflection;
-using System.Windows;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace Adapt.Models
+namespace Adapt.DataSources
 {
     /// <summary>
-    /// Enumerable of AnalyticSections
+    /// A simple operation that just duplicates the input signal.
     /// </summary>
-    public enum AnalyticSection
-    {
-        [Description("Data Cleanup: Bad Data Removal and Data Quality Operation.")]
-        DataCleanup,
-
-        [Description("Signal Construction: Simple operations to combine Signals or condition Signals.")]
-        DataFiltering,
-
-        [Description("Signal Processing: Process Signals through LTI Filters.")]
-        SignalProcessing,
-
-        [Description("Event Detection: Event Detection")]
-        EventDetection
-        
-
-    }
     
+    [AnalyticSection(AnalyticSection.DataCleanup)]
+    [Description("Scaling: Performs scaling according to a specified constant.")]
+    public class AdamsTestAnalytic: IAnalytic
+    {
+        public class Setting
+        {
+            public double Multiplier { get; set; }
 
+
+        }
+        public Type GetSettingType()
+        {
+            return typeof(Setting);
+        }
+
+        public IEnumerable<string> OutputNames()
+        {
+            return new List<string>() { "Scaling" };
+
+        }
+
+        public IEnumerable<string> InputNames()
+        {
+            return new List<string>() { "Original" };
+        }
+
+        public Task<ITimeSeriesValue[]> Run(IFrame frame)
+        {
+            return new Task<ITimeSeriesValue[]>(() => Computation(frame));
+        }
+
+        private ITimeSeriesValue[] Computation(IFrame frame) 
+        {
+            Setting n = new Setting();  
+            int t = 0;
+            
+            return frame.Measurements.ToList().Select(item => item.Value).ToArray();
+        }
+
+        public void Configure(IConfiguration config)
+        {
+            return;
+        }
+    }
 }

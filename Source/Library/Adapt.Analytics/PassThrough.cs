@@ -62,8 +62,12 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame)
         {
-            return Task.FromResult<ITimeSeriesValue[]>(frame.Measurements.ToList().Select(item => item.Value).ToArray());
+            return new Task<ITimeSeriesValue[]>(()=>Computation(frame));
         }
+        private ITimeSeriesValue[] Computation(IFrame frame) 
+        {
+            return frame.Measurements.ToList().Select(item => item.Value).ToArray();
+        } 
 
         public void Configure(IConfiguration config)
         {
