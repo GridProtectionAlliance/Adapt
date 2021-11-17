@@ -31,15 +31,17 @@ using GemstoneWPF;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace Adapt.ViewModels
 {
     /// <summary>
     /// ViewModel for an Analytic
     /// </summary>
-    public class AnalyticVM: ViewModelBase
+    public class AnalyticVM : ViewModelBase
     {
         #region [ Members ]
 
@@ -112,7 +114,7 @@ namespace Adapt.ViewModels
                 }
 
                 OnAdapterTypeSelectedIndexChanged();
-                
+
             }
         }
 
@@ -144,6 +146,7 @@ namespace Adapt.ViewModels
             m_settings = new ObservableCollection<AdapterSettingParameterVM>();
             SectionViewModel = section;
             m_analyticTypes = TypeDescription.LoadDataSourceTypes(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar), typeof(IAnalytic));
+            m_analyticTypes = m_analyticTypes.Where(isAllowed).ToList();
             OnAdapterTypeSelectedIndexChanged();
         }
 
@@ -196,7 +199,7 @@ namespace Adapt.ViewModels
                 {
                     int ct = tbl.QueryRecordCountWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i);
                     if (ct > 0)
-                        return new AnalyticOutputVM(this,tbl.QueryRecordWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i),n);
+                        return new AnalyticOutputVM(this, tbl.QueryRecordWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i), n);
 
                     return new AnalyticOutputVM(this, new AnalyticOutputSignal()
                     {
@@ -214,7 +217,7 @@ namespace Adapt.ViewModels
             return Instance.InputNames().Select((n, i) => new AnalyticInputVM(this, new AnalyticInput()
             {
                 AnalyticID = m_analytic.ID,
-            }, n,i));
+            }, n, i));
         }
         private void OnSettingChanged(object sender, SettingChangedArg args)
         {
@@ -282,14 +285,26 @@ namespace Adapt.ViewModels
         /// </summary>
         private void Delete()
         {
+            m_analytic = null;
+        }
 
+        /// <summary>
+        /// Determines if the TypeDescription given is allowed on the IAnalytic
+        /// </summary>
+        /// <param name="typeDescription"></param>
+        /// <returns></returns>
+        private bool isAllowed(TypeDescription typeDescription)
+        {
+            AnalyticSectionAttribute[] analytic = (AnalyticSectionAttribute[])typeDescription.Type.GetCustomAttributes(typeof(AnalyticSectionAttribute), false);
+            AnalyticSection[] m = analytic.SelectMany(item => item.Sections).ToArray();
+            return m.Contains(SectionViewModel.AnalyticSection);
         }
         #endregion
-
         #region [ Static ]
 
         private static readonly string ConnectionString = $"Data Source={FilePath.GetAbsolutePath("") + Path.DirectorySeparatorChar}DataBase.db; Version=3; Foreign Keys=True; FailIfMissing=True";
         private static readonly string DataProviderString = "AssemblyName={System.Data.SQLite, Version=1.0.109.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139}; ConnectionType=System.Data.SQLite.SQLiteConnection; AdapterType=System.Data.SQLite.SQLiteDataAdapter";
         #endregion
+
     }
 }
