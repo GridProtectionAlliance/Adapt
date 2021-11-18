@@ -77,7 +77,7 @@ namespace Adapt.ViewModels
                 if (value < m_Devicenames.Count() - 1)
                 {
                     m_deviceIndex = value;
-                    m_signal.DeviceID = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList()[m_deviceIndex].ID;
+                    m_signal.DeviceID = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.Where(item => !item.Removed).ToList()[m_deviceIndex].ID;
                 }
                 else
                     m_signal.DeviceID = m_analyticVM.SectionViewModel.TemplateViewModel.AddDevice(false).ID;
@@ -117,7 +117,7 @@ namespace Adapt.ViewModels
             }
 
             m_analyticVM.SectionViewModel.TemplateViewModel.PropertyChanged += DevicesChanged;
-            m_Devicenames = new ObservableCollection<string>(m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().Select(d => d.Name));
+            m_Devicenames = new ObservableCollection<string>(m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().Where(d => !d.Removed).Select(d => d.Name));
             m_Devicenames.Add("Add New Device");
         }
 
@@ -128,7 +128,7 @@ namespace Adapt.ViewModels
         {
             if (args.PropertyName == "Devices")
             {
-                m_Devicenames = new ObservableCollection<string>(m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().Select(d => d.Name));
+                m_Devicenames = new ObservableCollection<string>(m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().Where(d => !d.Removed).Select(d => d.Name));
                 m_Devicenames.Add("Add New Device");
                 m_deviceIndex = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().FindIndex(d => d.ID == m_signal.ID);
                 if (m_deviceIndex == -1)

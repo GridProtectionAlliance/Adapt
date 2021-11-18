@@ -189,7 +189,7 @@ namespace Adapt.ViewModels
 
                 // Remove Outputs
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    connection.ExecuteNonQuery("DELETE TemplateOutputSignal WHERE TemplateID = {1}", m_template.Id);
+                    connection.ExecuteNonQuery("DELETE FROM TemplateOutputSignal WHERE TemplateID = {0}", m_template.Id);
 
                 // Save Devices
                 m_Devices.ToList().ForEach(d => d.Save());

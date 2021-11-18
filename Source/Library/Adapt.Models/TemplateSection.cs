@@ -34,7 +34,7 @@ namespace Adapt.Models
     /// </summary>
     public class TemplateSection
     {
-        [PrimaryKey()]
+        [PrimaryKey]
         public int ID { get; set; }
         public int TemplateID { get; set; }
         public string Name { get; set; }
