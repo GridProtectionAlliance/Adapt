@@ -55,7 +55,7 @@ namespace AdaptLogic
         private List<Channel<IFrame>> m_sectionQueue;
 
         private CancellationTokenSource m_cancelationSource;
-        private int m_DataSourceProgress;
+        
         #endregion
 
         #region [ Properties ]
@@ -89,7 +89,7 @@ namespace AdaptLogic
             m_end = end;
             m_sourceSignals = Signals;
             m_cancelationSource = new CancellationTokenSource();
-            m_DataSourceProgress = 0;
+            
         }
 
         /// <summary>
@@ -110,7 +110,6 @@ namespace AdaptLogic
             m_end = task.End;
             m_sourceSignals = inputSignals;
             m_cancelationSource = new CancellationTokenSource();
-            m_DataSourceProgress = 0;
             m_sectionQueue = task.Sections.Select(sec => Channel.CreateUnbounded<IFrame>()).ToList();
             m_processors = task.Sections.Select((sec, i) => {
                 if (i == 0)
