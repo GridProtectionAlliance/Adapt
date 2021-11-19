@@ -107,9 +107,25 @@ namespace Adapt.ViewModels
 
         public void Save()
         {
+            
+
             if (!m_removed)
-               using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                  new TableOperations<TemplateInputSignal>(connection).AddNewOrUpdateRecord(m_signal);
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                {
+                    int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", m_DeviceVM.TemplateViewModel.Name).Id;
+                    int deviceID = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND templateID = {1}", m_DeviceVM.Name, templateId).ID;
+
+                    m_signal.DeviceID = deviceID;
+
+                    if (m_signal.ID < 0)
+                        new TableOperations<TemplateInputSignal>(connection).AddNewRecord(m_signal);
+                    else
+                        new TableOperations<TemplateInputSignal>(connection).AddNewOrUpdateRecord(m_signal);
+
+                }
+            
+
+
             else
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     new TableOperations<TemplateInputSignal>(connection).DeleteRecord(m_signal);

@@ -65,7 +65,7 @@ namespace Adapt.Models
             m_Max = Max;
             m_Min = Min;
             m_time = EndTime - StartTime;
-            m_stdev = Math.Sqrt((SumSqrd - 2 * Value * Sum + NCount * Value * Value) / NCount);
+            m_stdev = Math.Sqrt((SumSqrd - 2 * Value * Sum + Value * Value) / NCount);
             M_Npoints = NCount;
             m_fps = FPS;
 

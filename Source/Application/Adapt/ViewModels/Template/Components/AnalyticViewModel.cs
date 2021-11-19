@@ -214,10 +214,18 @@ namespace Adapt.ViewModels
 
         private IEnumerable<AnalyticInputVM> GetInputs(IAnalytic Instance)
         {
-            return Instance.InputNames().Select((n, i) => new AnalyticInputVM(this, new AnalyticInput()
-            {
-                AnalyticID = m_analytic.ID,
-            }, n, i));
+            List<AnalyticInputVM> inputs = Inputs.ToList();
+
+            return Instance.InputNames().Select((n, i) => {
+                if (inputs.FindIndex(item => item.Label == n) > -1)
+                    return inputs.Find(item => item.Label == n);
+                return new AnalyticInputVM(this, new AnalyticInput()
+                {
+                    AnalyticID = m_analytic.ID,
+                    InputIndex = i
+                }, n, i);
+                });
+        
         }
         private void OnSettingChanged(object sender, SettingChangedArg args)
         {
@@ -269,7 +277,30 @@ namespace Adapt.ViewModels
         /// </summary>
         public void LoadInputs()
         {
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            {
+                try
+                {
+                    IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
 
+                    List<AnalyticInput> savedInputs = new TableOperations<AnalyticInput>(connection).QueryRecordsWhere("AnalyticID = {0}", m_analytic.ID).ToList();
+                    Inputs = new ObservableCollection<AnalyticInputVM>(Instance.InputNames().Select((n, i) =>
+                   {
+                       if (savedInputs.FindIndex(item => item.InputIndex == i) > -1)
+                           return new AnalyticInputVM(this, savedInputs.Find(item => item.InputIndex == i), n, i);
+                       return new AnalyticInputVM(this, new AnalyticInput()
+                       {
+                           AnalyticID = m_analytic.ID,
+                           InputIndex = i
+                       }, n, i);
+                   }));
+                }
+                catch
+                {
+                    Inputs = new ObservableCollection<AnalyticInputVM>();
+                }                
+            }
+            OnPropertyChanged(nameof(Inputs));
         }
 
         /// <summary>
@@ -277,7 +308,32 @@ namespace Adapt.ViewModels
         /// </summary>
         public void LoadOutputs()
         {
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            {
+                try
+                {
+                    IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
 
+                    List<AnalyticOutputSignal> savedOutputs = new TableOperations<AnalyticOutputSignal>(connection).QueryRecordsWhere("AnalyticID = {0}", m_analytic.ID).ToList();
+                    Outputs = new ObservableCollection<AnalyticOutputVM>(Instance.OutputNames().Select((n, i) =>
+                    {
+                        if (savedOutputs.FindIndex(item => item.OutputIndex == i) > -1)
+                            return new AnalyticOutputVM(this, savedOutputs.Find(item => item.OutputIndex == i), n);
+                        return new AnalyticOutputVM(this, new AnalyticOutputSignal()
+                        {
+                            AnalyticID = m_analytic.ID,
+                            OutputIndex = i,
+                            Name = n,
+                            DeviceID = SectionViewModel.TemplateViewModel.Devices.FirstOrDefault()?.ID ?? 0
+                        }, n);
+                    }));
+                }
+                catch
+                {
+                    Outputs = new ObservableCollection<AnalyticOutputVM>();
+                }
+            }
+            OnPropertyChanged(nameof(Outputs));
         }
 
         /// <summary>

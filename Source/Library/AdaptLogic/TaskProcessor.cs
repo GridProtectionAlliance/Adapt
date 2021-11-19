@@ -55,7 +55,7 @@ namespace AdaptLogic
         private List<Channel<IFrame>> m_sectionQueue;
 
         private CancellationTokenSource m_cancelationSource;
-        private int m_DataSourceProgress;
+        
         #endregion
 
         #region [ Properties ]
@@ -89,7 +89,7 @@ namespace AdaptLogic
             m_end = end;
             m_sourceSignals = Signals;
             m_cancelationSource = new CancellationTokenSource();
-            m_DataSourceProgress = 0;
+            
         }
 
         /// <summary>
@@ -102,18 +102,14 @@ namespace AdaptLogic
             SignalWritter.CleanAppData();
             CreateSourceInstance(task.DataSource);
             List<AdaptSignal> inputSignals = m_Source.GetSignals().Where(s => task.InputSignalIds.Contains(s.ID)).ToList();
-
-            List<AdaptSignal> tmp = task.TempSignalIds.Select(item => new AdaptSignal(item, item, new AdaptDevice("Temporary Signals"))).ToList();
-
-            m_writers = new ConcurrentDictionary<string, SignalWritter>(inputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
-            tmp.ForEach(item => m_writers.AddOrUpdate(item.ID, (key) => new SignalWritter(item),(key,old) => old));
-
+           
+            m_writers = new ConcurrentDictionary<string, SignalWritter>(task.OutputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
+            
             m_sourceQueue = Channel.CreateUnbounded<IFrame>();
             m_start = task.Start;
             m_end = task.End;
             m_sourceSignals = inputSignals;
             m_cancelationSource = new CancellationTokenSource();
-            m_DataSourceProgress = 0;
             m_sectionQueue = task.Sections.Select(sec => Channel.CreateUnbounded<IFrame>()).ToList();
             m_processors = task.Sections.Select((sec, i) => {
                 if (i == 0)

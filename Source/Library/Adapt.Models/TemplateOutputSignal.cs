@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  TemplateSection.tsx - Gbtc
+//  TemplateOutputSignal.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,32 +16,29 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  08/02/2021 - C. Lackner
+//  11/11/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
+
+
 using Gemstone.Data.Model;
-using GemstoneCommon;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Windows;
 
 namespace Adapt.Models
 {
     /// <summary>
-    /// A Section of Analytics in a <see cref="Template"/>
+    /// Represents an output Signal for a <see cref="Template"/> saved in the SQL Lite DB.
     /// </summary>
-    public class TemplateSection
+    public class TemplateOutputSignal
     {
-        [PrimaryKey]
+     
+        [PrimaryKey(true)]
         public int ID { get; set; }
         public int TemplateID { get; set; }
         public string Name { get; set; }
-        public int AnalyticTypeID { get; set; }
-
-        [UseEscapedName]
-	    public int Order { get; set; }
-
+        public int Phase { get; set; }
+        public int Type { get; set; }
+        public bool IsInputSignal { get; set; }
+        public int SignalID { get; set; }
     }
 }

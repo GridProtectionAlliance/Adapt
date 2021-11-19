@@ -41,7 +41,7 @@
                         <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800">
                             <TreeView.ItemTemplate>
                                 <HierarchicalDataTemplate DataType="{x:Type localvm:InputDeviceVM}" ItemsSource="{Binding Signals}">
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" Width="750">
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding VisibleInput, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}" Width="750">
                                         <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
                                         <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
                                         <Button Width="80" Height="18" Margin="2, 5" Command="{Binding AddSignal}">Add Signal</Button>
@@ -73,6 +73,7 @@
                         <Button Width="200" Margin="5,0,5,15" Command="{Binding AddDeviceCommand}">Add Device</Button>
                     </StackPanel>
                 </Expander>
+
                 <ItemsControl ItemsSource="{Binding Sections}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -80,6 +81,44 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                
+                <Expander ExpandDirection="Down" Grid.Row="0" Background="Gray">
+                    <Expander.Header>
+                        <TextBlock Text="Template Outputs" Background="Gray"  FontWeight="bold" FontSize="24"/>
+                    </Expander.Header>
+                    <StackPanel Orientation="Vertical" Height="auto" Background="LightGray">
+                        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800">
+                            <TreeView.ItemTemplate>
+                                <HierarchicalDataTemplate DataType="{x:Type localvm:InputDeviceVM}" ItemsSource="{Binding Signals}">
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding VisibleOutput, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}" Width="750">
+                                        <CheckBox Margin="0, 6,0,0" IsChecked="{Binding SelectedOutput}"/>
+                                        <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Name}"/>
+                                        <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Output Name:"/>
+                                        <TextBox Text="{Binding Path=OutputName}"  Height="20" Width="150"/>
+                                    </StackPanel>
+
+                                    <HierarchicalDataTemplate.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}" />
+                                        </DataTemplate>
+                                    </HierarchicalDataTemplate.ItemTemplate>
+                                </HierarchicalDataTemplate>
+                            </TreeView.ItemTemplate>
+                            <TreeView.ItemContainerStyle>
+                                <Style TargetType="{x:Type TreeViewItem}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Removed}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TreeView.ItemContainerStyle>
+                        </TreeView>
+                    </StackPanel>
+                </Expander>
+                
+               
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" >
                     <Button Margin="10,0" Height="20" Command="{Binding AddSectionCommand}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">

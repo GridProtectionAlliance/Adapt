@@ -159,7 +159,8 @@ namespace Adapt.ViewModels
                 {
                     AnalyticOutputVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Sections
                         .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
-                    signalVM.PropertyChanged -= SignalNameChanged;
+                    if (signalVM != null)
+                        signalVM.PropertyChanged -= SignalNameChanged;
                 }
             }
 
@@ -239,7 +240,7 @@ namespace Adapt.ViewModels
                 TableOperations<AnalyticInput> tbl = new TableOperations<AnalyticInput>(connection);
                 tbl.DeleteRecordWhere("AnalyticID = {0} AND InputIndex = {1} AND ID <> {2}", analyticID,m_signal.InputIndex,m_signal.ID);
 
-                tbl.AddNewOrUpdateRecord(m_signal);  
+                tbl.AddNewRecord(m_signal);  
             }
         }
 
