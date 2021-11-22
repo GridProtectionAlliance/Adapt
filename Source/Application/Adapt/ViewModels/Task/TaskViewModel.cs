@@ -133,7 +133,7 @@ namespace Adapt.ViewModels
             MappingViewModel = new MappingVM(Templates[SelectedTemplateIndex]);
             ValidateDataSource();
 
-            RunTask = new RelayCommand(() => ParentVM.ProcessTask(), () => true);
+            RunTask = new RelayCommand(() => ParentVM.ProcessTask(), () => MappingViewModel.Valid);
         }
 
         #endregion
