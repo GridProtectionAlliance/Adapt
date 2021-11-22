@@ -87,6 +87,11 @@ namespace Adapt.ViewModels
         /// The ID of the <see cref="AnalyticSection"/>
         /// </summary>
         public int ID => m_section.ID;
+
+        /// <summary>
+        /// Gets the <see cref="AnalyticSection"/> this Section is of
+        /// </summary>
+        public AnalyticSection AnalyticSection => (AnalyticSection)m_section.AnalyticTypeID;
         #endregion
 
         #region [ Constructor ]
