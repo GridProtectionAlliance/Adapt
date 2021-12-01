@@ -82,6 +82,8 @@ namespace Adapt.ViewModels
 
         public int SelectedOption { get; set; }
         public ObservableCollection<string> DisplayList { get; set; }
+
+        public bool ShowError { get; set; }
         #endregion
 
         #region [ Constructor ]
@@ -98,7 +100,7 @@ namespace Adapt.ViewModels
             m_Search = "";
             
             m_Complete = Complete;
-            SelectCommand = new RelayCommand(Select, (obj) => true);
+            SelectCommand = new RelayCommand(Select, (obj) => m_ListedOptions.Count() > 0);
             m_IncludeSearch = Search;
             m_TransformDisplay = Display;
 
@@ -106,6 +108,7 @@ namespace Adapt.ViewModels
             m_ListedOptions = m_AllOptions;
             DisplayList = new ObservableCollection<string>(m_ListedOptions.Select(item => Display.Invoke(item)));
             Title = Heading;
+            ShowError = m_AllOptions.Count() == 0;
         }
 
         #endregion

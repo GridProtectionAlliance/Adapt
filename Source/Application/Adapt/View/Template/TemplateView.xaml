@@ -7,12 +7,25 @@
              xmlns:localcv="clr-namespace:Adapt.Converter"
              xmlns:localvm="clr-namespace:Adapt.ViewModels" 
              xmlns:System="clr-namespace:System;assembly=System.Runtime"
+             xmlns:AdaptModels="clr-namespace:Adapt.Models;assembly=Adapt.Models"
+             xmlns:GemstoneCommon="clr-namespace:GemstoneCommon;assembly=GemstoneCommon"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
         <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
         <System:Boolean x:Key="FalseValue">False</System:Boolean>
         <System:Boolean x:Key="TrueValue">True</System:Boolean>
+        <ObjectDataProvider x:Key="MeasurementTypes" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="AdaptModels:MeasurementType"/>
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+        <ObjectDataProvider x:Key="Phases" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="GemstoneCommon:Phase"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -54,7 +67,14 @@
 
                                     <HierarchicalDataTemplate.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding Name}" />
+                                            <WrapPanel>
+                                                <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Signal Name: "/>
+                                                <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
+                                                <Label Grid.Column="2"  Margin="10,2" Width="110" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Measurement Type:"/>
+                                                <ComboBox Grid.Column="3" Height="20" Margin="5,2,10,2" ItemsSource="{Binding Source={StaticResource MeasurementTypes}}" SelectedItem="{Binding Type }" Width="150"/>
+                                                <Label Grid.Column="4"  Margin="10,2" Width="50" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Phase:"/>
+                                                <ComboBox Grid.Column="5" Margin="5,2,10,2" Height="20" ItemsSource="{Binding Source={StaticResource Phases}}" SelectedItem="{Binding Phase }" Width="80"/>
+                                            </WrapPanel>
                                         </DataTemplate>
                                     </HierarchicalDataTemplate.ItemTemplate>
                                 </HierarchicalDataTemplate>
