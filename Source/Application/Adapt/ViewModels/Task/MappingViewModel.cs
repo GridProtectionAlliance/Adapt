@@ -139,20 +139,26 @@ namespace Adapt.ViewModels
                 mapping.ChannelMappings = new Dictionary<int, string>();
 
                 // Validate Signals on that device
-                List<int> targetSignals;
+                List<TemplateInputSignal> targetSignals;
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     targetSignals = new TableOperations<TemplateInputSignal>(connection)
-                        .QueryRecordsWhere("DeviceID = {0}", mapping.TargetDeviceID).Select(s => s.ID).ToList();
+                        .QueryRecordsWhere("DeviceID = {0}", mapping.TargetDeviceID).ToList();
                     
                 List<AdaptSignal> sourceSignals = AdaptSignal.Get(DataSource, DataSourceModel.ID, ConnectionString, DataProviderString)
                     .Where(s => s.Device == d.ID).ToList();
 
                 mapping.IsValid = sourceSignals.Count() >= targetSignals.Count();
+
                 for (int i = 0; i < targetSignals.Count(); i++)
-                    if (i < sourceSignals.Count())
-                        mapping.ChannelMappings.Add(targetSignals[i], sourceSignals[i].ID);
+                {
+                    int index = sourceSignals.FindIndex(item => item.Phase == targetSignals[i].Phase && item.Type == targetSignals[i].MeasurmentType);
+                    if (index == -1)
+                        mapping.ChannelMappings.Add(targetSignals[i].ID, ""); 
                     else
-                        mapping.ChannelMappings.Add(targetSignals[i],"");
+                        mapping.ChannelMappings.Add(targetSignals[i].ID, sourceSignals[index].ID);
+                }
+                mapping.IsValid = !mapping.ChannelMappings.Any(item => string.IsNullOrEmpty(item.Value));
+                
                 DeviceMappings = new ObservableCollection<Mapping>(DeviceMappings);
                 OnPropertyChanged(nameof(DeviceMappings));
             },(d,s) => d.Name.ToLower().Contains(s.ToLower()),(d) => d.Name,AdaptDevice.Get(DataSource,DataSourceModel.ID,ConnectionString,DataProviderString));
