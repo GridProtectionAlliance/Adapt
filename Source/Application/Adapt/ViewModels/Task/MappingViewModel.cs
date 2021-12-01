@@ -175,10 +175,12 @@ namespace Adapt.ViewModels
                 return;
 
             int targetId = mapping.ChannelMappings.First(item => item.Value == "").Key;
-            string title = "Select a Signal for {0}";
+           
+            TemplateInputSignal targetSignal; 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                title += new TableOperations<TemplateInputSignal>(connection)
-                    .QueryRecordWhere("Id = {0}", targetId)?.Name ?? "";
+                targetSignal = new TableOperations<TemplateInputSignal>(connection).QueryRecordWhere("Id = {0}", targetId);
+
+            string title = "Select a Signal for " + targetSignal?.Name ?? "";
 
             SelectSignal signalSelection = new SelectSignal();
             SelectSignalMappingVM<AdaptSignal> dateSelectionVM = new SelectSignalMappingVM<AdaptSignal>((d) => {
@@ -187,7 +189,7 @@ namespace Adapt.ViewModels
                 DeviceMappings = new ObservableCollection<Mapping>(DeviceMappings);
                 OnPropertyChanged(nameof(DeviceMappings));
             }, (d, s) => d.Name.ToLower().Contains(s.ToLower()), (d) => d.Name, AdaptSignal.Get(DataSource, DataSourceModel.ID, ConnectionString, DataProviderString)
-            .Where(s => s.ID == mapping.SourceDeviceID), title);
+            .Where(s => s.ID == mapping.SourceDeviceID && s.Phase == targetSignal .Phase && s.Type == targetSignal.MeasurmentType), title);
             signalSelection.DataContext = dateSelectionVM;
             signalSelection.Show();
             
