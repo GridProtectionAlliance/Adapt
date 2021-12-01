@@ -40,7 +40,6 @@ namespace Adapt.ViewModels
         #region [ Members ]
 
         private bool m_removed;
-        private bool m_selected;
         private bool m_changed;
         private TemplateInputSignal m_signal;
         private InputDeviceVM m_DeviceVM;
@@ -57,6 +56,36 @@ namespace Adapt.ViewModels
             set
             {
                 m_signal.Name = value;
+                OnPropertyChanged();
+                m_changed = true;
+                OnPropertyChanged(nameof(Changed));
+            }
+        }
+
+        /// <summary>
+        /// Gets or Sets the <see cref="Phase"/> associated with this <see cref="TemplateInputSignal"/>
+        /// </summary>
+        public Phase Phase
+        {
+            get => m_signal.Phase;
+            set
+            {
+                m_signal.Phase = value;
+                OnPropertyChanged();
+                m_changed = true;
+                OnPropertyChanged(nameof(Changed));
+            }
+        }
+
+        /// <summary>
+        /// Gets or Sets the <see cref="MeasurementType"/> associated with this <see cref="TemplateInputSignal"/>
+        /// </summary>
+        public MeasurementType Type
+        {
+            get => m_signal.MeasurmentType;
+            set
+            {
+                m_signal.MeasurmentType = value;
                 OnPropertyChanged();
                 m_changed = true;
                 OnPropertyChanged(nameof(Changed));
@@ -97,7 +126,6 @@ namespace Adapt.ViewModels
             m_changed = false;
             m_signal = signal;
             m_DeviceVM = deviceViewModel;
-            m_selected = false;
             OnSignalChange();
         }
 
