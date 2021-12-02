@@ -66,21 +66,22 @@ namespace AdaptLogic
             m_inputRouter = section.Analytics.Select((a,i) => {
                 List<string> inputNames = m_analytics[i].InputNames().ToList();
                 return new Func<IFrame, Analytic, IFrame>((fullFrame, analytic) => {
-                    
+                    int i = 0;
                     return new Frame()
                     {
                         Timestamp = fullFrame.Timestamp,
                         Published = fullFrame.Published,
+
                         Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(
-                            fullFrame.Measurements.Where(item => a.Inputs.Contains(item.Key))
-                        .ToDictionary(item => inputNames[a.Inputs.FindIndex((s) => s == item.Key)], item => item.Value))
+                            a.Inputs.Select(item => fullFrame.Measurements[item]).ToDictionary(item => inputNames[a.Inputs.FindIndex((s) => s == item.ID) + i++], item => item))
+                        
                     };
                     });
 
                 }).ToList();
             m_outputRouter = section.Analytics.Select(a => 
             
-            new Action<IFrame,ITimeSeriesValue[], Analytic>((frame,values, analytic) => {
+            new Action<IFrame,ITimeSeriesValue[], Analytic>((frame, values, analytic) => {
                 int i = 0;
                 foreach(ITimeSeriesValue val in values)
                 {
@@ -90,7 +91,7 @@ namespace AdaptLogic
                                   
             })).ToList();
         }
-
+        
         #endregion
 
         #region [ Properties]
@@ -171,6 +172,7 @@ namespace AdaptLogic
             }, cancellationToken);
 
         }
+
         #endregion
 
         #region [ Static ]
