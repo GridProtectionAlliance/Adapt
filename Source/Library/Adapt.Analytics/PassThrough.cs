@@ -43,7 +43,7 @@ namespace Adapt.DataSources
     {
         public class Setting
         {
-            public string TestString { get; set; }
+            public string TestString { get; }
         }
         public Type GetSettingType()
         {

@@ -18,8 +18,8 @@
 //  ----------------------------------------------------------------------------------------------------
 //  08/02/2021 - C. Lackner
 //       Generated original version of source code.
-//  12/06/2021 - A. Hagemeyer
-//       Changed to a sign reversal analytic
+//  12/03/2021 - A. Hagemeyer
+//       Changed to division analytic
 //
 // ******************************************************************************************************
 
@@ -28,26 +28,28 @@ using Adapt.Models;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime;
 using System.Threading.Tasks;
 
 namespace Adapt.DataSources
 {
     /// <summary>
-    /// Reverses the signs of the signal
+    /// Divides two different signals
     /// </summary>
-    
+
     [AnalyticSection(AnalyticSection.DataCleanup)]
 
-    [Description("Sign Reversal: Reverse the signs of the signal")]
-    public class SignReversalAnalytic: IAnalytic
+    [Description("Division: Dividing two signals")]
+    public class Division : IAnalytic
     {
         private Setting m_settings;
         public class Setting
         {
-            public double Shift { get; }
+            public string TestString { get; }
         }
         public Type GetSettingType()
         {
@@ -56,20 +58,22 @@ namespace Adapt.DataSources
 
         public IEnumerable<string> OutputNames()
         {
-            return new List<string>() { "Reversed" };
+            return new List<string>() { "Division" };
         }
 
         public IEnumerable<string> InputNames()
         {
-            return new List<string>() { "Original" };
+            return new List<string>() { "Numerator", "Denominator"};
         }
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame)
         {
-            ITimeSeriesValue original = frame.Measurements["Original"];
-            AdaptValue result = new AdaptValue("Reversed", original.Value * -1, frame.Timestamp);
+            ITimeSeriesValue numerator = frame.Measurements["Numerator"];
+            ITimeSeriesValue denominator = frame.Measurements["Denominator"];
+            AdaptValue result = new AdaptValue("Division", numerator.Value / denominator.Value, frame.Timestamp);
             return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
         }
+
 
 
         public void Configure(IConfiguration config)

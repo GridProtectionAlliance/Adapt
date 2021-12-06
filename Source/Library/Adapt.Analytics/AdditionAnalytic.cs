@@ -18,6 +18,8 @@
 //  ----------------------------------------------------------------------------------------------------
 //  08/02/2021 - C. Lackner
 //       Generated original version of source code.
+//  12/02/2021 - A. Hagemeyer
+//       Changed to addition analytic
 //
 // ******************************************************************************************************
 
@@ -47,7 +49,7 @@ namespace Adapt.DataSources
         private Setting m_settings;
         public class Setting
         {
-            public string TestString { get; set; }
+            public string TestString { get; }
         }
         public Type GetSettingType()
         {
@@ -61,14 +63,15 @@ namespace Adapt.DataSources
 
         public IEnumerable<string> InputNames()
         {
-            return new List<string>() { "Original", "Original2"};
+            return new List<string>() { "Signal 1", "Signal 2"};
         }
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame)
         {
-            AdaptValue first = new AdaptValue(frame.Measurements.First().Value.ID, frame.Measurements.First().Value.Value, frame.Measurements.First().Value.Timestamp);
-            AdaptValue last = new AdaptValue(frame.Measurements.Last().Value.ID, frame.Measurements.Last().Value.Value, frame.Measurements.Last().Value.Timestamp);
-            return Task.FromResult<ITimeSeriesValue[]>(frame.Measurements.ToList().Select(item => new AdaptValue(first.ID + last.ID, first.Value + last.Value, item.Value.Timestamp)).ToArray());
+            ITimeSeriesValue signal1 = frame.Measurements["Signal 1"];
+            ITimeSeriesValue signal2 = frame.Measurements["Signal 2"];
+            AdaptValue result = new AdaptValue("Addition", signal1.Value + signal2.Value, frame.Timestamp);
+            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
         }
 
 

@@ -66,8 +66,9 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame)
         {
-            
-            return Task.FromResult<ITimeSeriesValue[]>(frame.Measurements.ToList().Select(item => new AdaptValue(item.Value.ID, Math.Pow(item.Value.Value, m_settings.Exponent), item.Value.Timestamp)).ToArray());
+            ITimeSeriesValue original = frame.Measurements["Original"];
+            AdaptValue result = new AdaptValue("Exponential", Math.Pow(original.Value, m_settings.Exponent), frame.Timestamp);
+            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
         }
 
 

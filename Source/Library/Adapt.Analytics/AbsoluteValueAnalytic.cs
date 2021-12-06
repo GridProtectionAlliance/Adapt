@@ -66,7 +66,9 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame)
         {
-            return Task.FromResult<ITimeSeriesValue[]>(frame.Measurements.ToList().Select(item => new AdaptValue(item.Value.ID, Math.Abs(item.Value.Value), item.Value.Timestamp)).ToArray());
+            ITimeSeriesValue original = frame.Measurements["Original"];
+            AdaptValue result = new AdaptValue("Absolute Value", Math.Abs(original.Value), frame.Timestamp);
+            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
         }
 
 
