@@ -66,14 +66,13 @@ namespace AdaptLogic
             m_inputRouter = section.Analytics.Select((a,i) => {
                 List<string> inputNames = m_analytics[i].InputNames().ToList();
                 return new Func<IFrame, Analytic, IFrame>((fullFrame, analytic) => {
-                    int i = 0;
                     return new Frame()
                     {
                         Timestamp = fullFrame.Timestamp,
                         Published = fullFrame.Published,
 
                         Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(
-                            a.Inputs.Select(item => fullFrame.Measurements[item]).ToDictionary(item => inputNames[a.Inputs.FindIndex((s) => s == item.ID) + i++], item => item))
+                            a.Inputs.Select(item => fullFrame.Measurements[item]).ToDictionary(item => inputNames[a.Inputs.FindIndex((s) => s == item.ID)], item => item))
                         
                     };
                     });
@@ -147,6 +146,7 @@ namespace AdaptLogic
 
                         Task<ITimeSeriesValue[]>[] analytics = m_analytics.Select((analytic, index) => Task<ITimeSeriesValue[]>.Run(() =>
                         {
+                            int i = 0;
                             IFrame input = m_inputRouter[index](point, m_analyticDefinitions[index]);
                             return analytic.Run(input);
                         })).ToArray();
