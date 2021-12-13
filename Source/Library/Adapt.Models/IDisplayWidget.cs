@@ -61,5 +61,12 @@ namespace Adapt.Models
         /// </summary>
         public event EventHandler<ZoomEventArgs> ChangedWindow;
 
+        /// <summary>
+        /// Indicates if a specific <see cref="Adapt"/> can be displayed in this Widget.
+        /// </summary>
+        /// <param name="signal"> The <see cref="AdaptSignal"/></param>
+        /// <returns><see cref="true"/> if the Signal can be displayed.</returns>
+        public bool AllowSignal(AdaptSignal signal);
+
     }
 }

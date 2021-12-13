@@ -50,8 +50,8 @@ namespace Adapt.ViewModels.Vizsalization
         private DateTime m_startVisualization;
         private DateTime m_endVisualization;
 
-        private List<SignalReader> m_reader;
-        private ObservableCollection<IDisplayWidget> m_widgets;
+        private Dictionary<string, List<SignalReader>> m_reader;
+        private ObservableCollection<WidgetVM> m_widgets;
 
         private Dictionary<string, Type> m_loadedWigets;
         private RelayCommand m_addWidgetCmd;
@@ -96,7 +96,7 @@ namespace Adapt.ViewModels.Vizsalization
         /// </summary>
         public int Nreaders
         {
-            get => m_reader.Count();
+            get => m_reader.Sum(item => item.Value.Count);
         }
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace Adapt.ViewModels.Vizsalization
         /// <summary>
         /// List of Widgets to be displayed
         /// </summary>
-        public ObservableCollection<IDisplayWidget> Widgets
+        public ObservableCollection<WidgetVM> Widgets
         {
             get { return m_widgets; }
         }
@@ -134,17 +134,19 @@ namespace Adapt.ViewModels.Vizsalization
 
             m_addWidgetCmd = new RelayCommand( AddWidget, (p) => true);
 
-            m_reader = SignalReader.GetAvailableReader();
+            m_reader = new Dictionary<string, List<SignalReader>>();
+            foreach (IGrouping<string, SignalReader> group in SignalReader.GetAvailableReader().GroupBy(item => item.Signal.Device))
+                m_reader.Add(group.Key, group.ToList());
 
             // Temporary Setup is Linechart followed by Table.
             // meant for testing and development only.
             if (m_reader.Count > 0)
-                m_widgets = new ObservableCollection<IDisplayWidget>() {
-                    new LineChartVM(),
-                    new StatisticsTableVM()
+                m_widgets = new ObservableCollection<WidgetVM>() {
+                    new WidgetVM(new LineChartVM(),m_startAvailable, m_endAvailable, m_reader),
+                    new WidgetVM (new StatisticsTableVM(), m_startAvailable, m_endAvailable,m_reader)
                 };
             else
-                m_widgets = new ObservableCollection<IDisplayWidget>();
+                m_widgets = new ObservableCollection<WidgetVM>();
 
             InitalizeCharts();
             
@@ -156,16 +158,9 @@ namespace Adapt.ViewModels.Vizsalization
         
         private void InitalizeCharts()
         {
-            foreach(IDisplayWidget widget in m_widgets)
-            {
-                widget.Zoom(m_startAvailable, m_endAvailable);
-                if (m_reader.Count > 0)
-                    widget.AddReader(m_reader[0]);
-                if (m_reader.Count > 1)
-                    widget.AddReader(m_reader[1]);
+            foreach(WidgetVM widget in m_widgets)
                 widget.ChangedWindow += ChangedWindow;
-            }
-
+            
             OnPropertyChanged(nameof(Widgets));
         }
 
@@ -193,10 +188,7 @@ namespace Adapt.ViewModels.Vizsalization
                 string desc = (string)Description;
                 if (m_loadedWigets.ContainsKey(desc))
                 {
-                    m_widgets.Add((IDisplayWidget)Activator.CreateInstance(m_loadedWigets[desc]));
-                    m_widgets.Last().Zoom(m_startAvailable, m_endAvailable);
-                    if (m_reader.Count > 0)
-                        m_widgets.Last().AddReader(m_reader[0]);
+                    m_widgets.Add(new WidgetVM((IDisplayWidget)Activator.CreateInstance(m_loadedWigets[desc]),m_startVisualization,m_endVisualization,m_reader));
                     m_widgets.Last().ChangedWindow += ChangedWindow;
                     OnPropertyChanged(nameof(Widgets));
                 }
