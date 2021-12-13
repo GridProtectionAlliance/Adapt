@@ -18,6 +18,8 @@
 //  ----------------------------------------------------------------------------------------------------
 //  08/02/2021 - C. Lackner
 //       Generated original version of source code.
+//  12/03/2021 - A. Hagemeyer
+//       Changed to division analytic
 //
 // ******************************************************************************************************
 
@@ -26,21 +28,25 @@ using Adapt.Models;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime;
 using System.Threading.Tasks;
 
 namespace Adapt.DataSources
 {
     /// <summary>
-    /// A simple operation that just duplicates the input signal.
+    /// Divides two different signals
     /// </summary>
-    
+
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Duplicate Signal: This Analytic duplicates a signal for later use.")]
-    public class PassThrough: IAnalytic
+
+    [Description("Division: Dividing two signals")]
+    public class Division : IAnalytic
     {
+        private Setting m_settings;
         public class Setting
         {
             public string TestString { get; }
@@ -52,22 +58,28 @@ namespace Adapt.DataSources
 
         public IEnumerable<string> OutputNames()
         {
-            return new List<string>() { "Duplicate" };
+            return new List<string>() { "Division" };
         }
 
         public IEnumerable<string> InputNames()
         {
-            return new List<string>() { "Original" };
+            return new List<string>() { "Numerator", "Denominator"};
         }
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame)
         {
-            return Task.FromResult<ITimeSeriesValue[]>(frame.Measurements.ToList().Select(item => item.Value).ToArray());
+            ITimeSeriesValue numerator = frame.Measurements["Numerator"];
+            ITimeSeriesValue denominator = frame.Measurements["Denominator"];
+            AdaptValue result = new AdaptValue("Division", numerator.Value / denominator.Value, frame.Timestamp);
+            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
         }
+
+
 
         public void Configure(IConfiguration config)
         {
-            return;
+            m_settings = new Setting();
+            config.Bind(m_settings);
         }
     }
 }

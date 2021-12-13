@@ -202,10 +202,10 @@ namespace Adapt.ViewModels
                 }).ToList();
 
 
-
             }
 
-            result.InputSignalIds = inputSignals.Select(item => item.Value).ToList();
+            result.OutputSignals = result.OutputSignals.GroupBy(c => c.ID, (key, c) => c.FirstOrDefault()).ToList();
+            result.InputSignalIds = inputSignals.Select(item => item.Value).Distinct().ToList();
             result.TempSignalIds = tempSignals.Select(item => item.Value).ToList();
 
             return result;

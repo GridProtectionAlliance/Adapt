@@ -18,6 +18,8 @@
 //  ----------------------------------------------------------------------------------------------------
 //  08/02/2021 - C. Lackner
 //       Generated original version of source code.
+//  11/22/2021 - A. Hagemeyer
+//       Changed to a shifting analytic
 //
 // ******************************************************************************************************
 
@@ -34,16 +36,18 @@ using System.Threading.Tasks;
 namespace Adapt.DataSources
 {
     /// <summary>
-    /// A simple operation that just duplicates the input signal.
+    /// Shifts the data according to a specified constant
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Duplicate Signal: This Analytic duplicates a signal for later use.")]
-    public class PassThrough: IAnalytic
+
+    [Description("Shifting: Shifts the signal by adding a constant")]
+    public class Shifting: IAnalytic
     {
+        private Setting m_settings;
         public class Setting
         {
-            public string TestString { get; }
+            public double Shift { get; set; }
         }
         public Type GetSettingType()
         {
@@ -52,7 +56,7 @@ namespace Adapt.DataSources
 
         public IEnumerable<string> OutputNames()
         {
-            return new List<string>() { "Duplicate" };
+            return new List<string>() { "Shifted" };
         }
 
         public IEnumerable<string> InputNames()
@@ -62,12 +66,16 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame)
         {
-            return Task.FromResult<ITimeSeriesValue[]>(frame.Measurements.ToList().Select(item => item.Value).ToArray());
+            ITimeSeriesValue original = frame.Measurements["Original"];
+            AdaptValue result = new AdaptValue("Shifted", original.Value + m_settings.Shift, frame.Timestamp);
+            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
         }
+
 
         public void Configure(IConfiguration config)
         {
-            return;
+            m_settings = new Setting();
+            config.Bind(m_settings);
         }
     }
 }

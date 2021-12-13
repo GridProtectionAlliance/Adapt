@@ -18,6 +18,8 @@
 //  ----------------------------------------------------------------------------------------------------
 //  08/02/2021 - C. Lackner
 //       Generated original version of source code.
+//  12/06/2021 - A. Hagemeyer
+//       Changed to a sign reversal analytic
 //
 // ******************************************************************************************************
 
@@ -34,16 +36,18 @@ using System.Threading.Tasks;
 namespace Adapt.DataSources
 {
     /// <summary>
-    /// A simple operation that just duplicates the input signal.
+    /// Reverses the signs of the signal
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Duplicate Signal: This Analytic duplicates a signal for later use.")]
-    public class PassThrough: IAnalytic
+
+    [Description("Sign Reversal: Reverse the signs of the signal")]
+    public class SignReversalAnalytic: IAnalytic
     {
+        private Setting m_settings;
         public class Setting
         {
-            public string TestString { get; }
+            public double Shift { get; }
         }
         public Type GetSettingType()
         {
@@ -52,7 +56,7 @@ namespace Adapt.DataSources
 
         public IEnumerable<string> OutputNames()
         {
-            return new List<string>() { "Duplicate" };
+            return new List<string>() { "Reversed" };
         }
 
         public IEnumerable<string> InputNames()
@@ -62,12 +66,16 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame)
         {
-            return Task.FromResult<ITimeSeriesValue[]>(frame.Measurements.ToList().Select(item => item.Value).ToArray());
+            ITimeSeriesValue original = frame.Measurements["Original"];
+            AdaptValue result = new AdaptValue("Reversed", original.Value * -1, frame.Timestamp);
+            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
         }
+
 
         public void Configure(IConfiguration config)
         {
-            return;
+            m_settings = new Setting();
+            config.Bind(m_settings);
         }
     }
 }

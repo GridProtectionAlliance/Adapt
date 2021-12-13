@@ -18,6 +18,8 @@
 //  ----------------------------------------------------------------------------------------------------
 //  08/02/2021 - C. Lackner
 //       Generated original version of source code.
+//  12/03/2021 - A. Hagemeyer
+//       Changed to an exponential analytic
 //
 // ******************************************************************************************************
 
@@ -34,16 +36,18 @@ using System.Threading.Tasks;
 namespace Adapt.DataSources
 {
     /// <summary>
-    /// A simple operation that just duplicates the input signal.
+    /// analytic to the power of a user entered number
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Duplicate Signal: This Analytic duplicates a signal for later use.")]
-    public class PassThrough: IAnalytic
+
+    [Description("Exponential: Exponentially multiply a signal")]
+    public class Exponent: IAnalytic
     {
+        private Setting m_settings;
         public class Setting
         {
-            public string TestString { get; }
+            public double Exponent { get; set; }
         }
         public Type GetSettingType()
         {
@@ -52,7 +56,7 @@ namespace Adapt.DataSources
 
         public IEnumerable<string> OutputNames()
         {
-            return new List<string>() { "Duplicate" };
+            return new List<string>() { "Exponential" };
         }
 
         public IEnumerable<string> InputNames()
@@ -62,12 +66,16 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame)
         {
-            return Task.FromResult<ITimeSeriesValue[]>(frame.Measurements.ToList().Select(item => item.Value).ToArray());
+            ITimeSeriesValue original = frame.Measurements["Original"];
+            AdaptValue result = new AdaptValue("Exponential", Math.Pow(original.Value, m_settings.Exponent), frame.Timestamp);
+            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
         }
+
 
         public void Configure(IConfiguration config)
         {
-            return;
+            m_settings = new Setting();
+            config.Bind(m_settings);
         }
     }
 }
