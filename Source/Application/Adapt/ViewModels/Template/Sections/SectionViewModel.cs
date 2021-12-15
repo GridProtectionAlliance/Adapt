@@ -173,7 +173,7 @@ namespace Adapt.ViewModels
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
                 TableOperations<TemplateSection> templateTbl = new TableOperations<TemplateSection>(connection);
-                if (m_section.ID < 0)
+                if (m_section.ID <= 0)
                 {
                     int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", TemplateViewModel.Name).Id;
                     templateTbl.AddNewRecord(new TemplateSection()

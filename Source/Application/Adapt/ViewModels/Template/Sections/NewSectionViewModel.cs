@@ -56,6 +56,7 @@ namespace Adapt.ViewModels
         private int m_selectedType;
         private Action<TemplateSection> m_complete;
         private TemplateVM m_templateViemodel;
+        private bool m_valid;
         #endregion
 
         #region[ Properties ]
@@ -65,6 +66,10 @@ namespace Adapt.ViewModels
             get => m_Name;
             set 
             {
+                if (m_templateViemodel.Sections.Select(item => item.Name).Contains(value))
+                    m_valid = false;
+                else
+                    m_valid = true;
                 m_Name = value;
                 OnPropertyChanged();
             }
@@ -89,7 +94,15 @@ namespace Adapt.ViewModels
         /// <param name="templateViemodel"> The Viemodel of the full <see cref="Template"/></param>
         public NewSectionVM(Action<TemplateSection> onComplete, TemplateVM templateViemodel)
         {
+            m_valid = true;
             m_Name = "Section";
+            int i = 1;
+            while (templateViemodel.Sections.Select(item => item.Name).Contains(m_Name))
+            {
+                m_Name = "Section " + i.ToString();
+                i++;
+            }
+
             m_templateViemodel = templateViemodel;
             m_selectedType = 0;
             m_complete = onComplete;
@@ -100,7 +113,7 @@ namespace Adapt.ViewModels
                 new SectionTypeDescriptionVM(AnalyticSection.EventDetection),
             };
 
-            AddSection = new RelayCommand(CreateSection, () => true);
+            AddSection = new RelayCommand(CreateSection, () => m_valid);
         }
 
         #endregion
