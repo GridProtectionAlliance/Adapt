@@ -66,6 +66,8 @@ namespace Adapt.ViewModels
 
         private ObservableCollection<SectionVM> m_Sections;
 
+        private List<string> m_saveErrors;
+
         #endregion
 
         #region[ Properties ]
@@ -150,6 +152,7 @@ namespace Adapt.ViewModels
         #region [ Constructor ]
         public TemplateVM(int ID): this() 
         {
+            m_saveErrors = new List<string>();
             Load(ID);
         }
 
@@ -205,16 +208,19 @@ namespace Adapt.ViewModels
                 m_changed = false;
                 OnSaved();
             }
+            catch (OperationCanceledException ex)
+            {
+                if (m_saveErrors.Count == 0)
+                    Popup(ex.Message, "Save Template Exception:", MessageBoxImage.Error);
+                else
+                    Popup(string.Join(Environment.NewLine,m_saveErrors), "Please fix the following errors:", MessageBoxImage.Warning);
+            }
             catch (Exception ex)
             {
                 if (ex.InnerException != null)
-                {
                     Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Save DataSource Exception:", MessageBoxImage.Error);
-                }
                 else
-                {
                     Popup(ex.Message, "Save Template Exception:", MessageBoxImage.Error);
-                }
             }
             finally
             {
@@ -343,6 +349,8 @@ namespace Adapt.ViewModels
         {
             CancelEventArgs cancelEventArgs = new CancelEventArgs();
 
+            m_saveErrors = new List<string>();
+
             if (BeforeSave != null)
                 BeforeSave(this, cancelEventArgs);
 
@@ -460,6 +468,14 @@ namespace Adapt.ViewModels
             return (min < 0 ? (min - 1) : -1);
         }
 
+        /// <summary>
+        /// Adds a Message to the Error List to be displayed when Saving is aborted
+        /// </summary>
+        /// <param name="error">The message to be Added</param>
+        public void AddSaveErrorMessage(string error)
+        {
+            m_saveErrors.Add(error);
+        }
         #endregion
 
         #region [ Static ]

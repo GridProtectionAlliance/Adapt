@@ -103,6 +103,7 @@ namespace Adapt.ViewModels
 
         private Action<AnalyticInput> m_onComplete;
         private int m_selectedSignalID;
+        private bool m_selectedInputSignal;
         #endregion
 
         #region[ Properties ]
@@ -139,7 +140,7 @@ namespace Adapt.ViewModels
             // Create Full List of Signals including outputs from Analytics
             Devices = new ObservableCollection<DeviceVM>(templateViewModel.Devices.Where(d => !d.Removed).Select(d => new DeviceVM(d)));
             IEnumerable<AnalyticOutputVM> outputs = templateViewModel.Sections
-                .Where(s => s.Order <= maxOrder || maxOrder == -1)
+                .Where(s => s.Order < maxOrder || maxOrder == -1)
                 .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs);
 
             foreach(DeviceVM dev in Devices)
@@ -149,6 +150,7 @@ namespace Adapt.ViewModels
             }
 
             m_selectedSignalID = Devices.First().Signals.First().ID;
+            m_selectedInputSignal = Devices.First().Signals.First().IsInput;
         }
 
         #endregion
@@ -170,9 +172,8 @@ namespace Adapt.ViewModels
         /// <param name="window"> The <see cref="SelectSignalWindow"/>. </param>
         private void Select(object window)
         {
-            SignalVM vm = Devices.SelectMany(item => item.Signals).Where(item => item.ID == m_selectedSignalID).First();
             AnalyticInput result = new AnalyticInput() {
-                IsInputSignal = vm.IsInput,
+                IsInputSignal = m_selectedInputSignal,
                 SignalID = m_selectedSignalID,
 
             };
@@ -195,7 +196,9 @@ namespace Adapt.ViewModels
                 if (tvi != null)
                 {
                     m_selectedSignalID = tvi.ID;
-                    
+                    m_selectedInputSignal = tvi.IsInput;
+
+
                 }
             }
         }

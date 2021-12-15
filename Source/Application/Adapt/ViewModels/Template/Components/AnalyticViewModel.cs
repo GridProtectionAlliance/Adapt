@@ -145,9 +145,12 @@ namespace Adapt.ViewModels
             m_analytic = analytic;
             m_settings = new ObservableCollection<AdapterSettingParameterVM>();
             SectionViewModel = section;
+            Outputs = new ObservableCollection<AnalyticOutputVM>();
+            Inputs = new ObservableCollection<AnalyticInputVM>();
             m_analyticTypes = TypeDescription.LoadDataSourceTypes(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar), typeof(IAnalytic));
             m_analyticTypes = m_analyticTypes.Where(isAllowed).ToList();
             OnAdapterTypeSelectedIndexChanged();
+            SectionViewModel.TemplateViewModel.BeforeSave += ValidateBeforeSave;
         }
 
         #endregion
@@ -167,6 +170,9 @@ namespace Adapt.ViewModels
                     IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
                     m_settings = new ObservableCollection<AdapterSettingParameterVM>(AdapterSettingParameterVM.GetSettingParameters(Instance, m_analytic?.ConnectionString ?? ""));
                     m_settings.ToList().ForEach(s => s.SettingChanged += OnSettingChanged);
+                    
+                    Outputs.ToList().ForEach(item => item.RemoveErrorMessages());
+                    Inputs.ToList().ForEach(item => item.RemoveErrorMessages());
                     Outputs = new ObservableCollection<AnalyticOutputVM>(GetOutputs(Instance));
                     Inputs = new ObservableCollection<AnalyticInputVM>(GetInputs(Instance));
                 }
@@ -284,6 +290,7 @@ namespace Adapt.ViewModels
                     IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
 
                     List<AnalyticInput> savedInputs = new TableOperations<AnalyticInput>(connection).QueryRecordsWhere("AnalyticID = {0}", m_analytic.ID).ToList();
+                    Inputs.ToList().ForEach(item => item.RemoveErrorMessages());
                     Inputs = new ObservableCollection<AnalyticInputVM>(Instance.InputNames().Select((n, i) =>
                    {
                        if (savedInputs.FindIndex(item => item.InputIndex == i) > -1)
@@ -315,6 +322,7 @@ namespace Adapt.ViewModels
                     IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
 
                     List<AnalyticOutputSignal> savedOutputs = new TableOperations<AnalyticOutputSignal>(connection).QueryRecordsWhere("AnalyticID = {0}", m_analytic.ID).ToList();
+                    Outputs.ToList().ForEach(item => item.RemoveErrorMessages());
                     Outputs = new ObservableCollection<AnalyticOutputVM>(Instance.OutputNames().Select((n, i) =>
                     {
                         if (savedOutputs.FindIndex(item => item.OutputIndex == i) > -1)
@@ -354,6 +362,15 @@ namespace Adapt.ViewModels
             AnalyticSectionAttribute[] analytic = (AnalyticSectionAttribute[])typeDescription.Type.GetCustomAttributes(typeof(AnalyticSectionAttribute), false);
             AnalyticSection[] m = analytic.SelectMany(item => item.Sections).ToArray();
             return m.Contains(SectionViewModel.AnalyticSection);
+        }
+
+        private void ValidateBeforeSave(object sender, CancelEventArgs args)
+        {
+            if (AdapterTypeSelectedIndex < 0 || AdapterTypeSelectedIndex >= m_analyticTypes.Count)
+            {
+                SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {Name} does not have a valid Type");
+                args.Cancel = true;
+            }
         }
         #endregion
         #region [ Static ]

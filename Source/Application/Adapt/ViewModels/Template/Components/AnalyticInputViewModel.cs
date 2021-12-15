@@ -94,7 +94,7 @@ namespace Adapt.ViewModels
             m_inputIndex = index;
             m_analyticVM = analyticViewModel;
 
-            if (analyticInputSignal == null)
+            if (analyticInputSignal == null || analyticInputSignal.SignalID == 0)
             {
                 m_name = "Not Assigned";
                 Assigned = false;
@@ -105,6 +105,8 @@ namespace Adapt.ViewModels
             m_signal = analyticInputSignal;
 
             ChangeSignal = new RelayCommand(SelectSignal, () => true);
+
+            analyticViewModel.SectionViewModel.TemplateViewModel.BeforeSave += ValidateBeforeSave;
         }
 
         #endregion
@@ -117,7 +119,7 @@ namespace Adapt.ViewModels
         private void SelectSignal()
         {
             SelectSignalWindow window = new SelectSignalWindow();
-            SelectSignalVM viewModel = new SelectSignalVM(m_analyticVM.SectionViewModel.TemplateViewModel, UpdateSignal);
+            SelectSignalVM viewModel = new SelectSignalVM(m_analyticVM.SectionViewModel.TemplateViewModel, UpdateSignal,m_analyticVM.SectionViewModel.Order);
             window.DataContext = viewModel;
             window.Show();
         }
@@ -242,6 +244,20 @@ namespace Adapt.ViewModels
 
                 tbl.AddNewRecord(m_signal);  
             }
+        }
+
+        private void ValidateBeforeSave(object sender, CancelEventArgs args)
+        {
+            if (!Assigned)
+            {
+                m_analyticVM.SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {m_analyticVM.Name} Input for {Label} needs to be assigned to a signal.");
+                args.Cancel = true;
+            }
+        }
+
+        public void RemoveErrorMessages()
+        {
+            m_analyticVM.SectionViewModel.TemplateViewModel.BeforeSave -= ValidateBeforeSave;
         }
 
         #endregion
