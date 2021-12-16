@@ -103,8 +103,7 @@ namespace Adapt.ViewModels
                 OnPropertyChanged();
             }
         }
-        //public ObservableCollection<SectionVM> Sections => m_Sections;
-
+     
         /// <summary>
         /// The Viewmodel containing the mapping between Template Devices and DataSourceDevices
         /// </summary>

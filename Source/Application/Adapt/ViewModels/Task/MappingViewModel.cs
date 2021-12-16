@@ -60,7 +60,8 @@ namespace Adapt.ViewModels
             {
                 TargetDeviceID = device.ID;
                 TargetDeviceName = device.Name;
-                IsValid = false;
+                IsValid = true;
+                IsSelected = false;
                 ChangeDevice = new RelayCommand(() => parent.SelectDevice(this), () => true);
                 FixChannel = new RelayCommand(() => parent.FixDuplicates(this), () => true);
 
@@ -74,6 +75,7 @@ namespace Adapt.ViewModels
             public ICommand FixChannel { get; }
             public Dictionary<int,string> ChannelMappings { get; set; }
             public bool IsValid { get; set; }
+            public bool IsSelected { get; set; }
         }
 
         #endregion
@@ -96,7 +98,8 @@ namespace Adapt.ViewModels
         /// <summary>
         /// Indicates if the Mapping is valid an complete
         /// </summary>
-        public bool Valid => !DeviceMappings.Any(d => ! d.IsValid);
+        public bool Valid => !DeviceMappings.Any(d => !(d.IsValid && d.IsSelected));
+
         #endregion
 
         #region [ Constructor ]
@@ -164,10 +167,11 @@ namespace Adapt.ViewModels
                         mapping.ChannelMappings.Add(targetSignals[i].ID, sourceSignals[index].ID);
                 }
                 mapping.IsValid = !mapping.ChannelMappings.Any(item => string.IsNullOrEmpty(item.Value));
-                
+                mapping.IsSelected = true;
                 DeviceMappings = new ObservableCollection<Mapping>(DeviceMappings);
                 OnPropertyChanged(nameof(DeviceMappings));
                 OnPropertyChanged(nameof(Valid));
+
             },(d,s) => d.Name.ToLower().Contains(s.ToLower()),(d) => d.Name,AdaptDevice.Get(DataSource,DataSourceModel.ID,ConnectionString,DataProviderString));
             dateSelection.DataContext = dateSelectionVM;
             dateSelection.Show();
