@@ -45,15 +45,17 @@ namespace Adapt.DataSources
     public class SignReversalAnalytic: IAnalytic
     {
         private Setting m_settings;
+        private int m_fps;
+
+        public Type SettingType => typeof(Setting);
+
+        public int FramesPerSecond => m_fps;
+
         public class Setting
         {
             public double Shift { get; }
         }
-        public Type GetSettingType()
-        {
-            return typeof(Setting);
-        }
-
+     
         public IEnumerable<string> OutputNames()
         {
             return new List<string>() { "Reversed" };
@@ -76,6 +78,11 @@ namespace Adapt.DataSources
         {
             m_settings = new Setting();
             config.Bind(m_settings);
+        }
+
+        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
+        {
+            m_fps = inputFramesPerSeconds.FirstOrDefault();
         }
     }
 }

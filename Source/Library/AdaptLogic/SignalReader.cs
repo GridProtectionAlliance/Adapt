@@ -92,7 +92,7 @@ namespace AdaptLogic
             string description = "";
             Phase phase = Phase.A;
             MeasurementType type = MeasurementType.Analog;
-            double framesPerSecond = 30;
+            int framesPerSecond = 30;
 
             string line;
             // Read .config file that just contain some of the Signal Information
@@ -112,14 +112,13 @@ namespace AdaptLogic
                 if ((line = reader.ReadLine()) != null)
                     Enum.TryParse<MeasurementType>(line, out type);
                 if ((line = reader.ReadLine()) != null)
-                    framesPerSecond = Convert.ToDouble(line);
+                    framesPerSecond = Convert.ToInt32(line);
             }
 
-            Signal = new AdaptSignal(signalID, name, deviceID);
+            Signal = new AdaptSignal(signalID, name, deviceID, framesPerSecond);
             Signal.Description = description;
             Signal.Phase = phase;
             Signal.Type = type;
-            Signal.FramesPerSecond = framesPerSecond;
         }
 
         /// <summary>

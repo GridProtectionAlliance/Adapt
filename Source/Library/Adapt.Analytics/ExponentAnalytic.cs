@@ -45,14 +45,16 @@ namespace Adapt.DataSources
     public class Exponent: IAnalytic
     {
         private Setting m_settings;
+        private int m_fps;
+        public Type SettingType => typeof(Setting);
+
+        public int FramesPerSecond => m_fps;
+
         public class Setting
         {
             public double Exponent { get; set; }
         }
-        public Type GetSettingType()
-        {
-            return typeof(Setting);
-        }
+        
 
         public IEnumerable<string> OutputNames()
         {
@@ -76,6 +78,11 @@ namespace Adapt.DataSources
         {
             m_settings = new Setting();
             config.Bind(m_settings);
+        }
+
+        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
+        {
+            m_fps = inputFramesPerSeconds.FirstOrDefault();
         }
     }
 }

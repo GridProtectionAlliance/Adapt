@@ -145,6 +145,8 @@ namespace Adapt.DataSources
 
         #endregion
 
+        public Type SettingType => typeof(OpenHistorianSettings);
+
         #region [ Constructor ]
 
         public OpenHistorian()
@@ -247,11 +249,7 @@ namespace Adapt.DataSources
             throw new NotImplementedException();
         }
 
-        public Type GetSettingType()
-        {
-            return typeof(OpenHistorianSettings);
-        }
-
+      
         /// <summary>
         /// The <see cref="IDataSource.GetSignals"/> for the OH data source
         /// </summary>
@@ -334,10 +332,10 @@ namespace Adapt.DataSources
                     if (m_settings.NameField == NamingConvention.SignalReference)
                         name = measurement["SignalReference"].ToString();
 
+                    int fps = int.Parse(measurement["FramesPerSecond"].ToString());
                     m_Signals.Add(
-                        new AdaptSignal(measurement["ID"].ToString(), name, m_Devices.Last())
+                        new AdaptSignal(measurement["ID"].ToString(), name, m_Devices.Last(), fps )
                         { 
-                            FramesPerSecond = int.Parse(measurement["FramesPerSecond"].ToString()),
                             Description = measurement["Description"].ToString(),
                             Phase = GetPhase(measurement["Phase"].ToString()),
                             Type = GetType(measurement["SignalType"].ToString())

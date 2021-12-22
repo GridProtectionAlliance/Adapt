@@ -49,10 +49,12 @@ namespace Adapt.DataSources
         {
             public double Multiplier { get; set; }
         }
-        public Type GetSettingType()
-        {
-            return typeof(Setting);
-        }
+
+        private int m_fps;
+
+        public Type SettingType => typeof(Setting);
+
+        public int FramesPerSecond => m_fps;
 
         public IEnumerable<string> OutputNames()
         {
@@ -76,6 +78,11 @@ namespace Adapt.DataSources
         {
             m_settings = new Setting();
             config.Bind(m_settings);
+        }
+
+        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
+        {
+            m_fps = inputFramesPerSeconds.FirstOrDefault();
         }
     }
 }

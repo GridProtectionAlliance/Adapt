@@ -47,15 +47,17 @@ namespace Adapt.DataSources
     public class Addition : IAnalytic
     {
         private Setting m_settings;
+        private int m_fps;
+
+        public Type SettingType => typeof(Setting);
+
+        public int FramesPerSecond => m_fps;
+
         public class Setting
         {
             public string TestString { get; }
         }
-        public Type GetSettingType()
-        {
-            return typeof(Setting);
-        }
-
+        
         public IEnumerable<string> OutputNames()
         {
             return new List<string>() { "Addition" };
@@ -80,6 +82,12 @@ namespace Adapt.DataSources
         {
             m_settings = new Setting();
             config.Bind(m_settings);
+        }
+
+        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
+        {
+            // # ToDo: Set m_fps to the largest common multiplier. E.g. if inputFrame = [60,30] set m_fps = 30;
+            m_fps = inputFramesPerSeconds.FirstOrDefault();
         }
     }
 }

@@ -82,6 +82,7 @@ namespace AdaptLogic
         public List<string> Inputs { get; set; }
         public List<string> Outputs { get; set; }
         public IConfiguration Configuration { get; set; }
+        public int FramesPerSecond { get; set; }
     }
 
 }

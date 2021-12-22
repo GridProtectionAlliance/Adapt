@@ -61,6 +61,8 @@ namespace Adapt.DataSources
 
         #endregion
 
+        public Type SettingType => typeof(PIHistorianSettings);
+
         #region [ Methods ]
 
         public void Configure(IConfiguration config)
@@ -187,10 +189,6 @@ namespace Adapt.DataSources
             return m_progress * 100.0D;
         }
 
-        public Type GetSettingType()
-        {
-            return typeof(PIHistorianSettings);
-        }
 
         /// <summary>
         /// The <see cref="IDataSource.GetSignals"/> for the PI data source
@@ -198,9 +196,8 @@ namespace Adapt.DataSources
         /// <returns> A List of all available Signals in the Pi Instance.</returns>
         public IEnumerable<AdaptSignal> GetSignals()
         {
-            return new List<AdaptSignal>() { new AdaptSignal(m_settings.PITag, "Signal", m_settings.InstanceName)
+            return new List<AdaptSignal>() { new AdaptSignal(m_settings.PITag, "Signal", m_settings.InstanceName, 30)
             {
-                FramesPerSecond = 30.0,
                 Phase = Phase.NONE,
                 Type = MeasurementType.Frequency
             }};

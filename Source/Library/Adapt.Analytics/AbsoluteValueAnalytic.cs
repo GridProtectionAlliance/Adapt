@@ -45,14 +45,17 @@ namespace Adapt.DataSources
     public class AbsoluteValueAnalytic: IAnalytic
     {
         private Setting m_settings;
+        private int m_fps = 30;
+
         public class Setting
         {
             public double Shift { get; }
         }
-        public Type GetSettingType()
-        {
-            return typeof(Setting);
-        }
+
+       
+        public Type SettingType => typeof(Setting);
+
+        public int FramesPerSecond => m_fps;
 
         public IEnumerable<string> OutputNames()
         {
@@ -76,6 +79,11 @@ namespace Adapt.DataSources
         {
             m_settings = new Setting();
             config.Bind(m_settings);
+        }
+
+        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
+        {
+            m_fps = inputFramesPerSeconds.FirstOrDefault();
         }
     }
 }

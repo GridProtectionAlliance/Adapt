@@ -38,7 +38,7 @@ namespace Adapt.Models
         /// <summary>
         /// Returns the <see cref="Type"/> of the Settings object that defines all Parameters
         /// </summary>
-        public new Type GetSettingType();
+        public new Type SettingType { get; }
 
         /// <summary>
         /// Returns a List of strings indicating the names of the Output Signals
@@ -56,6 +56,17 @@ namespace Adapt.Models
         /// <param name="frame">The <see cref="IFrame"/> containing the input Data. </param>
         /// <returns> a <see cref="ITimeSeriesValue[]"/> that contains the results. </returns>
         public Task<ITimeSeriesValue[]> Run(IFrame frame);
+
+        /// <summary>
+        /// Gets the Current FrameRate of this Adapter
+        /// </summary>
+        public int FramesPerSecond { get; }
+
+        /// <summary>
+        /// Sets the FrameRate of the inputs to this Adapter
+        /// </summary>
+        /// <param name="inputFramesPerSeconds"></param>
+        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds);
 
     }
 }

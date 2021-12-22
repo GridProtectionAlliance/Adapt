@@ -396,7 +396,7 @@ namespace Adapt.ViewModels.Common
         public static List<AdapterSettingParameterVM> GetSettingParameters(IAdapter dataSource, string connectionString) 
         {
 
-            Type settingType = dataSource.GetSettingType();
+            Type settingType = dataSource.SettingType;
 
             
 
@@ -421,7 +421,7 @@ namespace Adapt.ViewModels.Common
 
         public static string GetConnectionString(List<AdapterSettingParameterVM> parameters, IAdapter dataSource)
         {
-            Type settingType = dataSource.GetSettingType();
+            Type settingType = dataSource.SettingType;
             if (settingType == null)
                 return "";
 

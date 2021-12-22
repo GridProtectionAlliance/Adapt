@@ -196,9 +196,9 @@ namespace Adapt.ViewModels
                     TemplateInputDevice dev = devices.Find(item => item.ID == deviceID);
 
                     if (s.IsInputSignal)
-                        return new AdaptSignal(inputSignals[s.SignalID], s.Name, dev.OutputName);
+                        return new AdaptSignal(inputSignals[s.SignalID], s.Name, dev.OutputName,0);
                     else
-                        return new AdaptSignal(tempSignals[s.SignalID], s.Name, dev.OutputName);
+                        return new AdaptSignal(tempSignals[s.SignalID], s.Name, dev.OutputName,0);
                 }).ToList();
 
 

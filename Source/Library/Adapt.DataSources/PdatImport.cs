@@ -56,6 +56,8 @@ namespace Adapt.DataSources
         public TaskCompletionSource<IConfigurationFrame> m_ConfigFrameSource;
         #endregion
 
+        public Type SettingType => typeof(PdatSettings);
+
         #region [ Constructor ]
 
         public PdatImporter()
@@ -63,6 +65,7 @@ namespace Adapt.DataSources
             m_ConfigFrameSource = new TaskCompletionSource<IConfigurationFrame>();
         }
         #endregion
+
         #region [ Methods ]
         public void Configure(IConfiguration config)
         {
@@ -243,10 +246,7 @@ namespace Adapt.DataSources
             throw new NotImplementedException();
         }
 
-        public Type GetSettingType()
-        {
-            return typeof(PdatSettings);
-        }
+        
 
         public IEnumerable<AdaptSignal> GetSignals()
         {
@@ -256,7 +256,7 @@ namespace Adapt.DataSources
             IConfigurationFrame configuration = m_ConfigFrameSource.Task.Result;
 
             IEnumerable<AdaptSignal> analogs = configuration.Cells.SelectMany(cell => cell.AnalogDefinitions
-                .Select(aD => new AdaptSignal(aD.Label, aD.Label, cell.IDCode.ToString())
+                .Select(aD => new AdaptSignal(aD.Label, aD.Label, cell.IDCode.ToString(), cell.FrameRate)
                     {
                         FramesPerSecond = cell.FrameRate,
                         Phase = Phase.NONE,
@@ -264,7 +264,7 @@ namespace Adapt.DataSources
                     }));
 
             IEnumerable<AdaptSignal> digitals = configuration.Cells.SelectMany(cell => cell.DigitalDefinitions
-                .Select(aD => new AdaptSignal(aD.Label, aD.Label, cell.IDCode.ToString())
+                .Select(aD => new AdaptSignal(aD.Label, aD.Label, cell.IDCode.ToString(), cell.FrameRate)
                 {
                     FramesPerSecond = cell.FrameRate,
                     Phase = Phase.NONE,
@@ -272,21 +272,21 @@ namespace Adapt.DataSources
                 }));
 
             IEnumerable<AdaptSignal> phases = configuration.Cells.SelectMany(cell => cell.PhasorDefinitions
-                .Select(aD => new AdaptSignal(aD.Label + "-Ph", aD.Label + " Phase", cell.IDCode.ToString())
+                .Select(aD => new AdaptSignal(aD.Label + "-Ph", aD.Label + " Phase", cell.IDCode.ToString(), cell.FrameRate)
                 {
                     FramesPerSecond = cell.FrameRate,
                     Phase = Phase.NONE,
                     Type = aD.PhasorType == Gemstone.Numeric.EE.PhasorType.Current? MeasurementType.CurrentPhase : MeasurementType.VoltagePhase
                 }));
             IEnumerable<AdaptSignal> magnitudes = configuration.Cells.SelectMany(cell => cell.PhasorDefinitions
-            .Select(aD => new AdaptSignal(aD.Label + "-Mag", aD.Label + " Magnitude", cell.IDCode.ToString()) 
+            .Select(aD => new AdaptSignal(aD.Label + "-Mag", aD.Label + " Magnitude", cell.IDCode.ToString(), cell.FrameRate) 
             {
                 FramesPerSecond = cell.FrameRate,
                 Phase = Phase.NONE,
                 Type = aD.PhasorType == Gemstone.Numeric.EE.PhasorType.Current ? MeasurementType.CurrentMagnitude : MeasurementType.VoltageMagnitude
             }));
 
-            IEnumerable<AdaptSignal> frequency = configuration.Cells.Select( cell => new AdaptSignal(cell.IDCode.ToString() + cell.FrequencyDefinition.Label, cell.FrequencyDefinition.Label ?? "Frequency", cell.IDCode.ToString())
+            IEnumerable<AdaptSignal> frequency = configuration.Cells.Select( cell => new AdaptSignal(cell.IDCode.ToString() + cell.FrequencyDefinition.Label, cell.FrequencyDefinition.Label ?? "Frequency", cell.IDCode.ToString(), cell.FrameRate)
                {
                    FramesPerSecond = cell.FrameRate,
                    Phase = Phase.NONE,
@@ -351,6 +351,7 @@ namespace Adapt.DataSources
 
         #region [ static ]
         private static Regex m_DateTimeParsing = new Regex(@"_([0-9]{8})_([0-9]{6})\.pdat$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         #endregion
     }
 }

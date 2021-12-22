@@ -41,14 +41,13 @@ namespace Adapt.DataSources
     [Description("Duplicate Signal: This Analytic duplicates a signal for later use.")]
     public class PassThrough: IAnalytic
     {
-        public class Setting
-        {
-            public string TestString { get; }
-        }
-        public Type GetSettingType()
-        {
-            return typeof(Setting);
-        }
+        public class Setting {}
+
+        private int m_fps;
+
+        public Type SettingType => typeof(Setting);
+
+        public int FramesPerSecond => m_fps;
 
         public IEnumerable<string> OutputNames()
         {
@@ -68,6 +67,11 @@ namespace Adapt.DataSources
         public void Configure(IConfiguration config)
         {
             return;
+        }
+
+        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
+        {
+            m_fps = inputFramesPerSeconds.FirstOrDefault();
         }
     }
 }
