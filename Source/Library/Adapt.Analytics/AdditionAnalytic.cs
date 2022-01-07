@@ -53,6 +53,10 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
+        int IAnalytic.PrevFrames => 0;
+
+        int IAnalytic.FutureFrames => 0;
+
         public class Setting
         {
             public string TestString { get; }
@@ -68,7 +72,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Signal 1", "Signal 2"};
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             ITimeSeriesValue signal1 = frame.Measurements["Signal 1"];
             ITimeSeriesValue signal2 = frame.Measurements["Signal 2"];

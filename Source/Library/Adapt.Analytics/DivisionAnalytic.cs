@@ -55,6 +55,10 @@ namespace Adapt.DataSources
 
         public class Setting  {}
 
+        int IAnalytic.PrevFrames => 0;
+
+        int IAnalytic.FutureFrames => 0;
+
         public IEnumerable<string> OutputNames()
         {
             return new List<string>() { "Division" };
@@ -65,7 +69,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Numerator", "Denominator"};
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             ITimeSeriesValue numerator = frame.Measurements["Numerator"];
             ITimeSeriesValue denominator = frame.Measurements["Denominator"];
@@ -83,8 +87,12 @@ namespace Adapt.DataSources
 
         public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
         {
-            //# ToDO implement setting m_fps to largest common multiplier.
             m_fps = inputFramesPerSeconds.FirstOrDefault();
+            foreach (int i in inputFramesPerSeconds) 
+            {
+                if (i > m_fps)
+                    m_fps = i;
+            }
         }
     }
 }

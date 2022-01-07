@@ -41,13 +41,20 @@ namespace Adapt.DataSources
     [Description("Duplicate Signal: This Analytic duplicates a signal for later use.")]
     public class PassThrough: IAnalytic
     {
-        public class Setting {}
-
+        private Setting m_settings;
         private int m_fps;
+        public class Setting
+        {
+            public string TestString { get; }
+        }
 
         public Type SettingType => typeof(Setting);
 
         public int FramesPerSecond => m_fps;
+
+        int IAnalytic.PrevFrames => 0;
+
+        int IAnalytic.FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -59,19 +66,25 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             return Task.FromResult<ITimeSeriesValue[]>(frame.Measurements.ToList().Select(item => item.Value).ToArray());
         }
 
         public void Configure(IConfiguration config)
         {
-            return;
+            m_settings = new Setting();
+            config.Bind(m_settings);
         }
 
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
+        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
         {
-            m_fps = inputFramesPerSeconds.FirstOrDefault();
+            m_fps = inputFramesPerSecond.FirstOrDefault();
+            foreach (int i in inputFramesPerSecond)
+            {
+                if (i > m_fps)
+                    m_fps = i;
+            }
         }
     }
 }

@@ -56,6 +56,10 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
+        int IAnalytic.PrevFrames => 0;
+
+        int IAnalytic.FutureFrames => 0;
+
         public IEnumerable<string> OutputNames()
         {
             return new List<string>() { "Shifted" };
@@ -66,7 +70,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             ITimeSeriesValue original = frame.Measurements["Original"];
             AdaptValue result = new AdaptValue("Shifted", original.Value + m_settings.Shift, frame.Timestamp);
@@ -83,6 +87,11 @@ namespace Adapt.DataSources
         public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
         {
             m_fps = inputFramesPerSeconds.FirstOrDefault();
+            foreach (int i in inputFramesPerSeconds) 
+            {
+                if (i > m_fps)
+                    m_fps = i;
+            }
         }
     }
 }

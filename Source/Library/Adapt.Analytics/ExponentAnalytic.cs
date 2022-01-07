@@ -54,7 +54,10 @@ namespace Adapt.DataSources
         {
             public double Exponent { get; set; }
         }
-        
+
+        int IAnalytic.PrevFrames => 0;
+
+        int IAnalytic.FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -66,7 +69,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             ITimeSeriesValue original = frame.Measurements["Original"];
             AdaptValue result = new AdaptValue("Exponential", Math.Pow(original.Value, m_settings.Exponent), frame.Timestamp);

@@ -55,7 +55,11 @@ namespace Adapt.DataSources
         {
             public double Shift { get; }
         }
-     
+
+        int IAnalytic.PrevFrames => 0;
+
+        int IAnalytic.FutureFrames => 0;
+
         public IEnumerable<string> OutputNames()
         {
             return new List<string>() { "Reversed" };
@@ -66,7 +70,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             ITimeSeriesValue original = frame.Measurements["Original"];
             AdaptValue result = new AdaptValue("Reversed", original.Value * -1, frame.Timestamp);
@@ -80,9 +84,14 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
+        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
         {
-            m_fps = inputFramesPerSeconds.FirstOrDefault();
+            m_fps = inputFramesPerSecond.FirstOrDefault();
+            foreach (int i in inputFramesPerSecond)
+            {
+                if (i > m_fps)
+                    m_fps = i;
+            }
         }
     }
 }

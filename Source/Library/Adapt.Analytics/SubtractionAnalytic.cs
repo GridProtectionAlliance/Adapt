@@ -47,13 +47,16 @@ namespace Adapt.DataSources
     public class Subtraction : IAnalytic
     {
         private Setting m_settings;
-
         private int m_fps;
 
         public Type SettingType => typeof(Setting);
 
         public int FramesPerSecond => m_fps;
         public class Setting {}
+
+        int IAnalytic.PrevFrames => 0;
+
+        int IAnalytic.FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -65,7 +68,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Signal 1", "Signal 2" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             ITimeSeriesValue signal1 = frame.Measurements["Signal 1"];
             ITimeSeriesValue signal2 = frame.Measurements["Signal 2"];
@@ -73,18 +76,20 @@ namespace Adapt.DataSources
             return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
         }
 
-
-
         public void Configure(IConfiguration config)
         {
             m_settings = new Setting();
             config.Bind(m_settings);
         }
 
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
+        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
         {
-            // #ToDO: implement logic to set m_fps to largest common multiplier
-            m_fps = inputFramesPerSeconds.FirstOrDefault();
+            m_fps = inputFramesPerSecond.FirstOrDefault();
+            foreach (int i in inputFramesPerSecond)
+            {
+                if (i > m_fps)
+                    m_fps = i;
+            }
         }
     }
 }
