@@ -164,7 +164,7 @@ namespace AdaptLogic
                             {
                                 IFrame input = m_inputRouter[index](point, m_analyticDefinitions[index]);
                                 m_nextTimeStamp[index] = m_nextTimeStamp[index] + (long)(Gemstone.Ticks.PerSecond * 1.0 / ((double)analytic.FramesPerSecond));
-                                return analytic.Run(input);
+                                return analytic.Run(input, new IFrame[0] { }, new IFrame[0] { });
                             }
                             else
                                 return Task<ITimeSeriesValue[]>.FromResult(new ITimeSeriesValue[0]);
