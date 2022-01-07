@@ -57,6 +57,10 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
+        int IAnalytic.PrevFrames => 0;
+
+        int IAnalytic.FutureFrames => 0;
+
         public IEnumerable<string> OutputNames()
         {
             return new List<string>() { "Absolute Value" };
@@ -67,7 +71,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             ITimeSeriesValue original = frame.Measurements["Original"];
             AdaptValue result = new AdaptValue("Absolute Value", Math.Abs(original.Value), frame.Timestamp);
@@ -85,5 +89,6 @@ namespace Adapt.DataSources
         {
             m_fps = inputFramesPerSeconds.FirstOrDefault();
         }
+
     }
 }
