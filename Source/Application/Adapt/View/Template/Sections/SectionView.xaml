@@ -4,8 +4,16 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.Template"
+             xmlns:localcv="clr-namespace:Adapt.Converter"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:System="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" >
-    <Expander ExpandDirection="Down" Background="Gray">
+    <UserControl.Resources>
+        <System:Boolean x:Key="FalseValue">False</System:Boolean>
+        <System:Boolean x:Key="TrueValue">True</System:Boolean>
+        <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
+    </UserControl.Resources>
+    <Expander ExpandDirection="Down" Background="Gray" Visibility="{Binding Path=Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}">
         <Expander.Header>
             <TextBlock FontWeight="bold"  Text="{Binding Title}" Width="auto" FontSize="24">
             </TextBlock>
@@ -13,7 +21,7 @@
         <StackPanel Orientation="Vertical" Height="auto" Background="LightGray">
             <StackPanel Orientation="Horizontal" Height="auto" Background="LightGray">
                 <Label Margin="0,2" Width="500" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Description}"/>
-                <Button Width="80" Height="18" Margin="2, 5" Command="{Binding AddAnalyticCommand}">Delete Section</Button>
+                <Button Width="80" Height="18" Margin="2, 5" Command="{Binding DeleteSectionCommand}">Delete Section</Button>
                 <Button Width="80" Height="18" Margin="2, 5" Command="{Binding AddAnalyticCommand}">Add Analytic</Button>
             </StackPanel>
             <ItemsControl ItemsSource="{Binding Analytics}">
