@@ -310,6 +310,9 @@ namespace AdaptLogic
             if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].N))
                 m_activeSummary[activeFolderIndex - 1].N = 0;
 
+            if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].SquaredSum))
+                m_activeSummary[activeFolderIndex - 1].SquaredSum = 0;
+
             m_activeSummary[activeFolderIndex - 1].N += m_activeSummary[activeFolderIndex].N;
             m_activeSummary[activeFolderIndex - 1].Sum += m_activeSummary[activeFolderIndex].Sum;
             m_activeSummary[activeFolderIndex - 1].SquaredSum += m_activeSummary[activeFolderIndex].SquaredSum;
