@@ -293,7 +293,7 @@ namespace AdaptLogic
 
 
             // reset lower level
-            m_activeSummary[activeFolderIndex + 1] = new GraphPoint();
+            m_activeSummary[activeFolderIndex] = new GraphPoint();
 
         }
 
