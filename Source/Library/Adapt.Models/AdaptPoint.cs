@@ -50,14 +50,15 @@ namespace Adapt.Models
         public AdaptPoint(string guid) : base(guid)
         {}
 
-        public AdaptPoint(string guid, double Value, Ticks Time, double Min, double Max) : base(guid,Value,Time)
+        public AdaptPoint(string guid, double Value, Ticks Time, double Min, double Max, double FPS) : base(guid,Value,Time)
         {
             m_Max = Max;
             m_Min = Min;
             m_time = 0;
-            m_fps = 0;
+            m_fps = FPS;
             M_Npoints = 0;
             m_stdev = 0;
+            
         }
 
         public AdaptPoint(string Guid, double Sum, double SumSqrd, int NCount, Ticks StartTime, Ticks EndTime, double Min, double Max, double FPS) : base(Guid, Sum/(double)NCount, StartTime + (EndTime - StartTime))

@@ -138,9 +138,12 @@ namespace AdaptLogic
             {
                 try
                 {
-
-                    await foreach (ITimeSeriesValue point in m_queue.Reader.ReadAllAsync(cancellationToken))
+                    ITimeSeriesValue point;
+                    while (await m_queue.Reader.WaitToReadAsync(cancellationToken))
                     {
+                        if (!m_queue.Reader.TryRead(out point))
+                            continue;
+
                         if (double.IsNaN(point.Value))
                             continue;
 
