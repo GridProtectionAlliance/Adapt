@@ -45,6 +45,8 @@ namespace Adapt.ViewModels
         private TemplateInputDevice m_device;
         private bool m_removed;
         private bool m_changed;
+        private bool m_outputFlag;
+
         private TemplateVM m_templateViewModel;
 
         #endregion
@@ -88,7 +90,17 @@ namespace Adapt.ViewModels
         /// <summary>
         /// A Flag indicating if this Device was selected as an Output
         /// </summary>
-        public bool SelectedOutput { get; set; }
+        public bool SelectedOutput 
+        { 
+            get => m_outputFlag;
+            set
+            {
+                m_changed = true;
+                m_outputFlag = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(Changed));
+            } 
+        }
 
         /// <summary>
         /// The number of Signals associated with this Device
@@ -241,7 +253,7 @@ namespace Adapt.ViewModels
             OnPropertyChanged(nameof(Signals));
             OnPropertyChanged(nameof(NSignals));
             Signals.ToList().ForEach(s => s.PropertyChanged += SignalChanged);
-            SelectedOutput = false;
+            m_outputFlag = false;
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
                 int Ninputs = 0;
@@ -249,7 +261,7 @@ namespace Adapt.ViewModels
                     Ninputs = new TableOperations<TemplateOutputSignal>(connection).QueryRecordCountWhere($"IsInputSignal = 1 AND SignalID IN ({string.Join(',', Signals.Select(item => item.ID))})");
                 int Noutputs = new TableOperations<TemplateOutputSignal>(connection).QueryRecordCountWhere("IsInputSignal = 0 AND SignalID IN (SELECT ID FROM AnalyticOutputSignal WHERE DeviceID = {0})", m_device.ID);
 
-                SelectedOutput = (Ninputs + Noutputs) > 0;
+                m_outputFlag = (Ninputs + Noutputs) > 0;
 
             }
             OnPropertyChanged(nameof(SelectedOutput));

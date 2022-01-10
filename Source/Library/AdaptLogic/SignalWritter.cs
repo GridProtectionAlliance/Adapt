@@ -138,9 +138,12 @@ namespace AdaptLogic
             {
                 try
                 {
-
-                    await foreach (ITimeSeriesValue point in m_queue.Reader.ReadAllAsync(cancellationToken))
+                    ITimeSeriesValue point;
+                    while (await m_queue.Reader.WaitToReadAsync(cancellationToken))
                     {
+                        if (!m_queue.Reader.TryRead(out point))
+                            continue;
+
                         if (double.IsNaN(point.Value))
                             continue;
 
@@ -290,7 +293,7 @@ namespace AdaptLogic
 
 
             // reset lower level
-            m_activeSummary[activeFolderIndex + 1] = new GraphPoint();
+            m_activeSummary[activeFolderIndex] = new GraphPoint();
 
         }
 
@@ -306,6 +309,9 @@ namespace AdaptLogic
 
             if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].N))
                 m_activeSummary[activeFolderIndex - 1].N = 0;
+
+            if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].SquaredSum))
+                m_activeSummary[activeFolderIndex - 1].SquaredSum = 0;
 
             m_activeSummary[activeFolderIndex - 1].N += m_activeSummary[activeFolderIndex].N;
             m_activeSummary[activeFolderIndex - 1].Sum += m_activeSummary[activeFolderIndex].Sum;

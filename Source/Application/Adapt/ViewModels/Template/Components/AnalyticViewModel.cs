@@ -249,13 +249,18 @@ namespace Adapt.ViewModels
 
             IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
             m_analytic.ConnectionString = AdapterSettingParameterVM.GetConnectionString(m_settings.ToList(), Instance);
-            if (!Changed)
-                return;
 
+            bool removed = m_removed || SectionViewModel.Removed;
+
+            if (removed)
+            {
+                Outputs.ToList().ForEach(o => o.Save());
+                Inputs.ToList().ForEach(i => i.Save());
+            }
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
                 TableOperations<Analytic> analyticTbl = new TableOperations<Analytic>(connection);
-                if (m_analytic.ID < 0)
+                if (m_analytic.ID < 0 && !removed)
                 {
                     int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", SectionViewModel.TemplateViewModel.Name).Id;
                     int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("[Order] = {0} AND TemplateId = {1}", SectionViewModel.Order, templateId).ID;
@@ -269,11 +274,16 @@ namespace Adapt.ViewModels
                         TemplateID = templateId
                     });
                 }
+                else if (removed)
+                    analyticTbl.DeleteRecord(m_analytic);
                 else
                     analyticTbl.UpdateRecord(m_analytic);
 
-                Outputs.ToList().ForEach(o => o.Save());
-                Inputs.ToList().ForEach(i => i.Save());
+                if (!removed)
+                {
+                    Outputs.ToList().ForEach(o => o.Save());
+                    Inputs.ToList().ForEach(i => i.Save());
+                }
             }
 
         }

@@ -215,7 +215,9 @@ namespace Adapt.ViewModels
         /// </summary>
         public void Save()
         {
-            if (!Changed)
+
+            bool removed = m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed;
+            if (!Changed && !removed)
                 return;
 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
@@ -242,7 +244,11 @@ namespace Adapt.ViewModels
                 TableOperations<AnalyticInput> tbl = new TableOperations<AnalyticInput>(connection);
                 tbl.DeleteRecordWhere("AnalyticID = {0} AND InputIndex = {1} AND ID <> {2}", analyticID,m_signal.InputIndex,m_signal.ID);
 
-                tbl.AddNewRecord(m_signal);  
+
+                if (!removed)
+                    tbl.AddNewRecord(m_signal);
+                
+               
             }
         }
 
