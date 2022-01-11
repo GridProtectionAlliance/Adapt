@@ -181,9 +181,9 @@ namespace AdaptLogic
         {
             List<GraphPoint> point = GetPoints(m_rootFolder, 0, 0, start, end);
             if (point.Count == 0)
-                return new AdaptPoint(Signal.ID, double.NaN, start.Add(end - start), double.NaN, double.NaN);
+                return new AdaptPoint(Signal.ID, double.NaN, start.Add(end - start), double.NaN, double.NaN, Signal.FramesPerSecond);
 
-            return new AdaptPoint(Signal.ID, point.Sum(p => p.Sum), point.Sum(p => p.Sum), point.Sum(p => p.N), start, end, point.Min(p => p.Min), point.Max(p => p.Max), Signal.FramesPerSecond);
+            return new AdaptPoint(Signal.ID, point.Sum(p => p.Sum), point.Sum(p => p.SquaredSum), point.Sum(p => p.N), start, end, point.Min(p => p.Min), point.Max(p => p.Max), Signal.FramesPerSecond);
         }
 
         private List<GraphPoint> GetPoints(string root, int depth, int currentLevel, DateTime start, DateTime end)

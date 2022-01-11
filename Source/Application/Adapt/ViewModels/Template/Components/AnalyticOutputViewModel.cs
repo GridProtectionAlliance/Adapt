@@ -140,8 +140,8 @@ namespace Adapt.ViewModels
 
         public void Save()
         {
-
-            if (!Changed)
+            bool removed = m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed;
+            if (!Changed && !removed)
                 return;
 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
@@ -164,7 +164,11 @@ namespace Adapt.ViewModels
                 TableOperations<AnalyticOutputSignal> tbl = new TableOperations<AnalyticOutputSignal>(connection);
                 tbl.DeleteRecordWhere("AnalyticID = {0} AND OutputIndex = {1} AND ID <> {2}", analyticID, sig.OutputIndex, sig.ID);
 
-                tbl.AddNewOrUpdateRecord(sig);
+                
+                if (!removed)
+                    tbl.AddNewOrUpdateRecord(sig);
+                if (removed)
+                    tbl.DeleteRecord(sig);
             }
         }
 
