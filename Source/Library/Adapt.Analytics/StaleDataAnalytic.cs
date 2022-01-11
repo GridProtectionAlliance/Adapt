@@ -45,6 +45,7 @@ namespace Adapt.DataSources
     {
         private Setting m_settings;
         private int m_fps;
+        private double last;
         public class Setting
         {
             public string TestString { get; }
@@ -55,7 +56,6 @@ namespace Adapt.DataSources
         public int FramesPerSecond => m_fps;
 
         int IAnalytic.PrevFrames => 0;
-
         int IAnalytic.FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
@@ -70,8 +70,17 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            ITimeSeriesValue stale = frame.Measurements["Original"];
-            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { new AdaptValue("Stale", stale.Value, frame.Timestamp) });
+            double original = frame.Measurements["Original"].Value;
+            if (original == last)
+            {
+                last = original;
+                return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { new AdaptValue("Stale", double.NaN, frame.Timestamp) });
+            }
+            else
+            {
+                last = original;
+                return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { new AdaptValue("Stale", original, frame.Timestamp) });
+            }
         }
 
         public void Configure(IConfiguration config)
@@ -82,7 +91,7 @@ namespace Adapt.DataSources
 
         public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
         {
-            m_fps = 5;
+            m_fps = inputFramesPerSecond.FirstOrDefault();
             foreach (int i in inputFramesPerSecond)
             {
                 if (i > m_fps)
