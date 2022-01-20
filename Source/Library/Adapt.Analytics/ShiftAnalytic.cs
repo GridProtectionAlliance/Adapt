@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  ShiftAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -56,9 +56,9 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -72,11 +72,14 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            ITimeSeriesValue original = frame.Measurements["Original"];
-            AdaptValue result = new AdaptValue("Shifted", original.Value + m_settings.Shift, frame.Timestamp);
-            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
+            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
         }
 
+        public ITimeSeriesValue[] Compute(IFrame frame) 
+        {
+            ITimeSeriesValue original = frame.Measurements["Original"];
+            return new AdaptValue[] { new AdaptValue("Shifted", original.Value + m_settings.Shift, frame.Timestamp) };
+        }
 
         public void Configure(IConfiguration config)
         {
@@ -87,11 +90,6 @@ namespace Adapt.DataSources
         public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
         {
             m_fps = inputFramesPerSeconds.FirstOrDefault();
-            foreach (int i in inputFramesPerSeconds) 
-            {
-                if (i > m_fps)
-                    m_fps = i;
-            }
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  PowerCalculationAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -58,9 +58,9 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -74,13 +74,13 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            AdaptValue apparent = new AdaptValue("Apparent Power", getComplex(frame).Magnitude, frame.Timestamp);
-            AdaptValue active = new AdaptValue("Active Power", getComplex(frame).Real, frame.Timestamp);
-            AdaptValue reactive = new AdaptValue("Reactive Power", getComplex(frame).Imaginary, frame.Timestamp);
+            AdaptValue apparent = new AdaptValue("Apparent Power", GetComplex(frame).Magnitude, frame.Timestamp);
+            AdaptValue active = new AdaptValue("Active Power", GetComplex(frame).Real, frame.Timestamp);
+            AdaptValue reactive = new AdaptValue("Reactive Power", GetComplex(frame).Imaginary, frame.Timestamp);
             return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { apparent, active, reactive });
         }
 
-        public Complex getComplex(IFrame frame)
+        public Complex GetComplex(IFrame frame)
         {
             ITimeSeriesValue voltage_mag = frame.Measurements["Voltage Magnitude"];
             ITimeSeriesValue voltage_pha = frame.Measurements["Voltage Phase"];
@@ -105,14 +105,23 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
+        public int GetGCD(int a, int b)
+        {
+            int remainder;
+
+            while (b != 0)
+            {
+                remainder = a % b;
+                a = b;
+                b = remainder;
+            }
+
+            return a;
+        }
+
         public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
         {
-            m_fps = inputFramesPerSecond.FirstOrDefault();
-            foreach (int i in inputFramesPerSecond)
-            {
-                if (i > m_fps)
-                    m_fps = i;
-            }
+            m_fps = inputFramesPerSecond.Aggregate((S, val) => S * val / GetGCD(S, val));
         }
     }
 }

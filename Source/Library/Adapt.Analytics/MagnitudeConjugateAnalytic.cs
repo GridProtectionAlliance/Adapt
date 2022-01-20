@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  MagnitudeConjugateAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -43,7 +43,7 @@ namespace Adapt.DataSources
     /// Returns the magnitude and phase of the complex conjugate of the complex number
     /// </summary>
 
-    [AnalyticSection(AnalyticSection.DataCleanup)]
+    [AnalyticSection(AnalyticSection.SignalProcessing)]
 
     [Description("Complex Conjugate (Magnitude/Phase): Return the magnitude & phase of the conjugate of the complex number")]
     public class MagnitudeConjugate : IAnalytic
@@ -59,9 +59,9 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -75,12 +75,12 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            AdaptValue magnitude = new AdaptValue("Complex Conjugate (Magnitude)", Complex.Conjugate(getComplex(frame)).Magnitude, frame.Timestamp);
-            AdaptValue phase = new AdaptValue("Complex Conjugate (Phase)", Complex.Conjugate(getComplex(frame)).Phase, frame.Timestamp);
+            AdaptValue magnitude = new AdaptValue("Complex Conjugate (Magnitude)", Complex.Conjugate(GetComplex(frame)).Magnitude, frame.Timestamp);
+            AdaptValue phase = new AdaptValue("Complex Conjugate (Phase)", Complex.Conjugate(GetComplex(frame)).Phase, frame.Timestamp);
             return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { magnitude, phase });
         }
 
-        public Complex getComplex(IFrame frame) 
+        public Complex GetComplex(IFrame frame) 
         {
             ITimeSeriesValue magnitude = frame.Measurements["Magnitude"];
             ITimeSeriesValue phase = frame.Measurements["Phase"];
@@ -96,14 +96,23 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
+        public int GetGCD(int a, int b)
+        {
+            int remainder;
+
+            while (b != 0)
+            {
+                remainder = a % b;
+                a = b;
+                b = remainder;
+            }
+
+            return a;
+        }
+
         public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
         {
-            m_fps = inputFramesPerSecond.FirstOrDefault();
-            foreach (int i in inputFramesPerSecond)
-            {
-                if (i > m_fps)
-                    m_fps = i;
-            }
+            m_fps = inputFramesPerSecond.Aggregate((S, val) => S * val / GetGCD(S, val));
         }
     }
 }

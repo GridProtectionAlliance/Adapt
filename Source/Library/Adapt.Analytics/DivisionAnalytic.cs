@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  DivisionAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -41,7 +41,7 @@ namespace Adapt.DataSources
     /// Divides two different signals
     /// </summary>
 
-    [AnalyticSection(AnalyticSection.DataCleanup)]
+    [AnalyticSection(AnalyticSection.SignalProcessing)]
 
     [Description("Division: Dividing two signals")]
     public class Division : IAnalytic
@@ -55,9 +55,9 @@ namespace Adapt.DataSources
 
         public class Setting  {}
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -71,13 +71,15 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            ITimeSeriesValue numerator = frame.Measurements["Numerator"];
-            ITimeSeriesValue denominator = frame.Measurements["Denominator"];
-            AdaptValue result = new AdaptValue("Division", numerator.Value / denominator.Value, frame.Timestamp);
-            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
+            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
         }
 
-
+        public ITimeSeriesValue[] Compute(IFrame frame) 
+        {
+            ITimeSeriesValue numerator = frame.Measurements["Numerator"];
+            ITimeSeriesValue denominator = frame.Measurements["Denominator"];
+            return new AdaptValue[] { new AdaptValue("Division", numerator.Value / denominator.Value, frame.Timestamp) };
+        }
 
         public void Configure(IConfiguration config)
         {
@@ -85,14 +87,23 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
+        public int GetGCD(int a, int b) 
+        {
+            int remainder;
+
+            while (b != 0) 
+            {
+                remainder = a % b;
+                a = b;
+                b = remainder;
+            }
+
+            return a;
+        }
+
         public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
         {
-            m_fps = inputFramesPerSeconds.FirstOrDefault();
-            foreach (int i in inputFramesPerSeconds) 
-            {
-                if (i > m_fps)
-                    m_fps = i;
-            }
+            m_fps = inputFramesPerSeconds.Aggregate((S, val) => S * val / GetGCD(S, val));
         }
     }
 }

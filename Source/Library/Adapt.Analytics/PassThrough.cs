@@ -52,9 +52,9 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -80,11 +80,6 @@ namespace Adapt.DataSources
         public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
         {
             m_fps = inputFramesPerSecond.FirstOrDefault();
-            foreach (int i in inputFramesPerSecond)
-            {
-                if (i > m_fps)
-                    m_fps = i;
-            }
         }
     }
 }

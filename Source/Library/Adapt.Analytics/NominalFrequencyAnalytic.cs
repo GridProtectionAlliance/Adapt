@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  NominalFrequencyAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -40,14 +40,14 @@ namespace Adapt.DataSources
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Nominal Frequency: Returns frequency if frequency / baseFrequency is between max and min.")]
+    [Description("Frequency Limits: Returns frequency if frequency / baseFrequency is between max and min.")]
     public class NominalFrequency: IAnalytic
     {
         private Setting m_settings;
         private int m_fps;
         public class Setting
         {
-            public double BaseFrequency { get; set; }
+            public double NominalFrequency { get; set; }
             public double Max { get; set; }
             public double Min { get; set; }
         }
@@ -56,13 +56,13 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
-            return new List<string>() { "Nominal" };
+            return new List<string>() { "Filtered" };
         }
 
         public IEnumerable<string> InputNames()
@@ -72,11 +72,16 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
+            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
+        }
+
+        public ITimeSeriesValue[] Compute(IFrame frame) 
+        {
             ITimeSeriesValue frequency = frame.Measurements["Frequency"];
-            if ((frequency.Value / m_settings.BaseFrequency) < m_settings.Max && (frequency.Value / m_settings.BaseFrequency) > m_settings.Min)
-                return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { new AdaptValue("Nominal", frequency.Value, frame.Timestamp) });
+            if ((frequency.Value / m_settings.NominalFrequency) < m_settings.Max && (frequency.Value / m_settings.NominalFrequency) > m_settings.Min)
+                return new AdaptValue[] { new AdaptValue("Filtered", frequency.Value, frame.Timestamp) };
             else
-                return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { new AdaptValue("Nominal", double.NaN, frame.Timestamp) });
+                return new AdaptValue[] { new AdaptValue("Filtered", double.NaN, frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)

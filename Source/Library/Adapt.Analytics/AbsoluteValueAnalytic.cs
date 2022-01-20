@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  AbsoluteValueAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -38,28 +38,22 @@ namespace Adapt.DataSources
     /// <summary>
     /// Gets the absolute value of the signal
     /// </summary>
-    
-    [AnalyticSection(AnalyticSection.DataCleanup)]
+
+    [AnalyticSection(AnalyticSection.SignalProcessing)]
 
     [Description("Absolute Value: Return the absolute value of the signal")]
-    public class AbsoluteValueAnalytic: IAnalytic
+    public class AbsoluteValueAnalytic : IAnalytic
     {
+        private int m_fps;
         private Setting m_settings;
-        private int m_fps = 30;
 
-        public class Setting
-        {
-            public double Shift { get; }
-        }
-
-       
+        public class Setting {}
         public Type SettingType => typeof(Setting);
-
         public int FramesPerSecond => m_fps;
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -73,11 +67,14 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            ITimeSeriesValue original = frame.Measurements["Original"];
-            AdaptValue result = new AdaptValue("Absolute Value", Math.Abs(original.Value), frame.Timestamp);
-            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
+            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
         }
 
+        public ITimeSeriesValue[] Compute(IFrame frame) 
+        {
+            ITimeSeriesValue original = frame.Measurements["Original"];
+            return new AdaptValue[] { new AdaptValue("Absolute Value", Math.Abs(original.Value), frame.Timestamp) };
+        }
 
         public void Configure(IConfiguration config)
         {

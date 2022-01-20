@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  AngleCalculationAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -43,13 +43,14 @@ namespace Adapt.DataSources
     /// Caculates the angle given magnitude and phase
     /// </summary>
 
-    [AnalyticSection(AnalyticSection.DataCleanup)]
+    [AnalyticSection(AnalyticSection.SignalProcessing)]
 
     [Description("Angle Calculation: Calculate the angle given magnitude and phase")]
     public class AngleCalculation : IAnalytic
     {
         private Setting m_settings;
         private int m_fps;
+        
         public class Setting
         {
             public AngleUnit Unit { get; set; }
@@ -59,9 +60,9 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -75,18 +76,17 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            AdaptValue result = new AdaptValue("Angle", getAngle(frame), frame.Timestamp);
-            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
+            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
         }
 
-        public double getAngle(IFrame frame) 
+        public ITimeSeriesValue[] Compute(IFrame frame) 
         {
             ITimeSeriesValue magnitude = frame.Measurements["Magnitude"];
             ITimeSeriesValue phase = frame.Measurements["Phase"];
             if (m_settings.Unit == AngleUnit.Degrees)
-                return Math.Atan(magnitude.Value * Math.Sin(phase.Value) / magnitude.Value * Math.Cos(phase.Value));
+                return new AdaptValue[] { new AdaptValue("Angle", Math.Atan(magnitude.Value * Math.Sin(phase.Value) / magnitude.Value * Math.Cos(phase.Value)), frame.Timestamp) };
             else
-                return Math.Atan(magnitude.Value * Math.Sin((180 / Math.PI) * phase.Value) / magnitude.Value * Math.Cos((180 / Math.PI) * phase.Value));
+                return new AdaptValue[] { new AdaptValue("Angle", Math.Atan(magnitude.Value * Math.Sin((180 / Math.PI) * phase.Value) / magnitude.Value * Math.Cos((180 / Math.PI) * phase.Value)), frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)
@@ -95,14 +95,23 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
+        public int GetGCD(int a, int b)
+        {
+            int remainder;
+
+            while (b != 0)
+            {
+                remainder = a % b;
+                a = b;
+                b = remainder;
+            }
+
+            return a;
+        }
+
         public void SetInputFPS(IEnumerable<int> inputFramesPerSecond) 
         {
-            m_fps = inputFramesPerSecond.FirstOrDefault();
-            foreach (int i in inputFramesPerSecond) 
-            {
-                if (i > m_fps)
-                    m_fps = i;
-            }
+            m_fps = inputFramesPerSecond.Aggregate((S, val) => S * val / GetGCD(S, val));
         }
     }
 }

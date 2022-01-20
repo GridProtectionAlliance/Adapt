@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  AngleConverionAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -60,9 +60,9 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -76,17 +76,16 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            AdaptValue result = new AdaptValue("Converted", getAngleConversion(frame), frame.Timestamp);
-            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
+            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
         }
 
-        public double getAngleConversion(IFrame frame) 
+        public ITimeSeriesValue[] Compute(IFrame frame) 
         {
             ITimeSeriesValue original = frame.Measurements["Original"];
             if (m_settings.Unit == AngleUnit.Degrees)
-                return (Math.PI / 180) * original.Value;
+                return new AdaptValue[] { new AdaptValue("Converted", (Math.PI / 180) * original.Value, frame.Timestamp) };
             else
-                return (180 / Math.PI) * original.Value;
+                return new AdaptValue[] { new AdaptValue("Converted", (180 / Math.PI) * original.Value, frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)
@@ -98,11 +97,6 @@ namespace Adapt.DataSources
         public void SetInputFPS(IEnumerable<int> inputFramesPerSecond) 
         {
             m_fps = inputFramesPerSecond.FirstOrDefault();
-            foreach (int i in inputFramesPerSecond) 
-            {
-                if (i > m_fps)
-                    m_fps = i;
-            }
         }
     }
 }

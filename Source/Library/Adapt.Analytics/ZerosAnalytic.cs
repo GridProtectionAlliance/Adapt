@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  ZerosAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -40,7 +40,7 @@ namespace Adapt.DataSources
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Zeros: Returns NaN if the value was 0.")]
+    [Description("Zeros: Removes zeros from the signal.")]
     public class Zeros: IAnalytic
     {
         private Setting m_settings;
@@ -53,9 +53,9 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -69,11 +69,16 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
+            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
+        }
+
+        public ITimeSeriesValue[] Compute(IFrame frame) 
+        {
             ITimeSeriesValue zeros = frame.Measurements["Original"];
             if (zeros.Value == 0)
-                return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { new AdaptValue("Zeros", double.NaN, frame.Timestamp) });
+                return new AdaptValue[] { new AdaptValue("Zeros", double.NaN, frame.Timestamp) };
             else
-                return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { new AdaptValue("Zeros", zeros.Value, frame.Timestamp) });
+                return new AdaptValue[] { new AdaptValue("Zeros", zeros.Value, frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)
@@ -85,11 +90,6 @@ namespace Adapt.DataSources
         public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
         {
             m_fps = inputFramesPerSecond.FirstOrDefault();
-            foreach (int i in inputFramesPerSecond)
-            {
-                if (i > m_fps)
-                    m_fps = i;
-            }
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  ExponentAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -39,7 +39,7 @@ namespace Adapt.DataSources
     /// analytic to the power of a user entered number
     /// </summary>
     
-    [AnalyticSection(AnalyticSection.DataCleanup)]
+    [AnalyticSection(AnalyticSection.SignalProcessing)]
 
     [Description("Exponential: Exponentially multiply a signal")]
     public class Exponent: IAnalytic
@@ -55,9 +55,9 @@ namespace Adapt.DataSources
             public double Exponent { get; set; }
         }
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
@@ -71,11 +71,14 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            ITimeSeriesValue original = frame.Measurements["Original"];
-            AdaptValue result = new AdaptValue("Exponential", Math.Pow(original.Value, m_settings.Exponent), frame.Timestamp);
-            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
+            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
         }
 
+        public ITimeSeriesValue[] Compute(IFrame frame) 
+        {
+            ITimeSeriesValue original = frame.Measurements["Original"];
+            return new AdaptValue[] { new AdaptValue("Exponential", Math.Pow(original.Value, m_settings.Exponent), frame.Timestamp) };
+        }
 
         public void Configure(IConfiguration config)
         {

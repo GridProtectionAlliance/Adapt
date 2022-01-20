@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  NominalVoltageAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -40,7 +40,7 @@ namespace Adapt.DataSources
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Nominal Voltage: Return voltage  if voltage / base voltage is between max and min.")]
+    [Description("Voltage Limits: Return voltage  if voltage / base voltage is between max and min.")]
     public class NominalVoltage: IAnalytic
     {
         private Setting m_settings;
@@ -56,13 +56,13 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
         public IEnumerable<string> OutputNames()
         {
-            return new List<string>() { "Nominal" };
+            return new List<string>() { "Filtered" };
         }
 
         public IEnumerable<string> InputNames()
@@ -72,11 +72,16 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
+            return Task.FromResult<ITimeSeriesValue[]>(Compute(frame));
+        }
+
+        public ITimeSeriesValue[] Compute(IFrame frame) 
+        {
             ITimeSeriesValue volt = frame.Measurements["Voltage"];
             if ((volt.Value / m_settings.BaseVoltage) < m_settings.Max && (volt.Value / m_settings.BaseVoltage) > m_settings.Min)
-                return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { new AdaptValue("Nominal", volt.Value, frame.Timestamp) });
-            else 
-                return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { new AdaptValue("Nominal", double.NaN, frame.Timestamp) });
+                return new AdaptValue[] { new AdaptValue("Filtered", volt.Value, frame.Timestamp) };
+            else
+                return new AdaptValue[] { new AdaptValue("Filtered", double.NaN, frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)

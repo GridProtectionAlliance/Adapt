@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  PassThrough.tsx - Gbtc
+//  AdditionAnalytic.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -41,7 +41,7 @@ namespace Adapt.DataSources
     /// Adds together two different signals
     /// </summary>
 
-    [AnalyticSection(AnalyticSection.DataCleanup)]
+    [AnalyticSection(AnalyticSection.SignalProcessing)]
 
     [Description("Addition: Adding two signals together")]
     public class Addition : IAnalytic
@@ -53,14 +53,11 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        int IAnalytic.PrevFrames => 0;
+        public int PrevFrames => 0;
 
-        int IAnalytic.FutureFrames => 0;
+        public int FutureFrames => 0;
 
-        public class Setting
-        {
-            public string TestString { get; }
-        }
+        public class Setting {}
         
         public IEnumerable<string> OutputNames()
         {
@@ -74,13 +71,15 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            ITimeSeriesValue signal1 = frame.Measurements["Signal 1"];
-            ITimeSeriesValue signal2 = frame.Measurements["Signal 2"];
-            AdaptValue result = new AdaptValue("Addition", signal1.Value + signal2.Value, frame.Timestamp);
-            return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { result });
+            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
         }
 
-
+        public ITimeSeriesValue[] Compute(IFrame frame) 
+        {
+            ITimeSeriesValue signal1 = frame.Measurements["Signal 1"];
+            ITimeSeriesValue signal2 = frame.Measurements["Signal 2"];
+            return new AdaptValue[] { new AdaptValue("Addition", signal1.Value + signal2.Value, frame.Timestamp) };
+        }
 
         public void Configure(IConfiguration config)
         {
@@ -88,10 +87,23 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
+        public int GetGCD(int a, int b)
+        {
+            int remainder;
+
+            while (b != 0)
+            {
+                remainder = a % b;
+                a = b;
+                b = remainder;
+            }
+
+            return a;
+        }
+
         public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
         {
-            // # ToDo: Set m_fps to the largest common multiplier. E.g. if inputFrame = [60,30] set m_fps = 30;
-            m_fps = inputFramesPerSeconds.FirstOrDefault();
+            m_fps = inputFramesPerSeconds.Aggregate((S, val) => S * val / GetGCD(S, val));
         }
     }
 }
