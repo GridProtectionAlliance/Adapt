@@ -43,14 +43,13 @@ namespace Adapt.DataSources
     [Description("Running Average: Returns the running average of the last specified number of values.")]
     public class RunningAverage: IAnalytic
     {
-        /* Use an array of size 5 as default instead of list. Also add a setting that allows user to input how many they want the running average to be. IE: keep a running average of last 6 instead of 5 */
         private Setting m_settings;
         private int m_fps;
         private double[] values = Array.Empty<double>();
 
         public class Setting
         {
-            public double AvgNum { get; set; }
+            public double AverageOfLast { get; set; }
         }
 
         public Type SettingType => typeof(Setting);
@@ -79,7 +78,7 @@ namespace Adapt.DataSources
         public ITimeSeriesValue[] Compute(IFrame frame) 
         {
             ITimeSeriesValue original = frame.Measurements["Original"];
-            if (values.Length >= m_settings.AvgNum)
+            if (values.Length >= m_settings.AverageOfLast)
             {
                 values = values.Skip(1).ToArray();
                 values = values.Append(original.Value).ToArray();
