@@ -122,6 +122,12 @@ namespace Adapt.ViewModels.Visualization.Widgets
             base.RemoveReader(reader);
             UpdateChart();
         }
+
+        public override bool AllowSignal(AdaptSignal signal) 
+        {
+            return signal.Type != MeasurementType.EventFlag;
+        }
+
         #endregion
     }
 }

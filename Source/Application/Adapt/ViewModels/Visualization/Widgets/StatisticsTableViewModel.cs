@@ -118,6 +118,11 @@ namespace Adapt.ViewModels.Visualization.Widgets
             OnPropertyChanged(nameof(DataTable));
         }
 
+        public override bool AllowSignal(AdaptSignal signal) 
+        {
+            return signal.Type != MeasurementType.EventFlag;
+        }
+
         #endregion
     }
 }

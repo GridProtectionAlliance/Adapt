@@ -44,6 +44,7 @@ namespace Adapt.Models
        Analog,
        DeltaFrequency,
        ROCOF,
+       EventFlag,
        Other
     }
 }
