@@ -50,6 +50,8 @@ namespace AdaptLogic
         public DataSource DataSource { get; set; }
         public List<string> InputSignalIds {get; set;}
 
+        public List<AdaptSignal> OutputSignals { get; set; }
+
         /// <summary>
         /// This will be removed eventually it is only necessary until we can defined OutputSignals Properly in the UI
         /// </summary>

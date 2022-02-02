@@ -134,7 +134,10 @@ namespace Adapt.ViewModels
 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
-                List<TemplateSection> sections = (new TableOperations<TemplateSection>(connection))
+                List<TemplateInputDevice> devices = new TableOperations<TemplateInputDevice>(connection)
+                    .QueryRecordsWhere("TemplateID={0}", template.Id).ToList();
+
+                List<TemplateSection> sections = new TableOperations<TemplateSection>(connection)
                     .QueryRecordsWhere("TemplateID={0}", template.Id).OrderBy(item => item.Order).ToList();
 
                 foreach (TemplateSection section in sections)
@@ -160,7 +163,9 @@ namespace Adapt.ViewModels
                         IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(analytic.ConnectionString).Build();
                         Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(analytic.AssemblyName));
                         Type type = assembly.GetType(analytic.TypeName);
+                        
 
+                        // Setup Analytic
                         result.Sections.Last().Analytics.Add(new AdaptLogic.Analytic()
                         {
                             AdapterType = type,
@@ -173,9 +178,30 @@ namespace Adapt.ViewModels
                                 return tempSignals[inp.SignalID];
                             }).ToList()
                         });
-                        // Setup Analytic
+                        
+
                     }
                 }
+
+                List<TemplateOutputSignal> outputs = new TableOperations<TemplateOutputSignal>(connection)
+                    .QueryRecordsWhere("TemplateID={0}", template.Id).ToList();
+
+                result.OutputSignals = outputs.Select(s =>
+                {
+                    int deviceID = 0;
+                    if (s.IsInputSignal)
+                        deviceID = connection.ExecuteScalar<int>("SELECT DeviceID FROM TemplateInputSignal WHERE ID = {0}", s.SignalID);
+                    else
+                        deviceID = connection.ExecuteScalar<int>("SELECT DeviceID FROM AnalyticOutputSignal WHERE ID = {0}", s.SignalID);
+                    TemplateInputDevice dev = devices.Find(item => item.ID == deviceID);
+
+                    if (s.IsInputSignal)
+                        return new AdaptSignal(inputSignals[s.SignalID], s.Name, dev.OutputName);
+                    else
+                        return new AdaptSignal(tempSignals[s.SignalID], s.Name, dev.OutputName);
+                }).ToList();
+
+
 
             }
 

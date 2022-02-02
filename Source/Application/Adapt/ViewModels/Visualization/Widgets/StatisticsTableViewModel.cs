@@ -92,6 +92,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
 
         private void UpdateTable()
         {
+            m_data = new DataTable();
             m_data.Clear();
             m_data.Columns.Add("Signal");
             m_data.Columns.Add("Minimum");

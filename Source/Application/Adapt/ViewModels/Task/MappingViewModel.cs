@@ -139,20 +139,26 @@ namespace Adapt.ViewModels
                 mapping.ChannelMappings = new Dictionary<int, string>();
 
                 // Validate Signals on that device
-                List<int> targetSignals;
+                List<TemplateInputSignal> targetSignals;
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     targetSignals = new TableOperations<TemplateInputSignal>(connection)
-                        .QueryRecordsWhere("DeviceID = {0}", mapping.TargetDeviceID).Select(s => s.ID).ToList();
+                        .QueryRecordsWhere("DeviceID = {0}", mapping.TargetDeviceID).ToList();
                     
                 List<AdaptSignal> sourceSignals = AdaptSignal.Get(DataSource, DataSourceModel.ID, ConnectionString, DataProviderString)
                     .Where(s => s.Device == d.ID).ToList();
 
                 mapping.IsValid = sourceSignals.Count() >= targetSignals.Count();
+
                 for (int i = 0; i < targetSignals.Count(); i++)
-                    if (i < sourceSignals.Count())
-                        mapping.ChannelMappings.Add(targetSignals[i], sourceSignals[i].ID);
+                {
+                    int index = sourceSignals.FindIndex(item => item.Phase == targetSignals[i].Phase && item.Type == targetSignals[i].MeasurmentType);
+                    if (index == -1)
+                        mapping.ChannelMappings.Add(targetSignals[i].ID, ""); 
                     else
-                        mapping.ChannelMappings.Add(targetSignals[i],"");
+                        mapping.ChannelMappings.Add(targetSignals[i].ID, sourceSignals[index].ID);
+                }
+                mapping.IsValid = !mapping.ChannelMappings.Any(item => string.IsNullOrEmpty(item.Value));
+                
                 DeviceMappings = new ObservableCollection<Mapping>(DeviceMappings);
                 OnPropertyChanged(nameof(DeviceMappings));
             },(d,s) => d.Name.ToLower().Contains(s.ToLower()),(d) => d.Name,AdaptDevice.Get(DataSource,DataSourceModel.ID,ConnectionString,DataProviderString));
@@ -169,10 +175,12 @@ namespace Adapt.ViewModels
                 return;
 
             int targetId = mapping.ChannelMappings.First(item => item.Value == "").Key;
-            string title = "Select a Signal for {0}";
+           
+            TemplateInputSignal targetSignal; 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                title += new TableOperations<TemplateInputSignal>(connection)
-                    .QueryRecordWhere("Id = {0}", targetId)?.Name ?? "";
+                targetSignal = new TableOperations<TemplateInputSignal>(connection).QueryRecordWhere("Id = {0}", targetId);
+
+            string title = "Select a Signal for " + targetSignal?.Name ?? "";
 
             SelectSignal signalSelection = new SelectSignal();
             SelectSignalMappingVM<AdaptSignal> dateSelectionVM = new SelectSignalMappingVM<AdaptSignal>((d) => {
@@ -181,7 +189,7 @@ namespace Adapt.ViewModels
                 DeviceMappings = new ObservableCollection<Mapping>(DeviceMappings);
                 OnPropertyChanged(nameof(DeviceMappings));
             }, (d, s) => d.Name.ToLower().Contains(s.ToLower()), (d) => d.Name, AdaptSignal.Get(DataSource, DataSourceModel.ID, ConnectionString, DataProviderString)
-            .Where(s => s.ID == mapping.SourceDeviceID), title);
+            .Where(s => s.ID == mapping.SourceDeviceID && s.Phase == targetSignal .Phase && s.Type == targetSignal.MeasurmentType), title);
             signalSelection.DataContext = dateSelectionVM;
             signalSelection.Show();
             

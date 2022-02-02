@@ -192,6 +192,7 @@ namespace AdaptLogic
             m_activeSummary[NLevels].Min = min;
             m_activeSummary[NLevels].N =  m_data.Count;
             m_activeSummary[NLevels].Sum = m_data.Sum(pt => pt.Value);
+            m_activeSummary[NLevels].SquaredSum = m_data.Sum(pt => pt.Value * pt.Value);
             m_activeSummary[NLevels].Tmax = new DateTime(m_data.Max(item => item.Timestamp), DateTimeKind.Utc);
             m_activeSummary[NLevels].Tmin = new DateTime(m_data.Min(item => item.Timestamp), DateTimeKind.Utc);
 
@@ -236,6 +237,7 @@ namespace AdaptLogic
             GraphPoint fileSummary = new GraphPoint();
             fileSummary.N = m_data.Count();
             fileSummary.Sum = m_data.Sum(pt => pt.Value);
+            fileSummary.SquaredSum = m_data.Sum(pt => pt.Value* pt.Value);
             fileSummary.Min = min;
             fileSummary.Max = max;
             fileSummary.Tmax = new DateTime(m_data.Max(item => item.Timestamp),DateTimeKind.Utc);
@@ -297,7 +299,7 @@ namespace AdaptLogic
             if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].Min) || m_activeSummary[activeFolderIndex].Min < m_activeSummary[activeFolderIndex - 1].Min)
                 m_activeSummary[activeFolderIndex - 1].Min = m_activeSummary[activeFolderIndex].Min;
             if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].Max) || m_activeSummary[activeFolderIndex].Max > m_activeSummary[activeFolderIndex - 1].Max)
-                m_activeSummary[activeFolderIndex - 1].Max = m_activeSummary[activeFolderIndex - 1].Max;
+                m_activeSummary[activeFolderIndex - 1].Max = m_activeSummary[activeFolderIndex].Max;
 
             if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].Sum))
                 m_activeSummary[activeFolderIndex - 1].Sum = 0.0D;
@@ -307,6 +309,7 @@ namespace AdaptLogic
 
             m_activeSummary[activeFolderIndex - 1].N += m_activeSummary[activeFolderIndex].N;
             m_activeSummary[activeFolderIndex - 1].Sum += m_activeSummary[activeFolderIndex].Sum;
+            m_activeSummary[activeFolderIndex - 1].SquaredSum += m_activeSummary[activeFolderIndex].SquaredSum;
 
 
             if (m_activeSummary[activeFolderIndex].Tmin < m_activeSummary[activeFolderIndex - 1].Tmin)

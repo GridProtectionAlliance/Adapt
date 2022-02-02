@@ -7,12 +7,25 @@
              xmlns:localcv="clr-namespace:Adapt.Converter"
              xmlns:localvm="clr-namespace:Adapt.ViewModels" 
              xmlns:System="clr-namespace:System;assembly=System.Runtime"
+             xmlns:AdaptModels="clr-namespace:Adapt.Models;assembly=Adapt.Models"
+             xmlns:GemstoneCommon="clr-namespace:GemstoneCommon;assembly=GemstoneCommon"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
         <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
         <System:Boolean x:Key="FalseValue">False</System:Boolean>
         <System:Boolean x:Key="TrueValue">True</System:Boolean>
+        <ObjectDataProvider x:Key="MeasurementTypes" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="AdaptModels:MeasurementType"/>
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+        <ObjectDataProvider x:Key="Phases" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="GemstoneCommon:Phase"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -41,7 +54,7 @@
                         <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800">
                             <TreeView.ItemTemplate>
                                 <HierarchicalDataTemplate DataType="{x:Type localvm:InputDeviceVM}" ItemsSource="{Binding Signals}">
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" Width="750">
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding VisibleInput, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}" Width="750">
                                         <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
                                         <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
                                         <Button Width="80" Height="18" Margin="2, 5" Command="{Binding AddSignal}">Add Signal</Button>
@@ -50,6 +63,58 @@
                                             <TextBlock Text="{Binding NSignals}" />
                                             <TextBlock Text=" Signals" />
                                         </WrapPanel>
+                                    </StackPanel>
+
+                                    <HierarchicalDataTemplate.ItemTemplate>
+                                        <DataTemplate>
+                                            <WrapPanel>
+                                                <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Signal Name: "/>
+                                                <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
+                                                <Label Grid.Column="2"  Margin="10,2" Width="110" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Measurement Type:"/>
+                                                <ComboBox Grid.Column="3" Height="20" Margin="5,2,10,2" ItemsSource="{Binding Source={StaticResource MeasurementTypes}}" SelectedItem="{Binding Type }" Width="150"/>
+                                                <Label Grid.Column="4"  Margin="10,2" Width="50" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Phase:"/>
+                                                <ComboBox Grid.Column="5" Margin="5,2,10,2" Height="20" ItemsSource="{Binding Source={StaticResource Phases}}" SelectedItem="{Binding Phase }" Width="80"/>
+                                            </WrapPanel>
+                                        </DataTemplate>
+                                    </HierarchicalDataTemplate.ItemTemplate>
+                                </HierarchicalDataTemplate>
+                            </TreeView.ItemTemplate>
+                            <TreeView.ItemContainerStyle>
+                                <Style TargetType="{x:Type TreeViewItem}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Removed}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TreeView.ItemContainerStyle>
+                        </TreeView>
+                        <Button Width="200" Margin="5,0,5,15" Command="{Binding AddDeviceCommand}">Add Device</Button>
+                    </StackPanel>
+                </Expander>
+
+                <ItemsControl ItemsSource="{Binding Sections}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <local:SectionView />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                
+                <Expander ExpandDirection="Down" Grid.Row="0" Background="Gray">
+                    <Expander.Header>
+                        <TextBlock Text="Template Outputs" Background="Gray"  FontWeight="bold" FontSize="24"/>
+                    </Expander.Header>
+                    <StackPanel Orientation="Vertical" Height="auto" Background="LightGray">
+                        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800">
+                            <TreeView.ItemTemplate>
+                                <HierarchicalDataTemplate DataType="{x:Type localvm:InputDeviceVM}" ItemsSource="{Binding Signals}">
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding VisibleOutput, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}" Width="750">
+                                        <CheckBox Margin="0, 6,0,0" IsChecked="{Binding SelectedOutput}"/>
+                                        <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Name}"/>
+                                        <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Output Name:"/>
+                                        <TextBox Text="{Binding Path=OutputName}"  Height="20" Width="150"/>
                                     </StackPanel>
 
                                     <HierarchicalDataTemplate.ItemTemplate>
@@ -70,16 +135,10 @@
                                 </Style>
                             </TreeView.ItemContainerStyle>
                         </TreeView>
-                        <Button Width="200" Margin="5,0,5,15" Command="{Binding AddDeviceCommand}">Add Device</Button>
                     </StackPanel>
                 </Expander>
-                <ItemsControl ItemsSource="{Binding Sections}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <local:SectionView />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                
+               
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" >
                     <Button Margin="10,0" Height="20" Command="{Binding AddSectionCommand}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">

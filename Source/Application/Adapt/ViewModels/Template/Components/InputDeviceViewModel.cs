@@ -44,7 +44,6 @@ namespace Adapt.ViewModels
 
         private TemplateInputDevice m_device;
         private bool m_removed;
-        private bool m_selected;
         private bool m_changed;
         private TemplateVM m_templateViewModel;
 
@@ -72,6 +71,26 @@ namespace Adapt.ViewModels
         }
 
         /// <summary>
+        /// The OutputName of the Device.
+        /// </summary>
+        public string OutputName
+        {
+            get => m_device.OutputName;
+            set
+            {
+                m_device.OutputName = value;
+                m_changed = true;
+                OnPropertyChanged(nameof(Changed));
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// A Flag indicating if this Device was selected as an Output
+        /// </summary>
+        public bool SelectedOutput { get; set; }
+
+        /// <summary>
         /// The number of Signals associated with this Device
         /// </summary>
         public int NSignals => Signals.Count(i => !i.Removed);
@@ -80,6 +99,17 @@ namespace Adapt.ViewModels
         /// A Flag indicating if this device has been Removed by the User
         /// </summary>
         public bool Removed => m_removed;
+
+
+        /// <summary>
+        /// A Flag indicating if this device is visible in the Input List
+        /// </summary>
+        public bool VisibleInput => !m_removed && m_device.IsInput;
+
+        /// <summary>
+        /// A Flag indicating if this device is visible in the Input List
+        /// </summary>
+        public bool VisibleOutput => !m_removed;
 
         /// <summary>
         /// A Flag indicating whether this Device or any of the associated signals have changed.
@@ -103,6 +133,10 @@ namespace Adapt.ViewModels
         /// </summary>
         public ICommand AddSignal { get; }
 
+        /// <summary>
+        /// The Template View Model
+        /// </summary>
+        public TemplateVM TemplateViewModel => m_templateViewModel;
       
         #endregion
 
@@ -115,7 +149,6 @@ namespace Adapt.ViewModels
         public InputDeviceVM(TemplateVM templateViewModel, TemplateInputDevice device)
         {
             m_device = device;
-            m_selected = false;
             Signals = new ObservableCollection<InputSignalVM>();
             m_removed = false;
             Remove = new RelayCommand(Delete, () => true);
@@ -129,18 +162,71 @@ namespace Adapt.ViewModels
         #region [ Methods ]
 
         public void Save()
-        {
-            Signals.ToList().ForEach(s => s.Save());
+        {           
             if (m_removed)
-                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    new TableOperations<TemplateInputDevice>(connection).DeleteRecord(m_device);
+                Signals.ToList().ForEach(s => s.Save());
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                new TableOperations<TemplateInputDevice>(connection).AddNewOrUpdateRecord(m_device);
+            {
+                int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", m_templateViewModel.Name).Id;
+                m_device.TemplateID = templateId;
+                if (m_removed)
+                        new TableOperations<TemplateInputDevice>(connection).DeleteRecord(m_device);
+                else
+                {
+                    if (m_device.ID < 0)
+                        new TableOperations<TemplateInputDevice>(connection).AddNewRecord(m_device);
+                    else
+                        new TableOperations<TemplateInputDevice>(connection).UpdateRecord(m_device);
+                }
+                       
+            }
+            if (!m_removed)
+                Signals.ToList().ForEach(s => s.Save());
+
+
         }
 
+        public void SaveOutputs()
+        {
+            List<AnalyticOutputVM> analyticOutputs = m_templateViewModel.Sections.SelectMany(item => item.Analytics.SelectMany(a => a.Outputs)).Where(item => item.DeviceID == ID).ToList();
+
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            {
+                foreach (AnalyticOutputVM analyticSignal in analyticOutputs)
+                {
+                    if (!m_removed && SelectedOutput)
+                        new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
+                        {
+                            IsInputSignal = false,
+                            SignalID = analyticSignal.ID,
+                            Name = analyticSignal.Name,
+                            Phase = (int)Phase.NONE,
+                            Type = (int)MeasurementType.Other,
+                            TemplateID = m_templateViewModel.ID
+                        });
+                }
+
+                foreach (InputSignalVM inputSignal in Signals)
+                {
+                    if (!m_removed && SelectedOutput)
+                        new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
+                        {
+                            IsInputSignal = true,
+                            SignalID = inputSignal.ID,
+                            Name = inputSignal.Name,
+                            Phase = (int)Phase.NONE,
+                            Type = (int)MeasurementType.Other,
+                            TemplateID = m_templateViewModel.ID
+                        });
+                }
+
+            }
+            
+        }
         public void Delete()
         {
             m_removed = true;
+            Signals.ToList().ForEach(item => item.Delete());
             OnPropertyChanged(nameof(Removed));
             OnPropertyChanged(nameof(Changed));
         }
@@ -155,6 +241,18 @@ namespace Adapt.ViewModels
             OnPropertyChanged(nameof(Signals));
             OnPropertyChanged(nameof(NSignals));
             Signals.ToList().ForEach(s => s.PropertyChanged += SignalChanged);
+            SelectedOutput = false;
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            {
+                int Ninputs = 0;
+                if (Signals.Count > 0)
+                    Ninputs = new TableOperations<TemplateOutputSignal>(connection).QueryRecordCountWhere($"IsInputSignal = 1 AND SignalID IN ({string.Join(',', Signals.Select(item => item.ID))})");
+                int Noutputs = new TableOperations<TemplateOutputSignal>(connection).QueryRecordCountWhere("IsInputSignal = 0 AND SignalID IN (SELECT ID FROM AnalyticOutputSignal WHERE DeviceID = {0})", m_device.ID);
+
+                SelectedOutput = (Ninputs + Noutputs) > 0;
+
+            }
+            OnPropertyChanged(nameof(SelectedOutput));
         }
 
         private void SignalChanged(object sender, PropertyChangedEventArgs arg)
