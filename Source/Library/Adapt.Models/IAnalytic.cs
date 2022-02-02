@@ -43,7 +43,7 @@ namespace Adapt.Models
         /// <summary>
         /// Returns a List of strings indicating the names of the Output Signals
         /// </summary>
-        public IEnumerable<string> OutputNames();
+        public IEnumerable<AnalyticOutputDescriptor> Outputs();
 
         /// <summary>
         /// Returns a List of strings indicating the names of the Input Signals
