@@ -62,9 +62,13 @@ namespace Adapt.DataSources
 
         public int FutureFrames => 0;
 
-        public IEnumerable<string> OutputNames()
+        public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
-            return new List<string>() { "Apparent Power", "Active Power", "Reactive Power" };
+            return new List<AnalyticOutputDescriptor>() { 
+                new AnalyticOutputDescriptor() { Name = "Apparent Power", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other },
+                new AnalyticOutputDescriptor() { Name = "Active Power", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other },
+                new AnalyticOutputDescriptor() { Name = "Reactive Power", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other }
+            };
         }
 
         public IEnumerable<string> InputNames()

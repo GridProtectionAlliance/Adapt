@@ -59,9 +59,11 @@ namespace Adapt.DataSources
 
         public class Setting {}
         
-        public IEnumerable<string> OutputNames()
+        public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
-            return new List<string>() { "Addition" };
+            return new List<AnalyticOutputDescriptor>() { 
+                new AnalyticOutputDescriptor() { Name = "Addition", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other }
+            };
         }
 
         public IEnumerable<string> InputNames()

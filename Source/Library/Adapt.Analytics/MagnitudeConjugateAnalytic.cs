@@ -63,9 +63,12 @@ namespace Adapt.DataSources
 
         public int FutureFrames => 0;
 
-        public IEnumerable<string> OutputNames()
+        public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
-            return new List<string>() { "Complex Conjugate (Magnitude)", "Complex Conjugate (Phase)" };
+            return new List<AnalyticOutputDescriptor>() { 
+                new AnalyticOutputDescriptor() { Name = "Complex Conjugate (Magnitude)", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other },
+                new AnalyticOutputDescriptor() { Name = "Complex Conjugate (Phase)", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other }
+            };
         }
 
         public IEnumerable<string> InputNames()

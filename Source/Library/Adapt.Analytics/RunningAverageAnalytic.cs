@@ -60,9 +60,11 @@ namespace Adapt.DataSources
 
         public int FutureFrames => 0;
 
-        public IEnumerable<string> OutputNames()
+        public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
-            return new List<string>() { "Average" };
+            return new List<AnalyticOutputDescriptor>() { 
+                new AnalyticOutputDescriptor() { Name = "Average", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other } 
+            };
         }
 
         public IEnumerable<string> InputNames()

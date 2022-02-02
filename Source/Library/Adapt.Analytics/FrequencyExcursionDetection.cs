@@ -79,9 +79,12 @@ namespace Adapt.DataSources
             UpperAndLower
         }
         
-        public IEnumerable<string> OutputNames()
+        public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
-            return new List<string>() { "Upper Limit", "Lower Limit" };
+            return new List<AnalyticOutputDescriptor>() { 
+                new AnalyticOutputDescriptor() { Name = "Upper Limit", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other }, 
+                new AnalyticOutputDescriptor() { Name = "Lower Limit", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other }
+            };
         }
 
         public IEnumerable<string> InputNames()
