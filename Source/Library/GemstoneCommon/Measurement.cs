@@ -382,6 +382,7 @@ namespace GemstoneCommon
             };
         }
 
+
         /// <summary>
         /// Creates a copy of the specified measurement using a new timestamp.
         /// </summary>
@@ -467,6 +468,7 @@ namespace GemstoneCommon
         {
             return source.Select(m => Angle.FromDegrees(m.Value)).Average().ToDegrees();
         }
+
 
         #endregion
     }

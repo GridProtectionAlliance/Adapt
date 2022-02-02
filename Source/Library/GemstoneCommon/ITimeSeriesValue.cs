@@ -66,8 +66,7 @@ namespace GemstoneCommon
             get;
             set;
         }
-
-
+        
 
     }
 }

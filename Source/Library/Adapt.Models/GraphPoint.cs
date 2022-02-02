@@ -44,6 +44,8 @@ namespace Adapt.Models
 
         public double Sum { get; set; }
 
+        public double SquaredSum { get; set; }
+
         public DateTime Tmin { get; set; }
         public DateTime Tmax { get; set; }
 
@@ -55,6 +57,7 @@ namespace Adapt.Models
             Min = double.NaN;
             Max = double.NaN;
             Sum = double.NaN;
+            SquaredSum = double.NaN;
             Tmin = DateTime.MaxValue;
             Tmax = DateTime.MinValue;
             N = 0;
@@ -73,10 +76,11 @@ namespace Adapt.Models
             N = BitConverter.ToInt32(data, 9);
             Sum = BitConverter.ToDouble(data, 13);
             Max = BitConverter.ToDouble(data, 13 + 8);
+            SquaredSum = BitConverter.ToDouble(data, 21 + 8);
 
-            Tmin = DateTime.FromBinary(BitConverter.ToInt64(data, 13 + 8 + 8));
-            Tmax = DateTime.FromBinary(BitConverter.ToInt64(data, 13 + 8 + 8 + 8));
-
+            Tmin = DateTime.FromBinary(BitConverter.ToInt64(data, 21 + 8 + 8));
+            Tmax = DateTime.FromBinary(BitConverter.ToInt64(data, 21 + 8 + 8 + 8));
+            
         }
 
         #endregion
@@ -86,14 +90,15 @@ namespace Adapt.Models
         {
             byte[] data = new byte[NSize];
 
-            // File format version 1 is min -> N -> Sum -> max -> Tmin ->  Tmax
+            // File format version 2 is min -> N -> Sum -> max -> Squared Sum -> Tmin ->  Tmax
             data[0] = 0x01;
             BitConverter.GetBytes(Min).CopyTo(data, 1);
             BitConverter.GetBytes(N).CopyTo(data, 9);
             BitConverter.GetBytes(Sum).CopyTo(data, 13);
             BitConverter.GetBytes(Max).CopyTo(data, 13+8);
-            BitConverter.GetBytes(Tmin.ToBinary()).CopyTo(data, 13 + 8+ 8);
-            BitConverter.GetBytes(Tmax.ToBinary()).CopyTo(data, 13 + 8 + 8 + 8);
+            BitConverter.GetBytes(SquaredSum).CopyTo(data, 21 + 8);
+            BitConverter.GetBytes(Tmin.ToBinary()).CopyTo(data, 21 + 8+ 8);
+            BitConverter.GetBytes(Tmax.ToBinary()).CopyTo(data, 21 + 8 + 8 + 8);
             return data;
         }
 

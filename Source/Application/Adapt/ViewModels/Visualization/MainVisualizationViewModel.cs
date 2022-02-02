@@ -161,6 +161,8 @@ namespace Adapt.ViewModels.Vizsalization
                 widget.Zoom(m_startAvailable, m_endAvailable);
                 if (m_reader.Count > 0)
                     widget.AddReader(m_reader[0]);
+                if (m_reader.Count > 1)
+                    widget.AddReader(m_reader[1]);
                 widget.ChangedWindow += ChangedWindow;
             }
 

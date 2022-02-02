@@ -40,7 +40,6 @@ namespace Adapt.ViewModels
         #region [ Members ]
 
         private bool m_removed;
-        private bool m_selected;
         private bool m_changed;
         private TemplateInputSignal m_signal;
         private InputDeviceVM m_DeviceVM;
@@ -57,6 +56,36 @@ namespace Adapt.ViewModels
             set
             {
                 m_signal.Name = value;
+                OnPropertyChanged();
+                m_changed = true;
+                OnPropertyChanged(nameof(Changed));
+            }
+        }
+
+        /// <summary>
+        /// Gets or Sets the <see cref="Phase"/> associated with this <see cref="TemplateInputSignal"/>
+        /// </summary>
+        public Phase Phase
+        {
+            get => m_signal.Phase;
+            set
+            {
+                m_signal.Phase = value;
+                OnPropertyChanged();
+                m_changed = true;
+                OnPropertyChanged(nameof(Changed));
+            }
+        }
+
+        /// <summary>
+        /// Gets or Sets the <see cref="MeasurementType"/> associated with this <see cref="TemplateInputSignal"/>
+        /// </summary>
+        public MeasurementType Type
+        {
+            get => m_signal.MeasurmentType;
+            set
+            {
+                m_signal.MeasurmentType = value;
                 OnPropertyChanged();
                 m_changed = true;
                 OnPropertyChanged(nameof(Changed));
@@ -97,7 +126,6 @@ namespace Adapt.ViewModels
             m_changed = false;
             m_signal = signal;
             m_DeviceVM = deviceViewModel;
-            m_selected = false;
             OnSignalChange();
         }
 
@@ -107,9 +135,25 @@ namespace Adapt.ViewModels
 
         public void Save()
         {
+            
+
             if (!m_removed)
-               using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                  new TableOperations<TemplateInputSignal>(connection).AddNewOrUpdateRecord(m_signal);
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                {
+                    int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", m_DeviceVM.TemplateViewModel.Name).Id;
+                    int deviceID = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND templateID = {1}", m_DeviceVM.Name, templateId).ID;
+
+                    m_signal.DeviceID = deviceID;
+
+                    if (m_signal.ID < 0)
+                        new TableOperations<TemplateInputSignal>(connection).AddNewRecord(m_signal);
+                    else
+                        new TableOperations<TemplateInputSignal>(connection).AddNewOrUpdateRecord(m_signal);
+
+                }
+            
+
+
             else
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     new TableOperations<TemplateInputSignal>(connection).DeleteRecord(m_signal);

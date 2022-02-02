@@ -44,6 +44,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         #region [ Member ]
         private PlotModel m_plotModel;
         private UIElement m_xamlClass;
+        private PlotController m_plotController;
         #endregion
 
         #region [ Properties ]
@@ -57,6 +58,8 @@ namespace Adapt.ViewModels.Visualization.Widgets
             }
         }
 
+        public PlotController PlotController => m_plotController;
+   
         public override UIElement UserControl => m_xamlClass;
         #endregion
 
@@ -65,8 +68,10 @@ namespace Adapt.ViewModels.Visualization.Widgets
         {
             m_xamlClass = new LineChart();
             m_plotModel = new PlotModel();
+            m_plotController = new PlotController();
             m_plotModel.Title = "Average Value Line Chart";
             OnPropertyChanged(nameof(PlotModel));
+            OnPropertyChanged(nameof(PlotController));
         }
 
         #endregion
@@ -82,12 +87,16 @@ namespace Adapt.ViewModels.Visualization.Widgets
         private void UpdateChart()
         {
             m_plotModel = new PlotModel();
+            m_plotController = new PlotController();
+
             m_plotModel.Title = "Average Value Line Chart";
             m_plotModel.Axes.Add(new DateTimeAxis()
             {
                 Minimum = DateTimeAxis.ToDouble(m_start),
                 Maximum = DateTimeAxis.ToDouble(m_end)
             });
+
+            m_plotController.UnbindAll();
 
             foreach (IReader reader in m_readers)
             {
@@ -96,7 +105,10 @@ namespace Adapt.ViewModels.Visualization.Widgets
                 series.Points.AddRange(lst.Select(item => new DataPoint(DateTimeAxis.ToDouble(item.Timestamp), item.Value)));
                 m_plotModel.Series.Add(series);
             }
+
+
             OnPropertyChanged(nameof(PlotModel));
+            OnPropertyChanged(nameof(PlotController));
         }
 
         public override void AddReader(IReader reader)

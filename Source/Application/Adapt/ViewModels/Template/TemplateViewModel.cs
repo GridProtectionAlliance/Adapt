@@ -161,7 +161,7 @@ namespace Adapt.ViewModels
             m_clearCommand = new RelayCommand(Clear, () => CanClear);
             m_saveCommand = new RelayCommand(Save, () => CanSave);
             m_deleteCommand = new RelayCommand(Delete, () => CanDelete);
-            m_addDeviceCommand = new RelayCommand(AddDevice, () => true);
+            m_addDeviceCommand = new RelayCommand(() => AddDevice(true), () => true);
             m_changed = false;
             m_Sections = new ObservableCollection<SectionVM>();
             m_addSectionCommand = new RelayCommand(AddSection, () => m_Sections.Count() < 10);
@@ -187,12 +187,19 @@ namespace Adapt.ViewModels
                     templateTbl.AddNewOrUpdateRecord(m_template);
                 }
 
+                // Remove Outputs
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    connection.ExecuteNonQuery("DELETE FROM TemplateOutputSignal WHERE TemplateID = {0}", m_template.Id);
+
                 // Save Devices
                 m_Devices.ToList().ForEach(d => d.Save());
 
                 // Save Sections
                 m_Sections.ToList().ForEach(s => s.Save());
-             
+
+                // Save outputs
+                m_Devices.ToList().ForEach(d => d.SaveOutputs());
+
 
                 Load(m_template.Id);
                 m_changed = false;
@@ -215,7 +222,12 @@ namespace Adapt.ViewModels
             }
         }
 
-        private void AddDevice()
+        /// <summary>
+        /// Creates a new Device
+        /// </summary>
+        /// <param name="isInput"> indicates if that device is supposed to be available as an input</param>
+        /// <returns>The <see cref="InputDeviceVM"/> for the Device in question</returns>
+        public InputDeviceVM AddDevice(bool isInput)
         {
             string name = "PMU 1";
             int i = 1;
@@ -229,12 +241,15 @@ namespace Adapt.ViewModels
             {
                 Name = name,
                 TemplateID = m_template?.Id ?? 0,
-                ID = CreateDeviceID()
+                ID = CreateDeviceID(),
+                IsInput = isInput,
+                OutputName = name
             }));
                 
             m_Devices.Last().PropertyChanged += OnDeviceChange;
             OnPropertyChanged(nameof(Devices));
             OnPropertyChanged(nameof(Changed));
+            return m_Devices.Last();
         }
 
         private void AddSection()

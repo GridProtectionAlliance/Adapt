@@ -49,8 +49,9 @@ namespace AdaptLogic
         private Channel<IFrame> m_queueInput;
         private Channel<IFrame> m_queueOutput;
         private List<IAnalytic> m_analytics;
-        private List<Func<IFrame, IFrame>> m_inputRouter;
-        private List<Action<IFrame, ITimeSeriesValue[]>> m_outputRouter;
+        private List<Analytic> m_analyticDefinitions;
+        private List<Func<IFrame, Analytic, IFrame>> m_inputRouter;
+        private List<Action<IFrame, ITimeSeriesValue[], Analytic>> m_outputRouter;
 
         #endregion
 
@@ -60,20 +61,33 @@ namespace AdaptLogic
         {
             m_queueInput = input;
             m_queueOutput = output;
+            m_analyticDefinitions = section.Analytics;
             m_analytics = section.Analytics.Select(a => CreateAnalytic(a)).ToList();
-            m_inputRouter = section.Analytics.Select(a => new Func<IFrame,IFrame>((fullFrame) => {
-                return new Frame()
-                {
-                    Timestamp = fullFrame.Timestamp,
-                    Published = fullFrame.Published,
-                    Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(
-                        fullFrame.Measurements.Where(item => a.Inputs.Contains(item.Key))
-                    .ToDictionary(item => item.Key, item => item.Value))
-                };
-            })).ToList();
-            m_outputRouter = section.Analytics.Select(a => new Action<IFrame,ITimeSeriesValue[]>((frame,values) => {
+            m_inputRouter = section.Analytics.Select((a,i) => {
+                List<string> inputNames = m_analytics[i].InputNames().ToList();
+                return new Func<IFrame, Analytic, IFrame>((fullFrame, analytic) => {
+                    
+                    return new Frame()
+                    {
+                        Timestamp = fullFrame.Timestamp,
+                        Published = fullFrame.Published,
+                        Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(
+                            fullFrame.Measurements.Where(item => a.Inputs.Contains(item.Key))
+                        .ToDictionary(item => inputNames[a.Inputs.FindIndex((s) => s == item.Key)], item => item.Value))
+                    };
+                    });
+
+                }).ToList();
+            m_outputRouter = section.Analytics.Select(a => 
+            
+            new Action<IFrame,ITimeSeriesValue[], Analytic>((frame,values, analytic) => {
+                int i = 0;
                 foreach(ITimeSeriesValue val in values)
-                    frame.Measurements.AddOrUpdate(val.ID, (key) => val, (key, old) => val);                
+                {
+                    frame.Measurements.AddOrUpdate(analytic.Outputs[i], (key) => new AdaptValue(key,val.Value, val.Timestamp), (key, old) => val);
+                    i++;
+                }
+                                  
             })).ToList();
         }
 
@@ -132,7 +146,7 @@ namespace AdaptLogic
 
                         Task<ITimeSeriesValue[]>[] analytics = m_analytics.Select((analytic, index) => Task<ITimeSeriesValue[]>.Run(() =>
                         {
-                            IFrame input = m_inputRouter[index](point);
+                            IFrame input = m_inputRouter[index](point, m_analyticDefinitions[index]);
                             return analytic.Run(input);
                         })).ToArray();
 
@@ -141,7 +155,7 @@ namespace AdaptLogic
                         int i = 0;
                         foreach (Task<ITimeSeriesValue[]> analyticResult in analytics)
                         {
-                            m_outputRouter[i](result, analyticResult.Result);
+                            m_outputRouter[i](result, analyticResult.Result, m_analyticDefinitions[i]);
                             i++;
                         }
 

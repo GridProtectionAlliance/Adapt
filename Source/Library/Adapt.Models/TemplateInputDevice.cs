@@ -42,6 +42,16 @@ namespace Adapt.Models
         public int TemplateID { get; set; }
 
         public string Name { get; set; }
+
+        /// <summary>
+        /// Indicates if a Device is an Input Device or simply a virtual device
+        /// </summary>
+        public bool IsInput { get; set; }
+
+        /// <summary>
+        /// The name used for this PMU when creating Outputs - Accepts {PMUName.SignalName} as substitutions 
+        /// </summary>
+        public string OutputName { get; set; }
     
     } 
 }

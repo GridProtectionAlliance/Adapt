@@ -7,6 +7,6 @@
              xmlns:local="clr-namespace:Adapt.View.Visualization.Widgets"
              mc:Ignorable="d" 
              >
-    <oxy:PlotView Model="{Binding PlotModel}">
+    <oxy:PlotView Model="{Binding PlotModel}" Controller="{Binding PlotController}">
     </oxy:PlotView>
 </UserControl>

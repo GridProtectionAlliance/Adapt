@@ -135,7 +135,7 @@ namespace Adapt.ViewModels
             CancelCommand = new RelayCommand(Cancel, (obj) => true);
             SelectCommand = new RelayCommand(Select, (obj) => true);
             m_onComplete = onComplete;
-                
+               
             // Create Full List of Signals including outputs from Analytics
             Devices = new ObservableCollection<DeviceVM>(templateViewModel.Devices.Where(d => !d.Removed).Select(d => new DeviceVM(d)));
             IEnumerable<AnalyticOutputVM> outputs = templateViewModel.Sections
@@ -147,6 +147,8 @@ namespace Adapt.ViewModels
                 dev.AddSignals(outputs.Where(s => s.DeviceID == dev.ID));
             
             }
+
+            m_selectedSignalID = Devices.First().Signals.First().ID;
         }
 
         #endregion
@@ -168,7 +170,12 @@ namespace Adapt.ViewModels
         /// <param name="window"> The <see cref="SelectSignalWindow"/>. </param>
         private void Select(object window)
         {
-            AnalyticInput result = new AnalyticInput();
+            SignalVM vm = Devices.SelectMany(item => item.Signals).Where(item => item.ID == m_selectedSignalID).First();
+            AnalyticInput result = new AnalyticInput() {
+                IsInputSignal = vm.IsInput,
+                SignalID = m_selectedSignalID,
+
+            };
 
             m_onComplete.Invoke(result);
             Cancel(window);
