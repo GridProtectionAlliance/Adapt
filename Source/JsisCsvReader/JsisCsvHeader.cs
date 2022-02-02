@@ -219,6 +219,18 @@ namespace JsisCsvReader
                                 isCustom = true;
                             }
                             break;
+                        case 'R':
+                            if (tp.Length == 1 || type == "ROCOF")
+                            {
+                                newChannel.Type = MeasurementType.ROCOF;
+                                newChannel.Phase = Phase.NONE;
+                                FrequencyDefinition.Add(newChannel);
+                            }
+                            else
+                            {
+                                isCustom = true;
+                            }
+                            break;
                         case 'D':
                             if (tp.Length == 1)
                             {

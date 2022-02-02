@@ -88,7 +88,7 @@ namespace Adapt.DataSources
         public async IAsyncEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
         {
             //Create List of Relevant Files
-            List<DateTime> files = m_Files.Keys.Where(k => k < end && k > start).ToList();
+            List<DateTime> files = m_Files.Keys.Where(k => k < end && k >= start).ToList();
 
             if (m_Files.Keys.Where(k => k <= start).Count() > 0)
             {
@@ -106,7 +106,7 @@ namespace Adapt.DataSources
             // this is where actual signal data is read from csv files.
             //CancellationTokenSource tokenSource = new CancellationTokenSource();
             //ReadFile(files, tokenSource.Token).Start();
-            //files.Sort();
+            files.Sort();
             for (int i = 0; i < files.Count; i++)
             {
                 string filename = m_Files[files[i]];
