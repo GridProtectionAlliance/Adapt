@@ -24,6 +24,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\gemstone\communication\src\Gemstone.Communication\Gemstone.Communication.csproj" />
+    <ProjectReference Include="..\..\..\..\gemstone\io\src\Gemstone.IO\Gemstone.IO.csproj" />
+    <ProjectReference Include="..\..\..\..\gemstone\numeric\src\Gemstone.Numeric\Gemstone.Numeric.csproj" />
     <ProjectReference Include="..\GemstoneCommon\GemstoneCommon.csproj" />
   </ItemGroup>
 

@@ -24,12 +24,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gemstone.Data" Version="1.0.76" />
     <PackageReference Include="OxyPlot.Wpf" Version="2.1.0-Preview1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Library\Adapt.Analytics\Adapt.Analytcis.csproj" />
+    <ProjectReference Include="..\..\..\..\gemstone\data\src\Gemstone.Data\Gemstone.Data.csproj" />
     <ProjectReference Include="..\..\Library\Adapt.DataSources\Adapt.DataSources.csproj" />
     <ProjectReference Include="..\..\Library\Adapt.Models\Adapt.Models.csproj" />
     <ProjectReference Include="..\..\Library\AdaptLogic\AdaptLogic.csproj" />

@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\JsisCsvReader\JsisCsvReader.csproj" />
     <ProjectReference Include="..\Adapt.Models\Adapt.Models.csproj" />
     <ProjectReference Include="..\GemstoneAnalytic\GemstoneAnalytic.csproj" />
     <ProjectReference Include="..\GemstoneCommon\GemstoneCommon.csproj" />
