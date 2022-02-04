@@ -50,10 +50,10 @@ namespace AdaptLogic
         private IAnalytic m_instance;
 
         private List<string> InputNames;
+      
+        private Analytic m_analytic;
 
-        private List<AnalyticOutputDescriptor> OutputDescriptions => (m_instance?.Outputs().ToList() ?? new List<AnalyticOutputDescriptor>());
-
-        Analytic m_analytic;
+        private Queue<IFrame> m_pastPoints;
 
         #endregion
 
@@ -67,11 +67,14 @@ namespace AdaptLogic
             m_instance = CreateAnalytic(m_analytic, framesPerSecond);
 
             InputNames = m_instance.InputNames().ToList();
+
+            m_pastPoints = new Queue<IFrame>(m_instance.PrevFrames);
         }
 
         #endregion
 
         #region [ Properties]
+        private List<AnalyticOutputDescriptor> OutputDescriptions => (m_instance?.Outputs().ToList() ?? new List<AnalyticOutputDescriptor>());
 
         #endregion
 
@@ -84,9 +87,20 @@ namespace AdaptLogic
 
             if (m_nextTimeStamp >= frame.Timestamp)
             {
+
                 IFrame input = RouteInput(frame);
                 m_nextTimeStamp = m_nextTimeStamp + (long)(Gemstone.Ticks.PerSecond * 1.0 / ((double)m_instance.FramesPerSecond));
-                return m_instance.Run(input, new IFrame[0] { }, new IFrame[0] { });
+                
+                Task<ITimeSeriesValue[]> task = m_instance.Run(input, m_pastPoints.ToArray(), new IFrame[0] { });
+
+                if (m_instance.PrevFrames > 0)
+                {
+                    m_pastPoints.Enqueue(frame);
+                    if (m_pastPoints.Count > m_instance.PrevFrames)
+                        m_pastPoints.Dequeue();
+                }
+
+                return task;
             }
             else
                 return Task<ITimeSeriesValue[]>.FromResult(new ITimeSeriesValue[0]);

@@ -51,7 +51,7 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        public int PrevFrames => 0;
+        public int PrevFrames => 1;
 
         public int FutureFrames => 0;
 
@@ -94,19 +94,22 @@ namespace Adapt.DataSources
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            return Task.Run(() => Compute(frame) );
+            return Task.Run(() => Compute(frame, previousFrames) );
         }
 
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+        public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames) 
         {
             List<AdaptEvent> result = new List<AdaptEvent>();
 
+            double value = frame.Measurements.First().Value.Value;
+            double prevValue = previousFrames.FirstOrDefault()?.Measurements.First().Value.Value ?? double.NaN;
+
             if (m_settings.excursionType == ExcursionType.Lower || m_settings.excursionType == ExcursionType.UpperAndLower)
-                if (frame.Measurements.First().Value.Value < m_settings.lower)
+                if (value < m_settings.lower && (prevValue > m_settings.lower || double.IsNaN(prevValue)))
                     result.Add(new AdaptEvent("Lower Limit", frame.Timestamp));
 
             if (m_settings.excursionType == ExcursionType.Upper || m_settings.excursionType == ExcursionType.UpperAndLower)
-                if (frame.Measurements.First().Value.Value > m_settings.upper)
+                if (value > m_settings.upper && (prevValue < m_settings.upper || double.IsNaN(prevValue)))
                     result.Add(new AdaptEvent("Upper Limit", frame.Timestamp));
 
             return result.ToArray();
