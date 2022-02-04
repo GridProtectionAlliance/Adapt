@@ -125,7 +125,7 @@ namespace Adapt.ViewModels
             result.End = viewModel.TimeSelectionViewModel.End;
             result.Sections = new List<TaskSection>();
 
-            Dictionary<int, string> tempSignals = new Dictionary<int, string>();
+            Dictionary<int, AnalyticOutputDescriptor> tempSignals = new Dictionary<int, AnalyticOutputDescriptor>();
             Dictionary<int, string> inputSignals = new Dictionary<int, string>();
 
             inputSignals = viewModel.MappingViewModel.DeviceMappings.SelectMany(m => m.ChannelMappings).ToDictionary(x=>x.Key, x=> x.Value);
@@ -147,23 +147,35 @@ namespace Adapt.ViewModels
                     result.Sections.Add(new TaskSection() { Analytics = new List<AdaptLogic.Analytic>() });
                     foreach (Models.Analytic analytic in analytics)
                     {
+                        // We Need to Generate an instance here
+                        IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(analytic.ConnectionString).Build();
+                        Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(analytic.AssemblyName));
+                        Type type = assembly.GetType(analytic.TypeName);
+
+                        IAnalytic instance = (IAnalytic)Activator.CreateInstance(type);
+                        instance.Configure(config);
+                        List<AnalyticOutputDescriptor> outputDescriptions = instance.Outputs().ToList();
+
                         // Check Output Signals and add them to temp Signals
                         List<int> analyticOutputs = new TableOperations<AnalyticOutputSignal>(connection).QueryRecordsWhere("AnalyticID={0}",analytic.ID)
                             .OrderBy(s => s.OutputIndex)
                             .Select(i => i.ID).ToList();
 
-                        foreach (int id in analyticOutputs)
+                        int i = 0;
+                        while (i < analyticOutputs.Count())
+                        {
+                            int id = analyticOutputs[i];
                             if (!tempSignals.ContainsKey(id))
-                                tempSignals.Add(id, Guid.NewGuid().ToString());
+                                tempSignals.Add(id, new AnalyticOutputDescriptor() {
+                                    Name = Guid.NewGuid().ToString(),
+                                    Type = (i < outputDescriptions.Count()? outputDescriptions[i].Type : MeasurementType.Other),
+                                    Phase = (i < outputDescriptions.Count() ? outputDescriptions[i].Phase : Phase.NONE),
+                                });
+                            i++;
+                        }
 
                         List<AnalyticInput> analyticInputs = new TableOperations<AnalyticInput>(connection).QueryRecordsWhere("AnalyticID={0}", analytic.ID)
                             .OrderBy(s => s.InputIndex).ToList();
-
-
-                        IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(analytic.ConnectionString).Build();
-                        Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(analytic.AssemblyName));
-                        Type type = assembly.GetType(analytic.TypeName);
-                        
 
                         // Setup Analytic
                         result.Sections.Last().Analytics.Add(new AdaptLogic.Analytic()
@@ -175,7 +187,7 @@ namespace Adapt.ViewModels
                             {
                                 if (inp.IsInputSignal)
                                     return inputSignals[inp.SignalID];
-                                return tempSignals[inp.SignalID];
+                                return tempSignals[inp.SignalID].Name;
                             }).ToList()
                         });
                         
@@ -198,7 +210,11 @@ namespace Adapt.ViewModels
                     if (s.IsInputSignal)
                         return new AdaptSignal(inputSignals[s.SignalID], s.Name, dev.OutputName,0);
                     else
-                        return new AdaptSignal(tempSignals[s.SignalID], s.Name, dev.OutputName,0);
+                        return new AdaptSignal(tempSignals[s.SignalID].Name, s.Name, dev.OutputName, 0)
+                        {
+                            Type = tempSignals[s.SignalID].Type,
+                            Phase = tempSignals[s.SignalID].Phase
+                        };
                 }).ToList();
 
 
@@ -206,7 +222,7 @@ namespace Adapt.ViewModels
 
             result.OutputSignals = result.OutputSignals.GroupBy(c => c.ID, (key, c) => c.FirstOrDefault()).ToList();
             result.InputSignalIds = inputSignals.Select(item => item.Value).Distinct().ToList();
-            result.TempSignalIds = tempSignals.Select(item => item.Value).ToList();
+            result.TempSignalIds = tempSignals.Select(item => item.Value.Name).ToList();
 
             return result;
         }

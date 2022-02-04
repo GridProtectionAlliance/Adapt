@@ -87,7 +87,7 @@ namespace AdaptLogic
                 int i = 0;
                 foreach(ITimeSeriesValue val in values)
                 {
-                    frame.Measurements.AddOrUpdate(analytic.Outputs[i], (key) => new AdaptValue(key,val.Value, val.Timestamp), (key, old) => val);
+                    frame.Measurements.AddOrUpdate(analytic.Outputs[i].Name, (key) => new AdaptValue(key,val.Value, val.Timestamp), (key, old) => val);
                     i++;
                 }
                                   
@@ -113,7 +113,7 @@ namespace AdaptLogic
                 Instance.Configure(analytic.Configuration);
                 Instance.SetInputFPS(analytic.Inputs.Select(item => framesPerSecond[item]));
 
-                analytic.Outputs.ForEach((item) => framesPerSecond.Add(item, Instance.FramesPerSecond));
+                analytic.Outputs.ForEach((item) => framesPerSecond.Add(item.Name, Instance.FramesPerSecond));
                 return Instance;
             }
             catch (Exception ex)

@@ -80,7 +80,7 @@ namespace AdaptLogic
     {
         public Type AdapterType { get; set; }
         public List<string> Inputs { get; set; }
-        public List<string> Outputs { get; set; }
+        public List<AnalyticOutputDescriptor> Outputs { get; set; }
         public IConfiguration Configuration { get; set; }
         public int FramesPerSecond { get; set; }
     }

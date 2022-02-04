@@ -201,19 +201,19 @@ namespace Adapt.ViewModels
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
                 TableOperations<AnalyticOutputSignal> tbl = new TableOperations<AnalyticOutputSignal>(connection);
-                return Instance.OutputNames().Select((n, i) =>
+                return Instance.Outputs().Select((n, i) =>
                 {
                     int ct = tbl.QueryRecordCountWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i);
                     if (ct > 0)
-                        return new AnalyticOutputVM(this, tbl.QueryRecordWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i), n);
+                        return new AnalyticOutputVM(this, tbl.QueryRecordWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i), n.Name);
 
                     return new AnalyticOutputVM(this, new AnalyticOutputSignal()
                     {
                         AnalyticID = m_analytic.ID,
                         DeviceID = SectionViewModel.TemplateViewModel.Devices.First().ID,
-                        Name = n,
+                        Name = n.Name,
                         OutputIndex = i
-                    }, n);
+                    }, n.Name);
                 }).ToList();
             }
         }
@@ -333,17 +333,17 @@ namespace Adapt.ViewModels
 
                     List<AnalyticOutputSignal> savedOutputs = new TableOperations<AnalyticOutputSignal>(connection).QueryRecordsWhere("AnalyticID = {0}", m_analytic.ID).ToList();
                     Outputs.ToList().ForEach(item => item.RemoveErrorMessages());
-                    Outputs = new ObservableCollection<AnalyticOutputVM>(Instance.OutputNames().Select((n, i) =>
+                    Outputs = new ObservableCollection<AnalyticOutputVM>(Instance.Outputs().Select((n, i) =>
                     {
                         if (savedOutputs.FindIndex(item => item.OutputIndex == i) > -1)
-                            return new AnalyticOutputVM(this, savedOutputs.Find(item => item.OutputIndex == i), n);
+                            return new AnalyticOutputVM(this, savedOutputs.Find(item => item.OutputIndex == i), n.Name);
                         return new AnalyticOutputVM(this, new AnalyticOutputSignal()
                         {
                             AnalyticID = m_analytic.ID,
                             OutputIndex = i,
-                            Name = n,
+                            Name = n.Name,
                             DeviceID = SectionViewModel.TemplateViewModel.Devices.FirstOrDefault()?.ID ?? 0
-                        }, n);
+                        }, n.Name);
                     }));
                 }
                 catch

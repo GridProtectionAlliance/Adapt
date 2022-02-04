@@ -82,8 +82,8 @@ namespace Adapt.DataSources
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
             return new List<AnalyticOutputDescriptor>() { 
-                new AnalyticOutputDescriptor() { Name = "Upper Limit", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other }, 
-                new AnalyticOutputDescriptor() { Name = "Lower Limit", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other }
+                new AnalyticOutputDescriptor() { Name = "Upper Limit", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.EventFlag }, 
+                new AnalyticOutputDescriptor() { Name = "Lower Limit", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.EventFlag }
             };
         }
 
