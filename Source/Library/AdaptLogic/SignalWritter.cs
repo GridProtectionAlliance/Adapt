@@ -56,6 +56,8 @@ namespace AdaptLogic
         private List<ITimeSeriesValue> m_BadTSData;
         private Channel<ITimeSeriesValue> m_queue;
 
+        private AdaptSignal m_signal;
+
         private const int NLevels = 5;
         #endregion
 
@@ -66,8 +68,8 @@ namespace AdaptLogic
             GenerateRoot();
             WriteGeneralFile(Signal);
             m_queue = Channel.CreateUnbounded<ITimeSeriesValue>();
+            m_signal = Signal;
 
-          
             m_data = new List<ITimeSeriesValue>();
             m_BadTSData = new List<ITimeSeriesValue>();
 
@@ -139,6 +141,7 @@ namespace AdaptLogic
                 try
                 {
                     ITimeSeriesValue point;
+                    int t = 9;
                     while (await m_queue.Reader.WaitToReadAsync(cancellationToken))
                     {
                         if (!m_queue.Reader.TryRead(out point))

@@ -100,7 +100,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
 
             foreach (IReader reader in m_readers)
             {
-                IEnumerable<ITimeSeriesValue> AdaptPoints = reader.GetTrend(m_start, m_end, int.MaxValue);
+                IEnumerable<ITimeSeriesValue> AdaptPoints = reader.GetTrend(m_start, m_end, 0);
                 AdaptPoints.ToList().ForEach(pt =>
                 {
                     if (pt.Value > 0)

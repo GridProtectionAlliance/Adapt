@@ -50,22 +50,23 @@ namespace AdaptLogic
         private IAnalytic m_instance;
 
         private List<string> InputNames;
+
+        private List<AnalyticOutputDescriptor> OutputDescriptions => (m_instance?.Outputs().ToList() ?? new List<AnalyticOutputDescriptor>());
+
         Analytic m_analytic;
 
         #endregion
 
         #region [ Constructor ]
 
-        public AnalyticProcessor(Analytic anallytic, Dictionary<string,int> framesPerSecond)
+        public AnalyticProcessor(Analytic analytic, Dictionary<string,int> framesPerSecond)
         {
-            m_nextTimeStamp = null;
+            m_nextTimeStamp = Gemstone.Ticks.MinValue;
 
-            m_analytic = anallytic;
+            m_analytic = analytic;
             m_instance = CreateAnalytic(m_analytic, framesPerSecond);
 
             InputNames = m_instance.InputNames().ToList();
-
-            
         }
 
         #endregion
@@ -78,7 +79,7 @@ namespace AdaptLogic
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame)
         {
-            if (m_nextTimeStamp == null)
+            if (m_nextTimeStamp == Gemstone.Ticks.MinValue)
                 m_nextTimeStamp = frame.Timestamp;
 
             if (m_nextTimeStamp >= frame.Timestamp)
@@ -107,11 +108,14 @@ namespace AdaptLogic
 
         public void RouteOutput(IFrame frame, ITimeSeriesValue[] result)
         {
-            int i = 0;
             foreach (ITimeSeriesValue val in result)
             {
-                frame.Measurements.AddOrUpdate(m_analytic.Outputs[i].Name, (key) => new AdaptValue(key, val.Value, val.Timestamp), (key, old) => val);
-                i++;
+                int i = OutputDescriptions.FindIndex(item => item.Name == val.ID);
+                if (i < 0)
+                    continue;
+                frame.Measurements.AddOrUpdate(m_analytic.Outputs[i].Name, 
+                    (key) => new AdaptValue(key, val.Value, val.Timestamp),
+                    (key, old) => val);
             }
         }
 

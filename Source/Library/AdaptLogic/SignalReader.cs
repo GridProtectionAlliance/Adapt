@@ -166,6 +166,8 @@ namespace AdaptLogic
             if (nPoints > (pointsPerLevel * points))
                 requiredLevels--;
 
+            if (points == 0)
+                requiredLevels = NLevels + 1;
 
             return GetPoints(m_rootFolder, requiredLevels, 0,start, end).Select(item => new AdaptValue(Signal.ID, item.Avg, item.Tmin.Add(item.Tmax - item.Tmin)));
             
