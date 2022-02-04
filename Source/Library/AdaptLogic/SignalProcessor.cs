@@ -48,11 +48,9 @@ namespace AdaptLogic
 
         private Channel<IFrame> m_queueInput;
         private Channel<IFrame> m_queueOutput;
-        private List<IAnalytic> m_analytics;
-        private List<Gemstone.Ticks> m_nextTimeStamp;
-        private List<Analytic> m_analyticDefinitions;
-        private List<Func<IFrame, Analytic, IFrame>> m_inputRouter;
-        private List<Action<IFrame, ITimeSeriesValue[], Analytic>> m_outputRouter;
+
+        private List<AnalyticProcessor> m_analyticProcesors;
+        
 
         #endregion
 
@@ -62,37 +60,8 @@ namespace AdaptLogic
         {
             m_queueInput = input;
             m_queueOutput = output;
-            m_analyticDefinitions = section.Analytics;
-            m_analytics = section.Analytics.Select(a => CreateAnalytic(a, framesPerSecond)).ToList();
-            m_inputRouter = section.Analytics.Select((a,i) => {
-                List<string> inputNames = m_analytics[i].InputNames().ToList();
-                return new Func<IFrame, Analytic, IFrame>((fullFrame, analytic) => {
-                    return new Frame()
-                    {
-                        Timestamp = fullFrame.Timestamp,
-                        Published = fullFrame.Published,
-
-                        Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(
-                            a.Inputs.Select(item => fullFrame.Measurements[item]).ToDictionary(item => inputNames[a.Inputs.FindIndex((s) => s == item.ID)], item => item))
-                        
-                    };
-                    });
-
-                }).ToList();
-
-            // Adjust FPS
-            m_outputRouter = section.Analytics.Select(a => 
-            
-            new Action<IFrame,ITimeSeriesValue[], Analytic>((frame, values, analytic) => {
-                int i = 0;
-                foreach(ITimeSeriesValue val in values)
-                {
-                    frame.Measurements.AddOrUpdate(analytic.Outputs[i].Name, (key) => new AdaptValue(key,val.Value, val.Timestamp), (key, old) => val);
-                    i++;
-                }
-                                  
-            })).ToList();
-            
+            m_analyticProcesors = section.Analytics.Select(item => new AnalyticProcessor(item, framesPerSecond)).ToList();
+           
         }
         
         #endregion
@@ -105,22 +74,6 @@ namespace AdaptLogic
         #endregion
 
         #region [ Methods ]
-        private IAnalytic CreateAnalytic(Analytic analytic, Dictionary<string, int> framesPerSecond)
-        {
-            try
-            {
-                IAnalytic Instance = (IAnalytic)Activator.CreateInstance(analytic.AdapterType);
-                Instance.Configure(analytic.Configuration);
-                Instance.SetInputFPS(analytic.Inputs.Select(item => framesPerSecond[item]));
-
-                analytic.Outputs.ForEach((item) => framesPerSecond.Add(item.Name, Instance.FramesPerSecond));
-                return Instance;
-            }
-            catch (Exception ex)
-            {
-                return null;
-            }
-        }
 
         /// <summary>
         /// Signals the Writer that the last point has been added
@@ -141,44 +94,25 @@ namespace AdaptLogic
 
             return Task.Run(async () =>
             {
-                m_nextTimeStamp = null;
                 try
                 {
 
                     await foreach (IFrame point in m_queueInput.Reader.ReadAllAsync(cancellationToken))
                     {
-                        if (m_nextTimeStamp == null)
-                        {
-                            m_nextTimeStamp = m_analytics.Select(a => point.Timestamp).ToList();
-                        }
-
                         IFrame result = new Frame() {
                             Timestamp = point.Timestamp,
                             Published=point.Published,
                             Measurements = point.Measurements
                         };
 
-                        Task<ITimeSeriesValue[]>[] analytics = m_analytics.Select((analytic, index) => Task<ITimeSeriesValue[]>.Run(() =>
-                        {
-                            if (m_nextTimeStamp[index] >= point.Timestamp)
-                            {
-                                IFrame input = m_inputRouter[index](point, m_analyticDefinitions[index]);
-                                m_nextTimeStamp[index] = m_nextTimeStamp[index] + (long)(Gemstone.Ticks.PerSecond * 1.0 / ((double)analytic.FramesPerSecond));
-                                return analytic.Run(input, new IFrame[0] { }, new IFrame[0] { });
-                            }
-                            else
-                                return Task<ITimeSeriesValue[]>.FromResult(new ITimeSeriesValue[0]);
-
-                        })).ToArray();
+                        Task<ITimeSeriesValue[]>[] analytics = m_analyticProcesors.Select(p => p.Run(point)).ToArray();
 
                         await Task.WhenAll(analytics).ConfigureAwait(false);
 
                         int i = 0;
                         foreach (Task<ITimeSeriesValue[]> analyticResult in analytics)
                         {
-                            if (analyticResult.Result.Length > 0)
-                                m_outputRouter[i](result, analyticResult.Result, m_analyticDefinitions[i]);
-                            i++;
+                            m_analyticProcesors[i].RouteOutput(point, analyticResult.Result);
                         }
 
                         m_queueOutput.Writer.TryWrite(result);
