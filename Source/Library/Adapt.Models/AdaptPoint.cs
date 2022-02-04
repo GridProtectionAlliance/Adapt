@@ -83,6 +83,10 @@ namespace Adapt.Models
         public double Min { get => m_Min; set => m_Min = value; }
 
         /// <summary>
+        /// The Total Number of Points. 
+        /// </summary>
+        public double Count { get => M_Npoints; }
+        /// <summary>
         /// Data Availability
         /// </summary>
         public double DataAvailability => (m_fps == 0? 0 : (double)M_Npoints/(m_fps*(double)m_time.ToSeconds()));
