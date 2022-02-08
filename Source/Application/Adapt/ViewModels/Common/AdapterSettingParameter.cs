@@ -61,9 +61,19 @@ namespace Adapt.ViewModels.Common
         private object m_defaultValue;
         private bool m_isRequired;
         private bool m_customPopUpOpen;
+        private int m_index;
         private RelayCommand m_customButtonCmd;
         private UIElement m_customPopup;
-
+        public class EnumDescriptions 
+        {
+            public string Name { get; }
+            public object Value { get; }
+            public EnumDescriptions(object value) 
+            {
+                Name = EnumDescriptionHelper.GetDisplayName((Enum)value);
+                Value = value;
+            }
+        }
         private string[] m_ConnectionSTringNames;
 
         #endregion
@@ -114,6 +124,20 @@ namespace Adapt.ViewModels.Common
             set
             {
                 m_name = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public int EnumIndex 
+        {
+            get 
+            {
+                return m_index;
+            }
+            set
+            {
+                m_index = value;
+                Value = EnumValues[m_index].Value;
                 OnPropertyChanged();
             }
         }
@@ -196,16 +220,17 @@ namespace Adapt.ViewModels.Common
         /// Gets a list of enum types if this <see cref="AdapterSettingParameter"/>'s type is an enum.
         /// If it is not an enum, this returns null.
         /// </summary>
-        public List<string> EnumValues
+        public List<EnumDescriptions> EnumValues
         {
             get
             {
+
                 if (!IsEnum)
                     return null;
 
                 return Enum.GetValues(m_info.PropertyType)
                     .Cast<object>()
-                    .Select(obj => obj.ToString())
+                    .Select(obj => new EnumDescriptions(obj))
                     .ToList();
             }
         }
