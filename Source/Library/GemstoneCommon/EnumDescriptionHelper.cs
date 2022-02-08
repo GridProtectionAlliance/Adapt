@@ -40,7 +40,9 @@ namespace GemstoneCommon
             if (attributes.Length > 0)
             {
                 st = attributes[0].Description;
-                return st.Substring(st.LastIndexOf(':') + 1);
+                if (st.Contains(':'))
+                    return st.Substring(st.LastIndexOf(':') + 1);
+                return st;
             }
             else
                 return value.ToString();
@@ -54,7 +56,9 @@ namespace GemstoneCommon
             if (attributes.Length > 0)
             {
                 st = attributes[0].Description;
-                return st.Substring(0, st.IndexOf(":"));
+                if (st.Contains(':'))
+                    return st.Substring(0, st.IndexOf(":"));
+                return st;
             }
             else
                 return value.ToString();
