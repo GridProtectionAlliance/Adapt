@@ -273,7 +273,6 @@ namespace AdaptLogic
                     results.Add( Aggregate(GetPoints(folder, NLevels+1, nextLevel, start, end)));
                 else 
                     results.AddRange(GetPoints(folder, depth, nextLevel, start, end));
-
             }
 
             return results;
@@ -283,9 +282,10 @@ namespace AdaptLogic
         {
             GraphPoint pt = new GraphPoint();
             pt.N = points.Sum(item => item.N);
-            pt.Min = points.Min(item => item.N);
-            pt.Max = points.Max(item => item.N);
-
+            pt.Min = points.Min(item => item.Min);
+            pt.Max = points.Max(item => item.Max);
+            pt.Sum = points.Sum(item => item.Sum);
+            pt.SquaredSum = points.Sum(item => item.SquaredSum);
             pt.Tmax = points.Max(item => item.Tmax);
             pt.Tmin = points.Min(item => item.Tmin);
 

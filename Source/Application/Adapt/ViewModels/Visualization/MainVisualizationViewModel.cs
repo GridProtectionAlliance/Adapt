@@ -166,7 +166,7 @@ namespace Adapt.ViewModels.Vizsalization
 
         private void ChangedWindow(object sender, ZoomEventArgs args)
         {
-            foreach (IDisplayWidget widget in m_widgets)
+            foreach (WidgetVM widget in m_widgets)
                 widget.Zoom(args.Start, args.End);
         }
 
