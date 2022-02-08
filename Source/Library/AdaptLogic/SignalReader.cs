@@ -245,6 +245,7 @@ namespace AdaptLogic
                     point.Max = value;
                     point.Min = value;
                     point.Sum = value;
+                    point.SquaredSum = value * value;
                     point.Tmax = ticks;
                     point.Tmin = ticks;
 

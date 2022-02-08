@@ -55,6 +55,7 @@ namespace Adapt.ViewModels.Vizsalization
 
         private Dictionary<string, Type> m_loadedWigets;
         private RelayCommand m_addWidgetCmd;
+        private RelayCommand m_resetTimeCMD;
         #endregion
 
         #region[ Properties ]
@@ -105,6 +106,10 @@ namespace Adapt.ViewModels.Vizsalization
         public ICommand AddWidgetCommand => m_addWidgetCmd;
 
         /// <summary>
+        /// Command Reset Plot
+        /// </summary>
+        public ICommand ResetCommand => m_resetTimeCMD;
+        /// <summary>
         /// List of Widgets to be displayed
         /// </summary>
         public ObservableCollection<WidgetVM> Widgets
@@ -133,6 +138,7 @@ namespace Adapt.ViewModels.Vizsalization
             LoadWidgets();
 
             m_addWidgetCmd = new RelayCommand( AddWidget, (p) => true);
+            m_resetTimeCMD = new RelayCommand(Reset, () => true);
 
             m_reader = new Dictionary<string, List<SignalReader>>();
             foreach (IGrouping<string, SignalReader> group in SignalReader.GetAvailableReader().GroupBy(item => item.Signal.Device))
@@ -166,8 +172,14 @@ namespace Adapt.ViewModels.Vizsalization
 
         private void ChangedWindow(object sender, ZoomEventArgs args)
         {
+            m_startVisualization = args.Start;
+            m_endVisualization = args.End;
+
             foreach (WidgetVM widget in m_widgets)
                 widget.Zoom(args.Start, args.End);
+
+            OnPropertyChanged(nameof(VisualizationStart));
+            OnPropertyChanged(nameof(VisializationEnd));
         }
 
         private void LoadWidgets()
@@ -199,6 +211,18 @@ namespace Adapt.ViewModels.Vizsalization
             {
                 Popup(ex.Message, "Load Widget Exception:", MessageBoxImage.Error);
             }
+        }
+
+        public void Reset()
+        {
+            m_startVisualization = m_startAvailable;
+            m_endVisualization = m_endAvailable;
+
+            foreach (WidgetVM widget in m_widgets)
+                widget.Zoom(m_startAvailable, m_endAvailable);
+
+            OnPropertyChanged(nameof(VisualizationStart));
+            OnPropertyChanged(nameof(VisializationEnd));
         }
         #endregion
 

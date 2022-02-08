@@ -20,7 +20,7 @@
     <Grid>
         
         <StackPanel Orientation="Horizontal" Background="Gray">
-            <Button ToolTip="Reset Graphs to show full Dataset" Margin="10,2" Height="20">
+            <Button ToolTip="Reset Graphs to show full Dataset" Margin="10,2" Height="20" Command="{Binding ResetCommand}">
                 Reset
             </Button>
             <StackPanel Orientation="Vertical" Margin="2,10">
