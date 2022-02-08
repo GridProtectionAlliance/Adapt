@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  LineChartViewModel.tsx - Gbtc
+//  EventCollumnView.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -38,8 +38,8 @@ using System.Windows;
 
 namespace Adapt.ViewModels.Visualization.Widgets
 {
-    [Description("Average Line Chart")]
-    public class LineChartVM: WidgetBaseVM
+    [Description("Event Occurance Chart")]
+    public class EventCollumnVM: WidgetBaseVM
     {
         #region [ Member ]
         private PlotModel m_plotModel;
@@ -64,12 +64,12 @@ namespace Adapt.ViewModels.Visualization.Widgets
         #endregion
 
         #region [ Constructor ]
-        public LineChartVM(): base()
+        public EventCollumnVM(): base()
         {
             m_xamlClass = new LineChart();
             m_plotModel = new PlotModel();
             m_plotController = new PlotController();
-            m_plotModel.Title = "Average Value Line Chart";
+            m_plotModel.Title = "Event Occurrences";
             OnPropertyChanged(nameof(PlotModel));
             OnPropertyChanged(nameof(PlotController));
 
@@ -85,12 +85,13 @@ namespace Adapt.ViewModels.Visualization.Widgets
             UpdateChart();
         }
 
+        // #ToDO Improove Performance by pulling all Points at once and combining as neccesarry
         private void UpdateChart()
         {
             m_plotModel = new PlotModel();
             m_plotController = new PlotController();
 
-            m_plotModel.Title = "Average Value Line Chart";
+            m_plotModel.Title = "Event Occurrences";
             DateTimeAxis tAxis = new DateTimeAxis()
             {
                 Minimum = DateTimeAxis.ToDouble(m_start),
@@ -101,13 +102,20 @@ namespace Adapt.ViewModels.Visualization.Widgets
 
             tAxis.AxisChanged += AxisChanged;
 
-            //m_plotController.UnbindAll();
-
             foreach (IReader reader in m_readers)
             {
-                LineSeries series = new LineSeries();
-                List<ITimeSeriesValue> lst = reader.GetTrend(m_start, m_end, 100).ToList();
-                series.Points.AddRange(lst.Select(item => new DataPoint(DateTimeAxis.ToDouble(item.Timestamp), item.Value)));
+
+                LinearBarSeries series = new LinearBarSeries();
+                TimeSpan bucket = (m_end - m_start)/15.0;
+                List<AdaptPoint> lst = new List<AdaptPoint>();
+
+                for (int i= 0; i < 15; i++)
+                {
+                    AdaptPoint pt = reader.GetStatistics(m_start+i*bucket, m_start + (i+1) * bucket);
+                    lst.Add(pt);
+                }
+                series.Points.AddRange(lst.Select(item => new DataPoint(DateTimeAxis.ToDouble(item.Timestamp), item.Count)));
+                series.BarWidth = 10;
                 m_plotModel.Series.Add(series);
             }
 
@@ -140,7 +148,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
 
         public override bool AllowSignal(AdaptSignal signal) 
         {
-            return signal.Type != MeasurementType.EventFlag;
+            return signal.Type == MeasurementType.EventFlag;
         }
 
         #endregion
