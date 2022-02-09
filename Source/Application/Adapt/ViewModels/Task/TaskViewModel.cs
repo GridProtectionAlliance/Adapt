@@ -81,6 +81,7 @@ namespace Adapt.ViewModels
                 else
                     m_SelectedDataSourceIndex = 0;
 
+                ValidateDataSource();
                 OnPropertyChanged();
             }
         }
