@@ -42,17 +42,15 @@ using System.Windows;
 namespace Adapt.DataSources
 {
 
-    public enum WrapBetweenEnum
+    public enum WrapBetweenAngles
     {
-        [Description("0 and 360")] _0_360_,
-        [Description("-180 and 180")] _180_180_
+        [Description("0 and 360")] upper,
+        [Description("-180 and 180")] lower
     }
 
     /// <summary>
     /// Wraps the angles that are calculated from the data
     /// </summary>
-
-
 
     [AnalyticSection(AnalyticSection.DataCleanup)]
 
@@ -61,25 +59,24 @@ namespace Adapt.DataSources
     {
         private Setting m_settings;
         private int m_fps;
-        private double angle;
         private double wrapped;
 
         public class Setting
         {
-            [DisplayName("Angle Unit")]
+            [SettingName("Angle Unit")]
+            [DefaultValue(AngleUnit.Degrees)]
             public AngleUnit Unit { get; set; }
             
-            [DisplayName("Wrap Between")]
-            public WrapBetweenEnum WrapBetween { get; set; }
+            [SettingName("Wrap Between")]
+            [DefaultValue(WrapBetweenAngles.upper)]
+            public WrapBetweenAngles WrapBetween { get; set; }
         }
 
         public Type SettingType => typeof(Setting);
 
         public int FramesPerSecond => m_fps;
 
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
+        public int PrevFrames => 1;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -93,15 +90,19 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
         
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
         {
-            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
+            return Task.Run(() => Compute(frame));
         }
         
         public ITimeSeriesValue[] Compute(IFrame frame) 
         {
-            angle = GetAngle(frame);
-            if (m_settings.WrapBetween == WrapBetweenEnum._0_360_)
+            double angle = frame.Measurements.First().Value.Value;
+
+            if (m_settings.Unit == AngleUnit.Radians)
+                angle *= 180 / Math.PI;
+
+            if (m_settings.WrapBetween == WrapBetweenAngles.upper)
             {
                 wrapped = angle;
                 if (wrapped < 0)
@@ -114,7 +115,7 @@ namespace Adapt.DataSources
 
                 return new AdaptValue[] { new AdaptValue("Angle", wrapped, frame.Timestamp) };
             }
-            if (m_settings.WrapBetween == WrapBetweenEnum._180_180_)
+            if (m_settings.WrapBetween == WrapBetweenAngles.lower)
             {
                 wrapped = angle;
                 if (wrapped < -180)
@@ -126,17 +127,8 @@ namespace Adapt.DataSources
 
                 return new AdaptValue[] { new AdaptValue("Angle", wrapped, frame.Timestamp) };
             }
-            else
-                return new AdaptValue[] { new AdaptValue("Angle", 1, frame.Timestamp) };
-        }
 
-        public double GetAngle(IFrame frame) 
-        {
-            double original = frame.Measurements["Original"].Value;
-            if (m_settings.Unit == AngleUnit.Radians)
-                return (original * (180 / Math.PI));
-            else
-                return original;
+            return new AdaptValue[] { new AdaptValue("Angle", angle, frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)

@@ -53,11 +53,11 @@ namespace Adapt.DataSources
     {
         private Setting m_settings;
         private int m_fps;
-        private double last;
 
         public class Setting
         {
-            [DisplayName("Angle Unit")]
+            [SettingName("Angle Unit")]
+            [DefaultValue(AngleUnit.Degrees)]
             public AngleUnit InputUnit { get; set; }
         }
 
@@ -65,9 +65,7 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
+        public int PrevFrames => 1;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -81,30 +79,36 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
         {
-            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
+            return Task.Run(() => Compute(frame, previousFrames));
         }
 
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+        public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames) 
         {
-            double current = GetAngle(frame);
-            if (last > 0) 
+            double current = frame.Measurements.First().Value.Value;
+            double prevValue = previousFrames.FirstOrDefault()?.Measurements.First().Value.Value ?? double.NaN;
+
+            if (m_settings.InputUnit == AngleUnit.Radians) 
             {
-                while (Math.Abs(current - last) > Math.Abs(current + 360 - last)) 
+                current *= 180 / Math.PI;
+                prevValue *= 180 / Math.PI;
+            }
+
+            if (prevValue > 0)
+            {
+                while (Math.Abs(current - prevValue) > Math.Abs(current + 360 - prevValue)) 
                 {
                     current += 360;
                 }
-                last = current;
                 return new AdaptValue[] { new AdaptValue("Angle", current, frame.Timestamp) };
             }
-            if (last < 0)
+            if (prevValue < 0)
             {
-                while (Math.Abs(current - last) > Math.Abs(current - 360 - last))
+                while (Math.Abs(current - prevValue) > Math.Abs(current - 360 - prevValue))
                 {
                     current -= 360;
                 }
-                last = current;
                 return new AdaptValue[] { new AdaptValue("Angle", current, frame.Timestamp) };
             }
             else 
@@ -113,18 +117,8 @@ namespace Adapt.DataSources
                     current -= 360;
                 else
                     current += 360;
-                last = current;
                 return new AdaptValue[] { new AdaptValue("Angle", current, frame.Timestamp) };
             }
-        }
-
-        public double GetAngle(IFrame frame) 
-        {
-            double original = frame.Measurements["Original"].Value;
-            if (m_settings.InputUnit == AngleUnit.Radians)
-                return (original * (180 / Math.PI));
-            else
-                return original;
         }
 
         public void Configure(IConfiguration config)

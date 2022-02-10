@@ -53,8 +53,6 @@ namespace Adapt.DataSources
 
         public int PrevFrames => 1;
 
-        public int FutureFrames => 0;
-
         public class Setting 
         {
             [DisplayName("Upper Threshold")]
@@ -92,7 +90,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Frequency" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
         {
             return Task.Run(() => Compute(frame, previousFrames) );
         }

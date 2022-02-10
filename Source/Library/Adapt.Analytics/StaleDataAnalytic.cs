@@ -45,18 +45,13 @@ namespace Adapt.DataSources
     {
         private Setting m_settings;
         private int m_fps;
-        private double last;
-        public class Setting
-        {
-            public string TestString { get; }
-        }
+        public class Setting { }
 
         public Type SettingType => typeof(Setting);
 
         public int FramesPerSecond => m_fps;
 
-        public int PrevFrames => 0;
-        public int FutureFrames => 0;
+        public int PrevFrames => 1;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -70,24 +65,19 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
         {
-            return Task.FromResult<ITimeSeriesValue[]>(Compute(frame));
+            return Task.FromResult<ITimeSeriesValue[]>(Compute(frame, previousFrames));
         }
 
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+        public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames) 
         {
-            double original = frame.Measurements["Original"].Value;
-            if (original == last)
-            {
-                last = original;
+            double original = frame.Measurements.First().Value.Value;
+            double prevValue = previousFrames.FirstOrDefault()?.Measurements.First().Value.Value ?? double.NaN;
+
+            if (original == prevValue)
                 return new AdaptValue[] { new AdaptValue("Stale", double.NaN, frame.Timestamp) };
-            }
-            else 
-            {
-                last = original;
-                return new AdaptValue[] { new AdaptValue("Stale", original, frame.Timestamp) };
-            }
+            return new AdaptValue[] { new AdaptValue("Stale", original, frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)

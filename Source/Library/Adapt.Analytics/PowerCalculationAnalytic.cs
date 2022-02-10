@@ -51,6 +51,8 @@ namespace Adapt.DataSources
         private int m_fps;
         public class Setting
         {
+            [SettingName("Angle Unit")]
+            [DefaultValue(AngleUnit.Degrees)]
             public AngleUnit Unit { get; set; }
         }
 
@@ -59,8 +61,6 @@ namespace Adapt.DataSources
         public int FramesPerSecond => m_fps;
 
         public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -76,7 +76,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Voltage Magnitude", "Voltage Phase", "Current Magnitude", "Current Phase" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
         {
             AdaptValue apparent = new AdaptValue("Apparent Power", GetComplex(frame).Magnitude, frame.Timestamp);
             AdaptValue active = new AdaptValue("Active Power", GetComplex(frame).Real, frame.Timestamp);

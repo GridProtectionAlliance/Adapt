@@ -54,8 +54,6 @@ namespace Adapt.DataSources
 
         public int PrevFrames => 0;
 
-        public int FutureFrames => 0;
-
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
             return new List<AnalyticOutputDescriptor>() { new AnalyticOutputDescriptor() { Name = "Filtered", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other } };
@@ -66,7 +64,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
         {
             return Task.FromResult<ITimeSeriesValue[]>(frame.Measurements.ToList().Select(item => item.Value).ToArray());
         }
