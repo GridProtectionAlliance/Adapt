@@ -5,9 +5,12 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.DataSource"
              xmlns:localcv="clr-namespace:Adapt.Converter"
+             xmlns:System="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" >
     <UserControl.Resources>
         <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
+        <System:Boolean x:Key="FalseValue">False</System:Boolean>
+        <System:Boolean x:Key="TrueValue">True</System:Boolean>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -21,9 +24,15 @@
                 </ScrollViewer>
             </TabItem>
             <TabItem Header="General MetaData" TabIndex="1">
-                <ScrollViewer>
-                    <local:MetaDataView/>
-                </ScrollViewer>
+                <StackPanel>
+                    <StackPanel Visibility="{Binding PassedTest, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" Orientation="Vertical">
+                        <TextBlock Text="This DataSource has not been Tested" FontSize="26" />
+                        <TextBlock Text="Please click the TEST AND SAVE CHANGE button on the bottom of this page." FontSize="16" />
+                    </StackPanel>
+                    <ScrollViewer Visibility="{Binding PassedTest, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}">
+                        <local:MetaDataView/>
+                    </ScrollViewer>
+                </StackPanel>
             </TabItem>
         </TabControl>
         <StackPanel Grid.Row="1"  Orientation="Horizontal" HorizontalAlignment="Left" >
