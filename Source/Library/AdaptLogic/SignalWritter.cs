@@ -51,7 +51,7 @@ namespace AdaptLogic
         private GraphPoint[] m_activeSummary;
         private long m_currentSecond;
 
-
+        private int m_sec = 0;
         private List<ITimeSeriesValue> m_data;
         private List<ITimeSeriesValue> m_BadTSData;
         private Channel<ITimeSeriesValue> m_queue;
@@ -117,6 +117,7 @@ namespace AdaptLogic
         /// <param name="Value">The <see cref="ITimeSeriesValue"/> to be written to the Files</param>
         public async void AddPoint(ITimeSeriesValue Value)
         {
+            m_sec++;
             await m_queue.Writer.WriteAsync(Value);
         }
 
@@ -141,7 +142,7 @@ namespace AdaptLogic
                 try
                 {
                     ITimeSeriesValue point;
-                    int t = 9;
+
                     while (await m_queue.Reader.WaitToReadAsync(cancellationToken))
                     {
                         if (!m_queue.Reader.TryRead(out point))
@@ -150,6 +151,7 @@ namespace AdaptLogic
                         if (double.IsNaN(point.Value))
                             continue;
 
+                        
                         long second = (long)Math.Floor(point.Timestamp.ToSeconds());
 
                         if (second > m_currentSecond)
@@ -265,12 +267,14 @@ namespace AdaptLogic
 
             string folder = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar,m_activeFolder)}";
             Directory.CreateDirectory(folder);
+         
             using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{folder}{Path.DirectorySeparatorChar}{second}.bin")))
             {  // Writer raw data                
                 writer.Write(data);
                 writer.Flush();
                 writer.Close();
             }
+         
 
             m_data = new List<ITimeSeriesValue>();
         }
@@ -286,14 +290,19 @@ namespace AdaptLogic
 
             string path = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder.Take(activeFolderIndex + 1))}";
 
-            //write to file
-            using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{path}{Path.DirectorySeparatorChar}summary.node")))
-            {              
-                writer.Write(m_activeSummary[activeFolderIndex].ToByte());
-                writer.Flush();
-                writer.Close();
+            
+            if (m_activeSummary[activeFolderIndex].N > 0)
+            {
+                Directory.CreateDirectory(path);
+                //write to file
+                using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{path}{Path.DirectorySeparatorChar}summary.node")))
+                {
+                    writer.Write(m_activeSummary[activeFolderIndex].ToByte());
+                    writer.Flush();
+                    writer.Close();
+                }
             }
-
+            
 
             // reset lower level
             m_activeSummary[activeFolderIndex] = new GraphPoint();

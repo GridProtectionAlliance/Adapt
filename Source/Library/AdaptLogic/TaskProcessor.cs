@@ -213,9 +213,14 @@ namespace AdaptLogic
         {
             try
             {
-                await foreach (IFrame frame in sourceQueue.Reader.ReadAllAsync(cancelationToken))
-                {
 
+                IFrame frame;
+                int Nprocesssed = 0;
+                while (await sourceQueue.Reader.WaitToReadAsync(cancelationToken))
+                {
+                    if (!sourceQueue.Reader.TryRead(out frame))
+                        continue;
+                    Nprocesssed++;
                     foreach (KeyValuePair<string, ITimeSeriesValue> value in frame.Measurements)
                     {
                         SignalWritter writer;

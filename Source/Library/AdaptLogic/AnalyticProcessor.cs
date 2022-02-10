@@ -54,6 +54,7 @@ namespace AdaptLogic
         private Analytic m_analytic;
 
         private Queue<IFrame> m_pastPoints;
+        private int NProcessed;
 
         #endregion
 
@@ -69,6 +70,7 @@ namespace AdaptLogic
             InputNames = m_instance.InputNames().ToList();
 
             m_pastPoints = new Queue<IFrame>(m_instance.PrevFrames);
+            NProcessed = 0;
         }
 
         #endregion
@@ -82,10 +84,11 @@ namespace AdaptLogic
 
         public Task<ITimeSeriesValue[]> Run(IFrame frame)
         {
+            NProcessed++;
             if (m_nextTimeStamp == Gemstone.Ticks.MinValue)
                 m_nextTimeStamp = frame.Timestamp;
 
-            if (m_nextTimeStamp >= frame.Timestamp)
+            if (m_nextTimeStamp <= frame.Timestamp)
             {
 
                 IFrame input = RouteInput(frame);
