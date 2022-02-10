@@ -118,7 +118,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
 
         private void AxisChanged(object? sender, AxisChangedEventArgs args)
         {
-            if (args.ChangeType != AxisChangeTypes.Reset || sender is null)
+            if (args.ChangeType == AxisChangeTypes.Reset || sender is null)
                 return;
             DateTimeAxis axis = sender as DateTimeAxis;
             DateTime dtMax = DateTime.FromOADate(axis.ActualMaximum);
