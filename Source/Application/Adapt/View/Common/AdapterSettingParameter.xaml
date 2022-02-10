@@ -12,7 +12,7 @@
     </UserControl.Resources>
 
     <WrapPanel Margin="0,0,10,0">
-        <Label Margin="0,2" Width="150" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Name}"/>
+        <Label Margin="0,2" Width="150" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Label}"/>
         <WrapPanel Margin="5" Width="150" Grid.Column="1"
                 Visibility="{Binding Path=IsBoolean, Converter={StaticResource ObjectToVisibility}}">
             <RadioButton Content="True" IsChecked="{Binding Path=Value}" Margin="0,0,20,0"/>
