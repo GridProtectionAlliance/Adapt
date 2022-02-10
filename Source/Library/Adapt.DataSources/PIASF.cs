@@ -80,57 +80,44 @@ namespace Adapt.DataSources
 
             PIPointList pointList = new PIPointList(signals.Select(s => PIPoint.FindPIPoint(m_server, s.ID)));
 
-            DateTime currentStart = start;
-            DateTime currentEnd = start.AddMinutes(10);
-
+          
             long startTicks = start.Ticks;
             double totalTicks = end.Ticks - startTicks;
             m_progress = 0.0D;
 
-            while (currentStart < end)
+
+            TimeOrderedValueReader reader = new()
             {
-                PagedValueReader reader = new()
+                Points = pointList,
+                StartTime = start,
+                EndTime = end
+            };
+
+            long currentTime = 0;
+            Dictionary<string, ITimeSeriesValue> data = new Dictionary<string, ITimeSeriesValue>();
+
+            await foreach (AFValue value in reader.ReadAsync())
+            {
+                if (value.Value is Exception ex)
+                    throw ex;
+
+                if (currentTime != value.Timestamp.UtcTime.Ticks)
                 {
-                    Points = pointList,
-                    StartTime = start,
-                    EndTime = (currentEnd < end? currentEnd : end)
-                };
-
-                Dictionary<long, Dictionary<string, double>> data = new Dictionary<long, Dictionary<string, double>>();
-
-                await foreach (AFValues values in reader.ReadAsync()) // <- Group of read values
-                {
-                    foreach (AFValue currentPoint in values)
-                    {
-                        long timestamp = currentPoint.Timestamp.UtcTime.Ticks;
-                        string tag = currentPoint.PIPoint.Name;
-
-                        if (!data.ContainsKey(timestamp))
-                            data.Add(timestamp, new Dictionary<string, double>());
-
-                        if (!data[timestamp].ContainsKey(tag))
-                            data[timestamp].Add(tag, Convert.ToDouble(currentPoint.Value));
-                        
-                    }
-                }
-                foreach (long ts in data.Keys)
-                {
-                    Dictionary<string, ITimeSeriesValue> frameData = new Dictionary<string, ITimeSeriesValue>();
-                    foreach (string tag in data[ts].Keys)
-                    {
-                        frameData.Add(tag, new AdaptValue(tag, data[ts][tag], ts));
-                    }
                     yield return new Frame()
                     {
                         Published = true,
-                        Timestamp = ts,
-                        Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(frameData)
+                        Timestamp = currentTime,
+                        Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(data)
                     };
+                    m_progress = (currentTime - startTicks) / totalTicks;
+                    data = new Dictionary<string, ITimeSeriesValue>();
+                    currentTime = value.Timestamp.UtcTime.Ticks;
                 }
-                m_progress = (currentEnd.Ticks - startTicks) / totalTicks;
-                currentStart = new DateTime(currentEnd.Ticks + 1);
-                currentEnd = currentStart.AddMinutes(10); 
+                if (data.ContainsKey(value.PIPoint.Name))
+                    continue;
+                data.Add(value.PIPoint.Name, new AdaptValue(value.PIPoint.Name, Convert.ToDouble(value.Value), currentTime));
             }
+                           
             m_progress = 1.0D;
         }
 
