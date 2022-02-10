@@ -57,7 +57,7 @@ namespace Adapt.Models
         /// <param name="futureFrames"> The future <see cref="IFrame"/> as determined by <see cref="FutureFrames"/></param>
         /// <param name="previousFrames"> The previous <see cref="IFrame"/> as determined by <see cref="PrevFrames"/></param>
         /// <returns> a <see cref="ITimeSeriesValue[]"/> that contains the results. </returns>
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames);
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames);
 
         /// <summary>
         /// Gets the Current FrameRate of this Adapter
@@ -74,11 +74,6 @@ namespace Adapt.Models
         /// Gets the number of previous Frames that need to be send to the Analytic
         /// </summary>
         public int PrevFrames { get; }
-
-        /// <summary>
-        /// Gets the number of future Frames that need to be send to the Analytic
-        /// </summary>
-        public int FutureFrames { get; }
 
     }
 }

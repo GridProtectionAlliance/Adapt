@@ -49,6 +49,7 @@ namespace Adapt.DataSources
 
         public class Setting
         {
+            [SettingName("Average of last")]
             public double AverageOfLast { get; set; }
         }
 
@@ -57,8 +58,6 @@ namespace Adapt.DataSources
         public int FramesPerSecond => m_fps;
 
         public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -72,12 +71,12 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
         {
-            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
+            return Task.Run(() => Compute(frame, previousFrames));
         }
 
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+        public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames) 
         {
             ITimeSeriesValue original = frame.Measurements["Original"];
             if (values.Length >= m_settings.AverageOfLast)

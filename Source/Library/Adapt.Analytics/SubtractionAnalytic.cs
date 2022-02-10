@@ -56,8 +56,6 @@ namespace Adapt.DataSources
 
         public int PrevFrames => 0;
 
-        public int FutureFrames => 0;
-
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
             return new List<AnalyticOutputDescriptor>() { 
@@ -70,9 +68,9 @@ namespace Adapt.DataSources
             return new List<string>() { "Signal 1", "Signal 2" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
         {
-            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
+            return Task.Run(() => Compute(frame));
         }
 
         public ITimeSeriesValue[] Compute(IFrame frame) 

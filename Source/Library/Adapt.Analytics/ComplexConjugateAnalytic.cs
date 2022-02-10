@@ -52,6 +52,8 @@ namespace Adapt.DataSources
         public int m_fps;
         public class Setting
         {
+            [SettingName("Angle Unit")]
+            [DefaultValue(AngleUnit.Degrees)]
             public AngleUnit Unit { get; set; }
         }
 
@@ -60,8 +62,6 @@ namespace Adapt.DataSources
         public int FramesPerSecond => m_fps;
 
         public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -76,7 +76,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Magnitude", "Phase"};
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
         {
             AdaptValue real = new AdaptValue("Complex Conjugate (Real)", Complex.Conjugate(GetComplex(frame)).Real, frame.Timestamp);
             AdaptValue imaginary = new AdaptValue("Complex Conjugate (Imaginary)", Complex.Conjugate(GetComplex(frame)).Imaginary, frame.Timestamp);

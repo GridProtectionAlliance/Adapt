@@ -51,14 +51,9 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        public class Setting
-        {
-            public double Shift { get; }
-        }
+        public class Setting { }
 
         public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -72,9 +67,9 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
         {
-            return Task.FromResult<ITimeSeriesValue[]>( Compute(frame) );
+            return Task.Run(() => Compute(frame));
         }
 
         public ITimeSeriesValue[] Compute(IFrame frame) 

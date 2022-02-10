@@ -94,7 +94,7 @@ namespace AdaptLogic
                 IFrame input = RouteInput(frame);
                 m_nextTimeStamp = m_nextTimeStamp + (long)(Gemstone.Ticks.PerSecond * 1.0 / ((double)m_instance.FramesPerSecond));
                 
-                Task<ITimeSeriesValue[]> task = m_instance.Run(input, m_pastPoints.ToArray(), new IFrame[0] { });
+                Task<ITimeSeriesValue[]> task = m_instance.Run(input, m_pastPoints.ToArray());
 
                 if (m_instance.PrevFrames > 0)
                 {

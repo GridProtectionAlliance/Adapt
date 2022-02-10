@@ -56,7 +56,7 @@ namespace Adapt.ViewModels.Common
         // Fields
         private PropertyInfo m_info;
         private string m_name;
-        private string m_description;
+        private string m_label;
         private object m_value;
         private object m_defaultValue;
         private bool m_isRequired;
@@ -148,15 +148,15 @@ namespace Adapt.ViewModels.Common
         /// The property must define a <see cref="System.ComponentModel.DescriptionAttribute"/> for this
         /// to become populated.
         /// </summary>
-        public string Description
+        public string Label
         {
             get
             {
-                return m_description;
+                return m_label;
             }
             set
             {
-                m_description = value;
+                m_label = value;
                 OnPropertyChanged();
             }
         }
@@ -497,7 +497,7 @@ namespace Adapt.ViewModels.Common
                 {
                     Info = info,
                     Name = info.Name,
-                    Description = description,
+                    Label = Names.FirstOrDefault() ?? info.Name,
                     Value = (object)value != null? ConvertToPropertyType(value,info) : null,
                     DefaultValue = defaultValue,
                     IsRequired = isRequired,
@@ -508,7 +508,6 @@ namespace Adapt.ViewModels.Common
             {
                 // Update the existing parameter with newly obtained information.
                 parameter.Info = info;
-                parameter.Description = description;
                 parameter.DefaultValue = defaultValue;
             }
 
