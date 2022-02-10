@@ -200,17 +200,27 @@ namespace Adapt.ViewModels
 
         public void SaveOutputs()
         {
-            List<AnalyticOutputVM> analyticOutputs = m_templateViewModel.Sections.SelectMany(item => item.Analytics.SelectMany(a => a.Outputs)).Where(item => item.DeviceID == ID).ToList();
+            List<AnalyticOutputVM> analyticOutputs = m_templateViewModel.Sections.Where(item => !item.Removed)
+                .SelectMany(item => item.Analytics.Where(item => !item.Removed)
+                .SelectMany(a => a.Outputs)).Where(item => item.DeviceID == ID).ToList();
 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
                 foreach (AnalyticOutputVM analyticSignal in analyticOutputs)
                 {
-                    if (!m_removed && SelectedOutput)
+                    if (m_removed || !SelectedOutput )
+                        continue;
+
+                    int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", TemplateViewModel.Name).Id;
+                    int deviceID = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND templateID = {1}", Name, templateId).ID;
+                    string signalName = analyticSignal.Name;
+
+                    int signalID = new TableOperations<AnalyticOutputSignal>(connection).QueryRecordWhere("Name = {0} AND DeviceID = {1}", signalName, deviceID)?.ID ?? -1;
+
                         new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
                         {
                             IsInputSignal = false,
-                            SignalID = analyticSignal.ID,
+                            SignalID = signalID,
                             Name = analyticSignal.Name,
                             Phase = (int)Phase.NONE,
                             Type = (int)MeasurementType.Other,
@@ -220,11 +230,20 @@ namespace Adapt.ViewModels
 
                 foreach (InputSignalVM inputSignal in Signals)
                 {
-                    if (!m_removed && SelectedOutput)
-                        new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
+
+                    if (m_removed || !SelectedOutput)
+                        continue;
+                        
+                    int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", TemplateViewModel.Name).Id;
+                    int deviceID = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND templateID = {1}", Name, templateId).ID;
+                    string signalName = inputSignal.Name;
+
+                    int signalID = new TableOperations<TemplateInputSignal>(connection).QueryRecordWhere("Name = {0} AND DeviceID = {1}", signalName, deviceID)?.ID ?? -1;
+
+                    new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
                         {
                             IsInputSignal = true,
-                            SignalID = inputSignal.ID,
+                            SignalID = signalID,
                             Name = inputSignal.Name,
                             Phase = (int)Phase.NONE,
                             Type = (int)MeasurementType.Other,

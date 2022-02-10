@@ -225,25 +225,10 @@ namespace Adapt.ViewModels
                 int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", m_analyticVM.SectionViewModel.TemplateViewModel.Name).Id;
                 int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("[Order] = {0} AND TemplateId = {1}", m_analyticVM.SectionViewModel.Order, templateId).ID;
                 int analyticID = new TableOperations<Analytic>(connection).QueryRecordWhere("Name = {0} AND TemplateID = {1} AND SectionID = {2}", m_analyticVM.Name, templateId, sectionId).ID;
-                int signalID = 0;
-                if (m_signal.IsInputSignal)
-                {
-                    InputSignalVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.SelectMany(d => d.Signals)
-                        .Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
-                    int deviceId = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND TemplateID = {1}",
-                        m_analyticVM.SectionViewModel.TemplateViewModel.Devices.FirstOrDefault(item => item.ID == signalVM.DeviceID).Name, templateId).ID;
-                    signalID = new TableOperations<TemplateInputSignal>(connection).QueryRecordWhere("Name = {0} AND DeviceID = {1}", signalVM.Name, deviceId).ID;
-                }
-                else
-                {
-                    AnalyticOutputVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Sections
-                        .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
-                    signalID = new TableOperations<AnalyticOutputSignal>(connection).QueryRecordWhere("AnalyticID = {0} AND OutputIndex = {1}", analyticID, signalVM.OutputIndex).ID;
-                }
 
                 TableOperations<AnalyticInput> tbl = new TableOperations<AnalyticInput>(connection);
-                tbl.DeleteRecordWhere("AnalyticID = {0} AND InputIndex = {1} AND ID <> {2}", analyticID,m_signal.InputIndex,m_signal.ID);
-
+                tbl.DeleteRecordWhere("AnalyticID = {0} AND InputIndex = {1}", analyticID,m_signal.InputIndex);
+                m_signal.AnalyticID = analyticID;
 
                 if (!removed)
                     tbl.AddNewRecord(m_signal);
@@ -254,6 +239,9 @@ namespace Adapt.ViewModels
 
         private void ValidateBeforeSave(object sender, CancelEventArgs args)
         {
+            if (m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed)
+                return;
+
             if (!Assigned)
             {
                 m_analyticVM.SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {m_analyticVM.Name} Input for {Label} needs to be assigned to a signal.");

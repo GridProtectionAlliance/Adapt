@@ -174,6 +174,9 @@ namespace Adapt.ViewModels
 
         private void ValidateBeforeSave(object sender, CancelEventArgs args)
         {
+            if (m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed)
+                return;
+
             if (m_deviceIndex < 0)
             {
                 m_analyticVM.SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {m_analyticVM.Name} Output Signal {Name} needs to be attached to a PMU");

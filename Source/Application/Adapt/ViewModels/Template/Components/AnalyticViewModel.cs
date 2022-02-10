@@ -376,6 +376,9 @@ namespace Adapt.ViewModels
 
         private void ValidateBeforeSave(object sender, CancelEventArgs args)
         {
+            if (SectionViewModel.Removed || Removed)
+                return;
+
             if (AdapterTypeSelectedIndex < 0 || AdapterTypeSelectedIndex >= m_analyticTypes.Count)
             {
                 SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {Name} does not have a valid Type");
