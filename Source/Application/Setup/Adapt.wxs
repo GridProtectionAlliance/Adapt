@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-	<Product Id="*" Name="Adapt" Language="1033" Version="!(bind.FileVersion.Adapt.exe)" Manufacturer="Grid Protection Alliance" UpgradeCode="37B7137B-E7F5-4F77-AAF1-CD31DD4D6333">
+	<Product Id="*" Name="SciSync" Language="1033" Version="!(bind.FileVersion.Adapt.exe)" Manufacturer="Grid Protection Alliance" UpgradeCode="37B7137B-E7F5-4F77-AAF1-CD31DD4D6333">
 		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
 
 		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
@@ -146,7 +146,7 @@
         <File Id="OxyPlot.Wpf.Shared.dll" Name="OxyPlot.Wpf.Shared.dll" Source="$(var.Adapt.TargetDir)OxyPlot.Wpf.Shared.dll" />
       </Component>
 
-
+    
     </ComponentGroup>
     
     
@@ -164,24 +164,24 @@
     <ComponentGroup Id="ApplicationShortcut">
     <Component Id="MenuShortcut" Guid="FCA787C7-8266-46E4-A9D9-10F1E783EDA0" Directory="StartMenuFolderName">
       <Shortcut Id="ApplicationStartMenuShortcut"
-                Name="Adapt"
-                Description="Accelerated Data Analytics for Power-system Time-series Data"
+                Name="SciSync"
+                Description="Scientific Tools for Advanced Synchrophasor Data Analytics with the PI System"
                 Target="[#Adapt.exe]"
                 WorkingDirectory="INSTALLFOLDER"
                 Icon ="icon.ico"/>
       
       <RemoveFolder Id="CleanUpShortCut" Directory="StartMenuFolderName" On="uninstall"/>
-      <RegistryValue Root="HKCU" Key="Software\GPA\Adapt" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+      <RegistryValue Root="HKCU" Key="Software\GPA\SciSync" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
     </Component>
 
     <Component Id="DesktopShortcut" Guid="{A2211042-F515-4BE5-B323-4AA3F48BC111}" Directory="DesktopFolder">
       <Shortcut Id="ApplicationDesktopShortcut"
-                Name="Adapt"
-                Description="Accelerated Data Analytics for Power-system Time-series Data"
+                Name="SciSync"
+                Description="Scientific Tools for Advanced Synchrophasor Data Analytics with the PI System"
                 Target="[#Adapt.exe]"
                 WorkingDirectory="INSTALLFOLDER"
                 Icon ="icon.ico"/>
-      <RegistryValue Root="HKCU" Key="Software\GPA\Adapt" Name="installed-Desktop" Type="integer" Value="1" KeyPath="yes"/>
+      <RegistryValue Root="HKCU" Key="Software\GPA\SciSync" Name="installed-Desktop" Type="integer" Value="1" KeyPath="yes"/>
     </Component>
     </ComponentGroup>
   </Fragment>
