@@ -113,7 +113,7 @@ namespace Adapt.ViewModels
             }
             else
             {
-                m_deviceIndex = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().FindIndex(d => d.ID == analyticOutputSignal.ID);
+                m_deviceIndex = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().FindIndex(d => d.ID == analyticOutputSignal.DeviceID);
             }
 
             m_analyticVM.SectionViewModel.TemplateViewModel.PropertyChanged += DevicesChanged;
@@ -140,7 +140,8 @@ namespace Adapt.ViewModels
 
         public void Save()
         {
-            if (!Changed)
+            bool removed = m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed;
+            if (!Changed && !removed)
                 return;
 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
@@ -163,10 +164,32 @@ namespace Adapt.ViewModels
                 TableOperations<AnalyticOutputSignal> tbl = new TableOperations<AnalyticOutputSignal>(connection);
                 tbl.DeleteRecordWhere("AnalyticID = {0} AND OutputIndex = {1} AND ID <> {2}", analyticID, sig.OutputIndex, sig.ID);
 
-                tbl.AddNewOrUpdateRecord(sig);
+                
+                if (!removed)
+                    tbl.AddNewOrUpdateRecord(sig);
+                if (removed)
+                    tbl.DeleteRecord(sig);
             }
         }
-    
+
+        private void ValidateBeforeSave(object sender, CancelEventArgs args)
+        {
+            if (m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed)
+                return;
+
+            if (m_deviceIndex < 0)
+            {
+                m_analyticVM.SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {m_analyticVM.Name} Output Signal {Name} needs to be attached to a PMU");
+                args.Cancel = true;
+            }
+        }
+
+
+        public void RemoveErrorMessages()
+        {
+            m_analyticVM.SectionViewModel.TemplateViewModel.BeforeSave -= ValidateBeforeSave;
+        }
+
         #endregion
 
         #region [ Static ]

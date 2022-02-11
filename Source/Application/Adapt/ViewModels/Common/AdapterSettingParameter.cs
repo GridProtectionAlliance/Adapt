@@ -56,14 +56,24 @@ namespace Adapt.ViewModels.Common
         // Fields
         private PropertyInfo m_info;
         private string m_name;
-        private string m_description;
+        private string m_label;
         private object m_value;
         private object m_defaultValue;
         private bool m_isRequired;
         private bool m_customPopUpOpen;
+        private int m_index;
         private RelayCommand m_customButtonCmd;
         private UIElement m_customPopup;
-
+        public class EnumDescriptions 
+        {
+            public string Name { get; }
+            public object Value { get; }
+            public EnumDescriptions(object value) 
+            {
+                Name = EnumDescriptionHelper.GetDisplayName((Enum)value);
+                Value = value;
+            }
+        }
         private string[] m_ConnectionSTringNames;
 
         #endregion
@@ -118,21 +128,35 @@ namespace Adapt.ViewModels.Common
             }
         }
 
+        public int EnumIndex 
+        {
+            get 
+            {
+                return m_index;
+            }
+            set
+            {
+                m_index = value;
+                Value = EnumValues[m_index].Value;
+                OnPropertyChanged();
+            }
+        }
+
         /// <summary>
         /// Gets or sets the description of the <see cref="AdapterSettingParameter"/>
         /// obtained through the <see cref="Info"/> using reflection. 
         /// The property must define a <see cref="System.ComponentModel.DescriptionAttribute"/> for this
         /// to become populated.
         /// </summary>
-        public string Description
+        public string Label
         {
             get
             {
-                return m_description;
+                return m_label;
             }
             set
             {
-                m_description = value;
+                m_label = value;
                 OnPropertyChanged();
             }
         }
@@ -196,16 +220,17 @@ namespace Adapt.ViewModels.Common
         /// Gets a list of enum types if this <see cref="AdapterSettingParameter"/>'s type is an enum.
         /// If it is not an enum, this returns null.
         /// </summary>
-        public List<string> EnumValues
+        public List<EnumDescriptions> EnumValues
         {
             get
             {
+
                 if (!IsEnum)
                     return null;
 
                 return Enum.GetValues(m_info.PropertyType)
                     .Cast<object>()
-                    .Select(obj => obj.ToString())
+                    .Select(obj => new EnumDescriptions(obj))
                     .ToList();
             }
         }
@@ -396,7 +421,7 @@ namespace Adapt.ViewModels.Common
         public static List<AdapterSettingParameterVM> GetSettingParameters(IAdapter dataSource, string connectionString) 
         {
 
-            Type settingType = dataSource.GetSettingType();
+            Type settingType = dataSource.SettingType;
 
             
 
@@ -421,7 +446,7 @@ namespace Adapt.ViewModels.Common
 
         public static string GetConnectionString(List<AdapterSettingParameterVM> parameters, IAdapter dataSource)
         {
-            Type settingType = dataSource.GetSettingType();
+            Type settingType = dataSource.SettingType;
             if (settingType == null)
                 return "";
 
@@ -472,7 +497,7 @@ namespace Adapt.ViewModels.Common
                 {
                     Info = info,
                     Name = info.Name,
-                    Description = description,
+                    Label = Names.FirstOrDefault() ?? info.Name,
                     Value = (object)value != null? ConvertToPropertyType(value,info) : null,
                     DefaultValue = defaultValue,
                     IsRequired = isRequired,
@@ -483,7 +508,6 @@ namespace Adapt.ViewModels.Common
             {
                 // Update the existing parameter with newly obtained information.
                 parameter.Info = info;
-                parameter.Description = description;
                 parameter.DefaultValue = defaultValue;
             }
 

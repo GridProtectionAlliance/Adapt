@@ -46,6 +46,8 @@ namespace Adapt.ViewModels
         #region [ Members ]
         private TemplateSection m_section;
         private ObservableCollection<AnalyticVM> m_analytics;
+        private bool m_removed = false;
+
         #endregion
 
         #region[ Properties ]
@@ -67,9 +69,19 @@ namespace Adapt.ViewModels
         public bool Changed => true;
 
         /// <summary>
+        /// Indicates if the Section has been Removed.
+        /// </summary>
+        public bool Removed => m_removed;
+
+        /// <summary>
         /// Command to Add an Analytic
         /// </summary>
         public ICommand AddAnalyticCommand { get; }
+
+        /// <summary>
+        /// Command to Remove Section
+        /// </summary>
+        public ICommand DeleteSectionCommand { get; }
 
         /// <summary>
         /// The <see cref="AnalyticVM"/> associated with this <see cref="AnalyticSection"/>
@@ -87,6 +99,11 @@ namespace Adapt.ViewModels
         /// The ID of the <see cref="AnalyticSection"/>
         /// </summary>
         public int ID => m_section.ID;
+
+        /// <summary>
+        /// Gets the <see cref="AnalyticSection"/> this Section is of
+        /// </summary>
+        public AnalyticSection AnalyticSection => (AnalyticSection)m_section.AnalyticTypeID;
         #endregion
 
         #region [ Constructor ]
@@ -101,6 +118,7 @@ namespace Adapt.ViewModels
             m_section = section;
 
             AddAnalyticCommand = new RelayCommand(AddAnalytic, () => true);
+            DeleteSectionCommand = new RelayCommand(RemoveSection, () => true);
             m_analytics = new ObservableCollection<AnalyticVM>();
         }
 
@@ -124,7 +142,7 @@ namespace Adapt.ViewModels
         private void AddAnalytic()
         {
             m_analytics.Add(new AnalyticVM(new Analytic() { 
-                Name="Test name",
+                Name="Analytic name",
                 SectionID = m_section.ID,
                 TemplateID = TemplateViewModel.ID,
                 ID = TemplateViewModel.CreateAnalyticID()
@@ -132,6 +150,13 @@ namespace Adapt.ViewModels
 
             OnPropertyChanged(nameof(Analytics));
         }
+
+        private void RemoveSection()
+        {
+            m_removed = true;
+            OnPropertyChanged(nameof(Removed));
+        }
+
         private string GetDescription(AnalyticSection sectionType)
         {
             DescriptionAttribute descriptionAttribute;
@@ -165,10 +190,13 @@ namespace Adapt.ViewModels
             if (!Changed)
                 return;
 
+            if (m_removed)
+                m_analytics.ToList().ForEach(a => a.Save());
+
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
                 TableOperations<TemplateSection> templateTbl = new TableOperations<TemplateSection>(connection);
-                if (m_section.ID < 0)
+                if (m_section.ID <= 0 && !m_removed)
                 {
                     int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", TemplateViewModel.Name).Id;
                     templateTbl.AddNewRecord(new TemplateSection()
@@ -179,10 +207,13 @@ namespace Adapt.ViewModels
                         TemplateID = templateId
                     });
                 }
-                else
+                else if (!m_removed)
                     templateTbl.UpdateRecord(m_section);
+                else
+                    templateTbl.DeleteRecord(m_section);
 
-                m_analytics.ToList().ForEach(a => a.Save());
+                if (!m_removed)
+                    m_analytics.ToList().ForEach(a => a.Save());
             }
         }
         #endregion

@@ -34,10 +34,6 @@ namespace Adapt.Models
     /// </summary>
     public interface IDataSource: IAdapter
     {
-        /// <summary>
-        /// Returns the <see cref="Type"/> of the Settings object that defines all Parameters
-        /// </summary>
-        public new Type GetSettingType();
 
         /// <summary>
         /// Tests the dataSource with the Current Settings

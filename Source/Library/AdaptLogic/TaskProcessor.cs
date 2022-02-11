@@ -102,20 +102,31 @@ namespace AdaptLogic
             SignalWritter.CleanAppData();
             CreateSourceInstance(task.DataSource);
             List<AdaptSignal> inputSignals = m_Source.GetSignals().Where(s => task.InputSignalIds.Contains(s.ID)).ToList();
-           
-            m_writers = new ConcurrentDictionary<string, SignalWritter>(task.OutputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
-            
+
+            // Compute FrameRates for initial Analytics Based on InputSignals
+
+            // Adjust FrameRates of OutputSignals
+
+            // ToDo Adjust SignalProcessor to use correct FPS based on inputSignals
+            // Return FPS and ensure the next SignalProcessor uses those FPS as inputs
+        
             m_sourceQueue = Channel.CreateUnbounded<IFrame>();
             m_start = task.Start;
             m_end = task.End;
             m_sourceSignals = inputSignals;
             m_cancelationSource = new CancellationTokenSource();
             m_sectionQueue = task.Sections.Select(sec => Channel.CreateUnbounded<IFrame>()).ToList();
+            Dictionary<string, int> framesPerSecond = new Dictionary<string, int>(inputSignals.Select(item => new KeyValuePair<string, int>(item.ID, (int)item.FramesPerSecond)));
+
             m_processors = task.Sections.Select((sec, i) => {
                 if (i == 0)
-                    return new SignalProcessor(m_sourceQueue, m_sectionQueue[0], sec);
-                return new SignalProcessor(m_sectionQueue[i-1], m_sectionQueue[i], sec);
+                    return new SignalProcessor(m_sourceQueue, m_sectionQueue[0], sec, framesPerSecond);
+                return new SignalProcessor(m_sectionQueue[i-1], m_sectionQueue[i], sec, framesPerSecond);
             }).ToList();
+
+            task.OutputSignals.ForEach(s => s.FramesPerSecond = framesPerSecond[s.ID]);
+            m_writers = new ConcurrentDictionary<string, SignalWritter>(task.OutputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
+
         }
         #endregion
 
@@ -202,9 +213,14 @@ namespace AdaptLogic
         {
             try
             {
-                await foreach (IFrame frame in sourceQueue.Reader.ReadAllAsync(cancelationToken))
-                {
 
+                IFrame frame;
+                int Nprocesssed = 0;
+                while (await sourceQueue.Reader.WaitToReadAsync(cancelationToken))
+                {
+                    if (!sourceQueue.Reader.TryRead(out frame))
+                        continue;
+                    Nprocesssed++;
                     foreach (KeyValuePair<string, ITimeSeriesValue> value in frame.Measurements)
                     {
                         SignalWritter writer;

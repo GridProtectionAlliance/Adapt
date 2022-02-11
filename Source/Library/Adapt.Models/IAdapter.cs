@@ -37,7 +37,7 @@ namespace Adapt.Models
         /// <summary>
         /// Returns the <see cref="Type"/> of the Settings object that defines all Parameters
         /// </summary>
-        public Type GetSettingType();
+        public Type SettingType { get; }
 
         /// <summary>
         /// Provides current configuration to the Adapter

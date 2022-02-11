@@ -83,6 +83,14 @@ namespace Adapt.ViewModels.Visualization.Widgets
             if (index > -1)
                 m_readers.RemoveAt(index);
         }
+
+        public virtual bool AllowSignal(AdaptSignal signal) => true;
+
+        protected virtual void OnWindowChange(ZoomEventArgs e)
+        {
+            ChangedWindow?.Invoke(this, e);
+        }
+
         #endregion
 
     }

@@ -48,49 +48,22 @@ namespace AdaptLogic
 
         private Channel<IFrame> m_queueInput;
         private Channel<IFrame> m_queueOutput;
-        private List<IAnalytic> m_analytics;
-        private List<Analytic> m_analyticDefinitions;
-        private List<Func<IFrame, Analytic, IFrame>> m_inputRouter;
-        private List<Action<IFrame, ITimeSeriesValue[], Analytic>> m_outputRouter;
+
+        private List<AnalyticProcessor> m_analyticProcesors;
+        
 
         #endregion
 
         #region [ Constructor ]
 
-        public SignalProcessor(Channel<IFrame> input, Channel<IFrame> output, TaskSection section)
+        public SignalProcessor(Channel<IFrame> input, Channel<IFrame> output, TaskSection section, Dictionary<string,int> framesPerSecond)
         {
             m_queueInput = input;
             m_queueOutput = output;
-            m_analyticDefinitions = section.Analytics;
-            m_analytics = section.Analytics.Select(a => CreateAnalytic(a)).ToList();
-            m_inputRouter = section.Analytics.Select((a,i) => {
-                List<string> inputNames = m_analytics[i].InputNames().ToList();
-                return new Func<IFrame, Analytic, IFrame>((fullFrame, analytic) => {
-                    
-                    return new Frame()
-                    {
-                        Timestamp = fullFrame.Timestamp,
-                        Published = fullFrame.Published,
-                        Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(
-                            fullFrame.Measurements.Where(item => a.Inputs.Contains(item.Key))
-                        .ToDictionary(item => inputNames[a.Inputs.FindIndex((s) => s == item.Key)], item => item.Value))
-                    };
-                    });
-
-                }).ToList();
-            m_outputRouter = section.Analytics.Select(a => 
-            
-            new Action<IFrame,ITimeSeriesValue[], Analytic>((frame,values, analytic) => {
-                int i = 0;
-                foreach(ITimeSeriesValue val in values)
-                {
-                    frame.Measurements.AddOrUpdate(analytic.Outputs[i], (key) => new AdaptValue(key,val.Value, val.Timestamp), (key, old) => val);
-                    i++;
-                }
-                                  
-            })).ToList();
+            m_analyticProcesors = section.Analytics.Select(item => new AnalyticProcessor(item, framesPerSecond)).ToList();
+           
         }
-
+        
         #endregion
 
         #region [ Properties]
@@ -101,19 +74,6 @@ namespace AdaptLogic
         #endregion
 
         #region [ Methods ]
-        private IAnalytic CreateAnalytic(Analytic analytic)
-        {
-            try
-            {
-                IAnalytic Instance = (IAnalytic)Activator.CreateInstance(analytic.AdapterType);
-                Instance.Configure(analytic.Configuration);
-                return Instance;
-            }
-            catch (Exception ex)
-            {
-                return null;
-            }
-        }
 
         /// <summary>
         /// Signals the Writer that the last point has been added
@@ -131,6 +91,7 @@ namespace AdaptLogic
         /// <returns></returns>
         public Task StartProcessor(CancellationToken cancellationToken)
         {
+
             return Task.Run(async () =>
             {
                 try
@@ -144,19 +105,14 @@ namespace AdaptLogic
                             Measurements = point.Measurements
                         };
 
-                        Task<ITimeSeriesValue[]>[] analytics = m_analytics.Select((analytic, index) => Task<ITimeSeriesValue[]>.Run(() =>
-                        {
-                            IFrame input = m_inputRouter[index](point, m_analyticDefinitions[index]);
-                            return analytic.Run(input);
-                        })).ToArray();
+                        Task<ITimeSeriesValue[]>[] analytics = m_analyticProcesors.Select(p => p.Run(point)).ToArray();
 
                         await Task.WhenAll(analytics).ConfigureAwait(false);
 
                         int i = 0;
                         foreach (Task<ITimeSeriesValue[]> analyticResult in analytics)
                         {
-                            m_outputRouter[i](result, analyticResult.Result, m_analyticDefinitions[i]);
-                            i++;
+                            m_analyticProcesors[i].RouteOutput(point, analyticResult.Result);
                         }
 
                         m_queueOutput.Writer.TryWrite(result);
@@ -171,6 +127,7 @@ namespace AdaptLogic
             }, cancellationToken);
 
         }
+
         #endregion
 
         #region [ Static ]

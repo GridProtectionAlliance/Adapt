@@ -45,6 +45,8 @@ namespace Adapt.ViewModels
         private TemplateInputDevice m_device;
         private bool m_removed;
         private bool m_changed;
+        private bool m_outputFlag;
+
         private TemplateVM m_templateViewModel;
 
         #endregion
@@ -88,7 +90,17 @@ namespace Adapt.ViewModels
         /// <summary>
         /// A Flag indicating if this Device was selected as an Output
         /// </summary>
-        public bool SelectedOutput { get; set; }
+        public bool SelectedOutput 
+        { 
+            get => m_outputFlag;
+            set
+            {
+                m_changed = true;
+                m_outputFlag = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(Changed));
+            } 
+        }
 
         /// <summary>
         /// The number of Signals associated with this Device
@@ -188,17 +200,27 @@ namespace Adapt.ViewModels
 
         public void SaveOutputs()
         {
-            List<AnalyticOutputVM> analyticOutputs = m_templateViewModel.Sections.SelectMany(item => item.Analytics.SelectMany(a => a.Outputs)).Where(item => item.DeviceID == ID).ToList();
+            List<AnalyticOutputVM> analyticOutputs = m_templateViewModel.Sections.Where(item => !item.Removed)
+                .SelectMany(item => item.Analytics.Where(item => !item.Removed)
+                .SelectMany(a => a.Outputs)).Where(item => item.DeviceID == ID).ToList();
 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
                 foreach (AnalyticOutputVM analyticSignal in analyticOutputs)
                 {
-                    if (!m_removed && SelectedOutput)
+                    if (m_removed || !SelectedOutput )
+                        continue;
+
+                    int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", TemplateViewModel.Name).Id;
+                    int deviceID = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND templateID = {1}", Name, templateId).ID;
+                    string signalName = analyticSignal.Name;
+
+                    int signalID = new TableOperations<AnalyticOutputSignal>(connection).QueryRecordWhere("Name = {0} AND DeviceID = {1}", signalName, deviceID)?.ID ?? -1;
+
                         new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
                         {
                             IsInputSignal = false,
-                            SignalID = analyticSignal.ID,
+                            SignalID = signalID,
                             Name = analyticSignal.Name,
                             Phase = (int)Phase.NONE,
                             Type = (int)MeasurementType.Other,
@@ -208,11 +230,20 @@ namespace Adapt.ViewModels
 
                 foreach (InputSignalVM inputSignal in Signals)
                 {
-                    if (!m_removed && SelectedOutput)
-                        new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
+
+                    if (m_removed || !SelectedOutput)
+                        continue;
+                        
+                    int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", TemplateViewModel.Name).Id;
+                    int deviceID = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND templateID = {1}", Name, templateId).ID;
+                    string signalName = inputSignal.Name;
+
+                    int signalID = new TableOperations<TemplateInputSignal>(connection).QueryRecordWhere("Name = {0} AND DeviceID = {1}", signalName, deviceID)?.ID ?? -1;
+
+                    new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
                         {
                             IsInputSignal = true,
-                            SignalID = inputSignal.ID,
+                            SignalID = signalID,
                             Name = inputSignal.Name,
                             Phase = (int)Phase.NONE,
                             Type = (int)MeasurementType.Other,
@@ -241,7 +272,7 @@ namespace Adapt.ViewModels
             OnPropertyChanged(nameof(Signals));
             OnPropertyChanged(nameof(NSignals));
             Signals.ToList().ForEach(s => s.PropertyChanged += SignalChanged);
-            SelectedOutput = false;
+            m_outputFlag = false;
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
                 int Ninputs = 0;
@@ -249,7 +280,7 @@ namespace Adapt.ViewModels
                     Ninputs = new TableOperations<TemplateOutputSignal>(connection).QueryRecordCountWhere($"IsInputSignal = 1 AND SignalID IN ({string.Join(',', Signals.Select(item => item.ID))})");
                 int Noutputs = new TableOperations<TemplateOutputSignal>(connection).QueryRecordCountWhere("IsInputSignal = 0 AND SignalID IN (SELECT ID FROM AnalyticOutputSignal WHERE DeviceID = {0})", m_device.ID);
 
-                SelectedOutput = (Ninputs + Noutputs) > 0;
+                m_outputFlag = (Ninputs + Noutputs) > 0;
 
             }
             OnPropertyChanged(nameof(SelectedOutput));

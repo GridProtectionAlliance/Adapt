@@ -97,7 +97,7 @@ namespace Adapt.Models
             BitConverter.GetBytes(Sum).CopyTo(data, 13);
             BitConverter.GetBytes(Max).CopyTo(data, 13+8);
             BitConverter.GetBytes(SquaredSum).CopyTo(data, 21 + 8);
-            BitConverter.GetBytes(Tmin.ToBinary()).CopyTo(data, 21 + 8+ 8);
+            BitConverter.GetBytes(Tmin.ToBinary()).CopyTo(data, 21 + 8 + 8);
             BitConverter.GetBytes(Tmax.ToBinary()).CopyTo(data, 21 + 8 + 8 + 8);
             return data;
         }
@@ -105,7 +105,7 @@ namespace Adapt.Models
         #endregion
 
         #region [ static ] 
-        public static int NSize => 13 + 8 + 8 + 8 + 8;
+        public static int NSize => 21 + 8 + 8 + 8 + 8;
         #endregion
     }
 }

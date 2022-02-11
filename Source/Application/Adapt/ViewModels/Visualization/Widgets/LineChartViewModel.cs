@@ -72,6 +72,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
             m_plotModel.Title = "Average Value Line Chart";
             OnPropertyChanged(nameof(PlotModel));
             OnPropertyChanged(nameof(PlotController));
+
         }
 
         #endregion
@@ -90,13 +91,17 @@ namespace Adapt.ViewModels.Visualization.Widgets
             m_plotController = new PlotController();
 
             m_plotModel.Title = "Average Value Line Chart";
-            m_plotModel.Axes.Add(new DateTimeAxis()
+            DateTimeAxis tAxis = new DateTimeAxis()
             {
                 Minimum = DateTimeAxis.ToDouble(m_start),
                 Maximum = DateTimeAxis.ToDouble(m_end)
-            });
+            };
 
-            m_plotController.UnbindAll();
+            m_plotModel.Axes.Add(tAxis);
+
+            tAxis.AxisChanged += AxisChanged;
+
+            //m_plotController.UnbindAll();
 
             foreach (IReader reader in m_readers)
             {
@@ -111,6 +116,16 @@ namespace Adapt.ViewModels.Visualization.Widgets
             OnPropertyChanged(nameof(PlotController));
         }
 
+        private void AxisChanged(object? sender, AxisChangedEventArgs args)
+        {
+            if (args.ChangeType == AxisChangeTypes.Reset || sender is null)
+                return;
+            DateTimeAxis axis = sender as DateTimeAxis;
+            DateTime dtMax = DateTime.FromOADate(axis.ActualMaximum);
+            DateTime dtMin = DateTime.FromOADate(axis.ActualMinimum);
+
+            OnWindowChange(new ZoomEventArgs(dtMin,dtMax));
+        }
         public override void AddReader(IReader reader)
         {
             base.AddReader(reader);
@@ -122,6 +137,12 @@ namespace Adapt.ViewModels.Visualization.Widgets
             base.RemoveReader(reader);
             UpdateChart();
         }
+
+        public override bool AllowSignal(AdaptSignal signal) 
+        {
+            return signal.Type != MeasurementType.EventFlag;
+        }
+
         #endregion
     }
 }

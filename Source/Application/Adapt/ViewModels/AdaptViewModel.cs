@@ -178,7 +178,6 @@ namespace Adapt.ViewModels
         {
             ActiveExpander = SelectedExpander.Visualization;
             m_results.ProcessTask(m_task);
-
         }
         
         #endregion

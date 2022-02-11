@@ -88,56 +88,19 @@ namespace Adapt.Models
 
         #region [ Constructors ]
 
-        /*public AdaptSignal(string name, IDevice device)
-        {
-            m_Data = new List<AdaptValue>();
-            m_Guid = Guid.NewGuid().ToString();
-            m_Name = name;
-            m_Device = device;
-            m_MetaData = new SignalMetaData()
-            {
-                Phase = Phase.NONE,
-                Description = name,
-                MeasurmentType = AdaptmeasurmentType.Other
-            };
-        }
-
-        public AdaptSignal(string name)
-        {
-            m_Data = new List<AdaptValue>();
-            m_Guid = name;
-            m_Name = Guid.NewGuid().ToString();
-            m_Device = AdaptDevice.Unknown;
-            m_MetaData = new SignalMetaData()
-            {
-                Phase = Phase.NONE,
-                Description = name,
-                MeasurmentType = AdaptmeasurmentType.Other
-            };
-        }
-
-        public AdaptSignal(AdaptSignal original)
-        {
-            m_Data = new List<AdaptValue>((IEnumerable<AdaptValue>)original.Data);
-            m_Guid = Guid.NewGuid().ToString();
-            m_Name = original.Name;
-            m_Device = original.Device;
-            m_MetaData = original.MetaData;
-        }
-        */
-
         /// <summary>
         /// Creates a new <see cref="AdaptSignal"/> attached to a Device.
         /// </summary>
         /// <param name="Name">The Name of the new Signal</param>
         /// <param name="Device">The <see cref="IDevice"/> the signal is attached to</param>
         /// <param name="Key">The Unique Identifier for this Channel.</param>
-        public AdaptSignal(string Key, string Name, IDevice Device)
+        public AdaptSignal(string Key, string Name, IDevice Device, int framesPerSecond)
         {
             m_Name = Name;
             m_DeviceKey = Device.ID;
             m_Key = Key;
             m_description = "";
+            m_fps = framesPerSecond;
         }
 
         /// <summary>
@@ -146,12 +109,13 @@ namespace Adapt.Models
         /// <param name="Name">The Name of the new Signal</param>
         /// <param name="DeviceID">The Device ID the Signal is attached to</param>
         /// <param name="Key">The Unique Identifier for this Channel.</param>
-        public AdaptSignal(string Key, string Name, string DeviceID)
+        public AdaptSignal(string Key, string Name, string DeviceID, int framesPerSecond)
         {
             m_Name = Name;
             m_DeviceKey = DeviceID;
             m_Key = Key;
             m_description = "";
+            m_fps = framesPerSecond;
         }
         #endregion
 

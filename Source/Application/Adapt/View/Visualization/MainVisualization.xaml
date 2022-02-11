@@ -21,10 +21,32 @@
         
         <!--<ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="1" Width="Auto"> -->
         <ItemsControl ItemsSource="{Binding Widgets}" Grid.Row="1" Width="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" 
-                      Height="{Binding Height,RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type UserControl}}, Converter={StaticResource HeightSubtraction}, ConverterParameter=100}">
+                      Height="{Binding Height,RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type UserControl}}, Converter={StaticResource HeightSubtraction}, ConverterParameter=100}" >
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <ContentPresenter Content="{Binding UserControl}"  DataContext="{Binding .}"  Height="300" Width="Auto" />
+                    <StackPanel DataContext="{Binding .}" Background="Transparent">
+                        <ContentPresenter Content="{Binding UserControl}"  DataContext="{Binding Widget}"  Height="300" Width="Auto" />
+                        <StackPanel.ContextMenu>
+                            <ContextMenu ItemsSource="{Binding Devices}"  DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <ContextMenu.ItemTemplate>
+                                    <DataTemplate>
+                                        <MenuItem DataContext="{Binding .}" IsSubmenuOpen="True" ItemsSource="{Binding Signals}">
+                                            <MenuItem.Header>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Name}"/>
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                            <MenuItem.ItemTemplate>
+                                                <DataTemplate>
+                                                    <MenuItem Header="{Binding Name}" IsChecked="{Binding Selected}" Command="{Binding Select}"/>
+                                                </DataTemplate>
+                                            </MenuItem.ItemTemplate>
+                                        </MenuItem>
+                                    </DataTemplate>
+                                </ContextMenu.ItemTemplate>
+                            </ContextMenu>
+                        </StackPanel.ContextMenu>
+                    </StackPanel>                   
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
             <ItemsControl.Template>

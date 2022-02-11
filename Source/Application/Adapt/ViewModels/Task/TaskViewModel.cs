@@ -81,6 +81,7 @@ namespace Adapt.ViewModels
                 else
                     m_SelectedDataSourceIndex = 0;
 
+                ValidateDataSource();
                 OnPropertyChanged();
             }
         }
@@ -103,8 +104,7 @@ namespace Adapt.ViewModels
                 OnPropertyChanged();
             }
         }
-        //public ObservableCollection<SectionVM> Sections => m_Sections;
-
+     
         /// <summary>
         /// The Viewmodel containing the mapping between Template Devices and DataSourceDevices
         /// </summary>
@@ -133,7 +133,7 @@ namespace Adapt.ViewModels
             MappingViewModel = new MappingVM(Templates[SelectedTemplateIndex]);
             ValidateDataSource();
 
-            RunTask = new RelayCommand(() => ParentVM.ProcessTask(), () => true);
+            RunTask = new RelayCommand(() => ParentVM.ProcessTask(), () => MappingViewModel.Valid);
         }
 
         #endregion

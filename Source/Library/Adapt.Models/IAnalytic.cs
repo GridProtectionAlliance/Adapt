@@ -38,12 +38,12 @@ namespace Adapt.Models
         /// <summary>
         /// Returns the <see cref="Type"/> of the Settings object that defines all Parameters
         /// </summary>
-        public new Type GetSettingType();
+        public new Type SettingType { get; }
 
         /// <summary>
         /// Returns a List of strings indicating the names of the Output Signals
         /// </summary>
-        public IEnumerable<string> OutputNames();
+        public IEnumerable<AnalyticOutputDescriptor> Outputs();
 
         /// <summary>
         /// Returns a List of strings indicating the names of the Input Signals
@@ -54,8 +54,26 @@ namespace Adapt.Models
         /// The actual Analytic Process
         /// </summary>
         /// <param name="frame">The <see cref="IFrame"/> containing the input Data. </param>
+        /// <param name="futureFrames"> The future <see cref="IFrame"/> as determined by <see cref="FutureFrames"/></param>
+        /// <param name="previousFrames"> The previous <see cref="IFrame"/> as determined by <see cref="PrevFrames"/></param>
         /// <returns> a <see cref="ITimeSeriesValue[]"/> that contains the results. </returns>
-        public Task<ITimeSeriesValue[]> Run(IFrame frame);
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames);
+
+        /// <summary>
+        /// Gets the Current FrameRate of this Adapter
+        /// </summary>
+        public int FramesPerSecond { get; }
+
+        /// <summary>
+        /// Sets the FrameRate of the inputs to this Adapter
+        /// </summary>
+        /// <param name="inputFramesPerSeconds"></param>
+        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds);
+
+        /// <summary>
+        /// Gets the number of previous Frames that need to be send to the Analytic
+        /// </summary>
+        public int PrevFrames { get; }
 
     }
 }

@@ -100,7 +100,7 @@ namespace Adapt.ViewModels
             m_Search = "";
             
             m_Complete = Complete;
-            SelectCommand = new RelayCommand(Select, (obj) => m_ListedOptions.Count() > 0);
+            SelectCommand = new RelayCommand(Select, (obj) => m_ListedOptions.Count() > 0 && SelectedOption >= 0 && SelectedOption < m_ListedOptions.Count());
             m_IncludeSearch = Search;
             m_TransformDisplay = Display;
 

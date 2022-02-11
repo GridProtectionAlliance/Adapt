@@ -53,6 +53,7 @@ namespace Adapt.ViewModels
         #region [ Members ]
 
         private Template m_Template;
+
         public class Mapping
         {
             public Mapping(TemplateInputDevice device, MappingVM parent)
@@ -60,6 +61,7 @@ namespace Adapt.ViewModels
                 TargetDeviceID = device.ID;
                 TargetDeviceName = device.Name;
                 IsValid = true;
+                IsSelected = false;
                 ChangeDevice = new RelayCommand(() => parent.SelectDevice(this), () => true);
                 FixChannel = new RelayCommand(() => parent.FixDuplicates(this), () => true);
 
@@ -73,6 +75,7 @@ namespace Adapt.ViewModels
             public ICommand FixChannel { get; }
             public Dictionary<int,string> ChannelMappings { get; set; }
             public bool IsValid { get; set; }
+            public bool IsSelected { get; set; }
         }
 
         #endregion
@@ -91,6 +94,11 @@ namespace Adapt.ViewModels
 
         public DataSource DataSourceModel { get; set; }
         public ObservableCollection<Mapping> DeviceMappings { get; set; }
+
+        /// <summary>
+        /// Indicates if the Mapping is valid an complete
+        /// </summary>
+        public bool Valid => !DeviceMappings.Any(d => !(d.IsValid && d.IsSelected));
 
         #endregion
 
@@ -124,6 +132,7 @@ namespace Adapt.ViewModels
                     );
 
             OnPropertyChanged(nameof(DeviceMappings));
+            OnPropertyChanged(nameof(Valid));
         }
 
         /// <summary>
@@ -158,9 +167,11 @@ namespace Adapt.ViewModels
                         mapping.ChannelMappings.Add(targetSignals[i].ID, sourceSignals[index].ID);
                 }
                 mapping.IsValid = !mapping.ChannelMappings.Any(item => string.IsNullOrEmpty(item.Value));
-                
+                mapping.IsSelected = true;
                 DeviceMappings = new ObservableCollection<Mapping>(DeviceMappings);
                 OnPropertyChanged(nameof(DeviceMappings));
+                OnPropertyChanged(nameof(Valid));
+
             },(d,s) => d.Name.ToLower().Contains(s.ToLower()),(d) => d.Name,AdaptDevice.Get(DataSource,DataSourceModel.ID,ConnectionString,DataProviderString));
             dateSelection.DataContext = dateSelectionVM;
             dateSelection.Show();
@@ -188,6 +199,7 @@ namespace Adapt.ViewModels
                 mapping.IsValid = !mapping.ChannelMappings.ContainsValue("");
                 DeviceMappings = new ObservableCollection<Mapping>(DeviceMappings);
                 OnPropertyChanged(nameof(DeviceMappings));
+                OnPropertyChanged(nameof(Valid));
             }, (d, s) => d.Name.ToLower().Contains(s.ToLower()), (d) => d.Name, AdaptSignal.Get(DataSource, DataSourceModel.ID, ConnectionString, DataProviderString)
             .Where(s => s.ID == mapping.SourceDeviceID && s.Phase == targetSignal .Phase && s.Type == targetSignal.MeasurmentType), title);
             signalSelection.DataContext = dateSelectionVM;

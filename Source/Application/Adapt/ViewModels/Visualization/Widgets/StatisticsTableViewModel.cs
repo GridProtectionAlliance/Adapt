@@ -76,6 +76,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         public override void Zoom(DateTime start, DateTime end)
         {
             base.Zoom(start, end);
+            UpdateTable();
         }
 
         public override void AddReader(IReader reader)
@@ -116,6 +117,11 @@ namespace Adapt.ViewModels.Visualization.Widgets
             }
 
             OnPropertyChanged(nameof(DataTable));
+        }
+
+        public override bool AllowSignal(AdaptSignal signal) 
+        {
+            return signal.Type != MeasurementType.EventFlag;
         }
 
         #endregion

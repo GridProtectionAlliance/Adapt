@@ -92,7 +92,7 @@ namespace AdaptLogic
             string description = "";
             Phase phase = Phase.A;
             MeasurementType type = MeasurementType.Analog;
-            double framesPerSecond = 30;
+            int framesPerSecond = 30;
 
             string line;
             // Read .config file that just contain some of the Signal Information
@@ -112,14 +112,13 @@ namespace AdaptLogic
                 if ((line = reader.ReadLine()) != null)
                     Enum.TryParse<MeasurementType>(line, out type);
                 if ((line = reader.ReadLine()) != null)
-                    framesPerSecond = Convert.ToDouble(line);
+                    framesPerSecond = Convert.ToInt32(line);
             }
 
-            Signal = new AdaptSignal(signalID, name, deviceID);
+            Signal = new AdaptSignal(signalID, name, deviceID, framesPerSecond);
             Signal.Description = description;
             Signal.Phase = phase;
             Signal.Type = type;
-            Signal.FramesPerSecond = framesPerSecond;
         }
 
         /// <summary>
@@ -167,6 +166,8 @@ namespace AdaptLogic
             if (nPoints > (pointsPerLevel * points))
                 requiredLevels--;
 
+            if (points == 0)
+                requiredLevels = NLevels + 1;
 
             return GetPoints(m_rootFolder, requiredLevels, 0,start, end).Select(item => new AdaptValue(Signal.ID, item.Avg, item.Tmin.Add(item.Tmax - item.Tmin)));
             
@@ -182,9 +183,9 @@ namespace AdaptLogic
         {
             List<GraphPoint> point = GetPoints(m_rootFolder, 0, 0, start, end);
             if (point.Count == 0)
-                return new AdaptPoint(Signal.ID, double.NaN, start.Add(end - start), double.NaN, double.NaN);
+                return new AdaptPoint(Signal.ID, double.NaN, start.Add(end - start), double.NaN, double.NaN, Signal.FramesPerSecond);
 
-            return new AdaptPoint(Signal.ID, point.Sum(p => p.Sum), point.Sum(p => p.Sum), point.Sum(p => p.N), start, end, point.Min(p => p.Min), point.Max(p => p.Max), Signal.FramesPerSecond);
+            return new AdaptPoint(Signal.ID, point.Sum(p => p.Sum), point.Sum(p => p.SquaredSum), point.Sum(p => p.N), start, end, point.Min(p => p.Min), point.Max(p => p.Max), Signal.FramesPerSecond);
         }
 
         private List<GraphPoint> GetPoints(string root, int depth, int currentLevel, DateTime start, DateTime end)
@@ -244,6 +245,7 @@ namespace AdaptLogic
                     point.Max = value;
                     point.Min = value;
                     point.Sum = value;
+                    point.SquaredSum = value * value;
                     point.Tmax = ticks;
                     point.Tmin = ticks;
 
@@ -272,7 +274,6 @@ namespace AdaptLogic
                     results.Add( Aggregate(GetPoints(folder, NLevels+1, nextLevel, start, end)));
                 else 
                     results.AddRange(GetPoints(folder, depth, nextLevel, start, end));
-
             }
 
             return results;
@@ -282,9 +283,10 @@ namespace AdaptLogic
         {
             GraphPoint pt = new GraphPoint();
             pt.N = points.Sum(item => item.N);
-            pt.Min = points.Min(item => item.N);
-            pt.Max = points.Max(item => item.N);
-
+            pt.Min = points.Min(item => item.Min);
+            pt.Max = points.Max(item => item.Max);
+            pt.Sum = points.Sum(item => item.Sum);
+            pt.SquaredSum = points.Sum(item => item.SquaredSum);
             pt.Tmax = points.Max(item => item.Tmax);
             pt.Tmin = points.Min(item => item.Tmin);
 
