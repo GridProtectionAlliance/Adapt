@@ -47,6 +47,8 @@
       <?else ?>
         <Directory Id="ProgramFilesFolder">
           <Directory Id="INSTALLFOLDER" Name="Adapt">
+            <Directory Id="AFSDKFolder" Name="AFSDKHost">
+            </Directory>
           </Directory>
         </Directory>
       <?endif ?>
@@ -87,9 +89,13 @@
       <Component Id="AdaptLogic">
         <File Id="AdaptLogic.dll" Name="$(var.AdaptLogic.TargetFileName)" Source="$(var.AdaptLogic.TargetPath)" />
       </Component>
+      <Component Id="Adapt.Analytcis">
+        <File Id="Adapt.Analytcis.dll" Name="$(var.Adapt.Analytcis.TargetFileName)" Source="$(var.Adapt.Analytcis.TargetPath)" />
+      </Component>
       
       <ComponentGroupRef Id="GemstoneLibraries" />
       <ComponentGroupRef Id="Depedencies" />
+      <ComponentGroupRef Id="AFSDKHost"/>
       <ComponentGroupRef Id="AppConfig" />
       <ComponentGroupRef Id="ApplicationShortcut"/>
 		</ComponentGroup>
@@ -146,9 +152,93 @@
         <File Id="OxyPlot.Wpf.Shared.dll" Name="OxyPlot.Wpf.Shared.dll" Source="$(var.Adapt.TargetDir)OxyPlot.Wpf.Shared.dll" />
       </Component>
 
-    
+      <!-- OSISOft and GPRC Dependencies-->
+      <Component Id="Google.Protobuf">
+        <File Id="Google.Protobuf.dll" Name="Google.Protobuf.dll" Source="$(var.Adapt.TargetDir)Google.Protobuf.dll" />
+      </Component>
+      <Component Id="Grpc.Net.Client">
+        <File Id="Grpc.Net.Client.dll" Name="Grpc.Net.Client.dll" Source="$(var.Adapt.TargetDir)Grpc.Net.Client.dll" />
+      </Component>
+      <Component Id="Grpc.Core.Api">
+        <File Id="Grpc.Core.Api.dll" Name="Grpc.Core.Api.dll" Source="$(var.Adapt.TargetDir)Grpc.Core.Api.dll" />
+      </Component>
+      <Component Id="Grpc.Net.Common">
+        <File Id="Grpc.Net.Common.dll" Name="Grpc.Net.Common.dll" Source="$(var.Adapt.TargetDir)Grpc.Net.Common.dll" />
+      </Component>
+      <Component Id="AFSDKnetcore">
+        <File Id="AFSDKnetcore.dll" Name="AFSDKnetcore.dll" Source="$(var.Adapt.TargetDir)AFSDKnetcore.dll" />
+      </Component>
+      <Component Id="AFSDKproto">
+        <File Id="AFSDKproto.dll" Name="AFSDKproto.dll" Source="$(var.Adapt.TargetDir)AFSDKproto.dll" />
+      </Component>
+
+      <!-- MS Extension Dependencies-->
+      <Component Id="Microsoft.Extensions.Configuration.Abstractions">
+        <File Id="Microsoft.Extensions.Configuration.Abstractions.dll" Name="Microsoft.Extensions.Configuration.Abstractions.dll" Source="$(var.Adapt.TargetDir)Microsoft.Extensions.Configuration.Abstractions.dll" />
+      </Component>
+      <Component Id="Microsoft.Extensions.Configuration.Binder">
+        <File Id="Microsoft.Extensions.Configuration.Binder.dll" Name="Microsoft.Extensions.Configuration.Binder.dll" Source="$(var.Adapt.TargetDir)Microsoft.Extensions.Configuration.Binder.dll" />
+      </Component>
+      <Component Id="Microsoft.Extensions.Configuration">
+        <File Id="Microsoft.Extensions.Configuration.dll" Name="Microsoft.Extensions.Configuration.dll" Source="$(var.Adapt.TargetDir)Microsoft.Extensions.Configuration.dll" />
+      </Component>
+      <Component Id="Microsoft.Extensions.Primitives">
+        <File Id="Microsoft.Extensions.Primitives.dll" Name="Microsoft.Extensions.Primitives.dll" Source="$(var.Adapt.TargetDir)Microsoft.Extensions.Primitives.dll" />
+      </Component>
+      <Component Id="Microsoft.Extensions.Logging.Abstractions">
+        <File Id="Microsoft.Extensions.Logging.Abstractions.dll" Name="Microsoft.Extensions.Logging.Abstractions.dll" Source="$(var.Adapt.TargetDir)Microsoft.Extensions.Logging.Abstractions.dll" />
+      </Component>
     </ComponentGroup>
+
+    <!-- AFSDKHost Dependencies-->
     
+    <ComponentGroup Id="AFSDKHost" Directory="AFSDKFolder">
+      <Component Id="AFSDKHost_exe">
+        <File Id="AFSDKHost.exe" Name="AFSDKHost.exe" Source="$(var.SolutionDir)Dependencies\AFSDKHost\AFSDKHost.exe" />
+      </Component>
+      <Component Id="AFSDKHost.exe">
+        <File Id="AFSDKHost.exe.config" Name="AFSDKHost.exe.config" Source="$(var.SolutionDir)Dependencies\AFSDKHost\AFSDKHost.exe.config" />
+      </Component>
+      <Component Id="AFSDKHost.AFSDKproto">
+        <File Id="AFSDKHost.AFSDKproto.dll" Name="AFSDKproto.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\AFSDKproto.dll" />
+      </Component>
+      <Component Id="AFSDKHost.Google.Protobuf">
+        <File Id="AFSDKHost.Google.Protobuf.dll" Name="Google.Protobuf.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\Google.Protobuf.dll" />
+      </Component>
+      <Component Id="AFSDKHost.Grpc.Core.Api">
+        <File Id="AFSDKHost.Grpc.Core.Api.dll" Name="Grpc.Core.Api.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\Grpc.Core.Api.dll" />
+      </Component>
+      <Component Id="Grpc.Core">
+        <File Id="Grpc.Core.dll" Name="Grpc.Core.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\Grpc.Core.dll" />
+      </Component>
+      <Component Id="grpc_csharp_ext.x64">
+        <File Id="grpc_csharp_ext.x64.dll" Name="grpc_csharp_ext.x64.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\grpc_csharp_ext.x64.dll" />
+      </Component>
+      <Component Id="grpc_csharp_ext.x86">
+        <File Id="grpc_csharp_ext.x86.dll" Name="grpc_csharp_ext.x86.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\grpc_csharp_ext.x86.dll" />
+      </Component>
+      <Component Id="libgrpc_csharp_ext.x64">
+        <File Id="libgrpc_csharp_ext.x64.dylib" Name="libgrpc_csharp_ext.x64.dylib" Source="$(var.SolutionDir)Dependencies\AFSDKHost\libgrpc_csharp_ext.x64.dylib" />
+      </Component>
+      <Component Id="libgrpc_csharp_ext.x64.so">
+        <File Id="libgrpc_csharp_ext.x64.so" Name="libgrpc_csharp_ext.x64.so" Source="$(var.SolutionDir)Dependencies\AFSDKHost\libgrpc_csharp_ext.x64.so" />
+      </Component>
+      <Component Id="OSISoft.AFSDK">
+        <File Id="OSISoft.AFSDK.dll" Name="OSISoft.AFSDK.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\OSISoft.AFSDK.dll" />
+      </Component>
+      <Component Id="System.Buffers">
+        <File Id="System.Buffers.dll" Name="System.Buffers.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\System.Buffers.dll" />
+      </Component>
+      <Component Id="System.Memory">
+        <File Id="System.Memory.dll" Name="System.Memory.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\System.Memory.dll" />
+      </Component>
+      <Component Id="System.Numerics.Vectors">
+        <File Id="System.Numerics.Vectors.dll" Name="System.Numerics.Vectors.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\System.Numerics.Vectors.dll" />
+      </Component>
+      <Component Id="System.Runtime.CompilerServices.Unsafe">
+        <File Id="System.Runtime.CompilerServices.Unsafe.dll" Name="System.Runtime.CompilerServices.Unsafe.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\System.Runtime.CompilerServices.Unsafe.dll" />
+      </Component>
+    </ComponentGroup>
     
     <!-- Configuration Dependencies-->
     <ComponentGroup Id="AppConfig" Directory="INSTALLFOLDER">
