@@ -56,10 +56,12 @@ namespace Adapt.DataSources
     public class OpenHistorianSettings
     {
 
+        [DefaultValue("localhost:8180\\")]
         public string Server { get; set; }
-
+        [DefaultValue("")]
         public string User { get; set; }
 
+        [DefaultValue("")]
         public string Password { get; set; }
 
         [DefaultValue("PPA")]
