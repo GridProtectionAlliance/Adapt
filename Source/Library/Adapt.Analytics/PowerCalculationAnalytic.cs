@@ -78,7 +78,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Voltage Magnitude", "Voltage Phase", "Current Magnitude", "Current Phase" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             AdaptValue apparent = new AdaptValue("Apparent Power", GetComplex(frame).Magnitude, frame.Timestamp);
             AdaptValue active = new AdaptValue("Active Power", GetComplex(frame).Real, frame.Timestamp);

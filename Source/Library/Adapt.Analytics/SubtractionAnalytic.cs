@@ -70,7 +70,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Signal 1", "Signal 2" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             return Task.Run(() => Compute(frame));
         }

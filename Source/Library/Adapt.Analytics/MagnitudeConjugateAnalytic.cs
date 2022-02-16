@@ -78,7 +78,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Magnitude", "Phase"};
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             AdaptValue magnitude = new AdaptValue("Complex Conjugate (Magnitude)", Complex.Conjugate(GetComplex(frame)).Magnitude, frame.Timestamp);
             AdaptValue phase = new AdaptValue("Complex Conjugate (Phase)", Complex.Conjugate(GetComplex(frame)).Phase, frame.Timestamp);

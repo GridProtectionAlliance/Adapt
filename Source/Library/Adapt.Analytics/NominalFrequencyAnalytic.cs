@@ -78,7 +78,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Frequency" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             return Task.Run(() => Compute(frame));
         }
