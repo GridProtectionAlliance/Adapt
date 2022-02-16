@@ -256,7 +256,7 @@ namespace Adapt.DataSources
 
         private static Process s_afSDKHost;
 
-        internal static void InitializeHost()
+        public static void InitializeHost()
         {
             // Make sure AFSDK host application is running
             bool hostIsRunning = false;
@@ -300,7 +300,7 @@ namespace Adapt.DataSources
                 API.Initialize("localhost");
         }
 
-        internal static void ShutDownHost()
+        public static void ShutDownHost()
         {
             lock (typeof(PIHistorian))
             {
