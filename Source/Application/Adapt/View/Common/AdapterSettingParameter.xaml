@@ -13,10 +13,18 @@
 
     <WrapPanel Margin="0,0,10,0">
         <Label Margin="0,2" Width="150" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Label}"/>
-        <WrapPanel Margin="5" Width="150" Grid.Column="1"
+        <WrapPanel Margin="5" Width="180" Grid.Column="1"
                 Visibility="{Binding Path=IsBoolean, Converter={StaticResource ObjectToVisibility}}">
             <RadioButton Content="True" IsChecked="{Binding Path=Value}" Margin="0,0,20,0"/>
             <RadioButton Content="False" IsChecked="{Binding Mode=OneWay, Path=IsFalseChecked}" />
+            <StackPanel Orientation="Horizontal" Visibility="{Binding IsInvalid, Converter={StaticResource ObjectToVisibility}}" >
+                <Path Margin="1,0" VerticalAlignment="Center" Width="20" 
+                      Fill="DarkRed" Stretch="Uniform" 
+                      HorizontalAlignment="Right" 
+                      Data="F1M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" 
+                     />
+                <TextBlock Foreground="DarkRed">A selection is required</TextBlock>
+            </StackPanel>
         </WrapPanel>
         <WrapPanel Margin="5" Visibility="{Binding Path=IsEnum, Converter={StaticResource ObjectToVisibility}}">
             <WrapPanel.Resources>
@@ -33,16 +41,48 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
+            <StackPanel Orientation="Horizontal" Visibility="{Binding IsInvalid, Converter={StaticResource ObjectToVisibility}}" >
+                <Path Margin="1,0" VerticalAlignment="Center" Width="20" 
+                      Fill="DarkRed" Stretch="Uniform" 
+                      HorizontalAlignment="Right" 
+                      Data="F1M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" 
+                     />
+                <TextBlock Foreground="DarkRed">A selection is required</TextBlock>
+            </StackPanel>
         </WrapPanel>
         <WrapPanel Margin="5"  Visibility="{Binding Path=IsOther, Converter={StaticResource ObjectToVisibility}}">
             <TextBox Width="200" Text="{Binding Path=Value}" TextWrapping="Wrap"
                                       VerticalScrollBarVisibility="Auto"/>
+            <StackPanel Orientation="Horizontal" Visibility="{Binding IsInvalid, Converter={StaticResource ObjectToVisibility}}" >
+                <Path Margin="1,0" VerticalAlignment="Center" Width="20" 
+                      Fill="DarkRed" Stretch="Uniform" 
+                      HorizontalAlignment="Right" 
+                      Data="F1M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" 
+                     />
+                <TextBlock Foreground="DarkRed">A value is required</TextBlock>
+            </StackPanel>
         </WrapPanel>
-        <WrapPanel Width="150" Margin="5" Visibility="{Binding Path=IsText, Converter={StaticResource ObjectToVisibility}}">
-            <TextBox Text="{Binding Path=Value}" MinWidth="30"/>
+        <WrapPanel Width="180" Margin="5" Visibility="{Binding Path=IsText, Converter={StaticResource ObjectToVisibility}}">
+            <TextBox Text="{Binding Path=Value}" MinWidth="150"/>
+            <StackPanel Orientation="Horizontal" Visibility="{Binding IsInvalid, Converter={StaticResource ObjectToVisibility}}" >
+                <Path Margin="1,0" VerticalAlignment="Center" Width="20" 
+                      Fill="DarkRed" Stretch="Uniform" 
+                      HorizontalAlignment="Right" 
+                      Data="F1M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" 
+                     />
+                <TextBlock Foreground="DarkRed">A value is required</TextBlock>
+            </StackPanel>
         </WrapPanel>
-        <WrapPanel Width="150" Margin="5" Visibility="{Binding Path=IsNumeric, Converter={StaticResource ObjectToVisibility}}">
-            <TextBox Text="{Binding Path=Value}" MinWidth="30"/>
+        <WrapPanel Width="180" Margin="5" Visibility="{Binding Path=IsNumeric, Converter={StaticResource ObjectToVisibility}}">
+            <TextBox Text="{Binding Path=Value}" MinWidth="50"/>
+            <StackPanel Orientation="Horizontal" Visibility="{Binding IsInvalid, Converter={StaticResource ObjectToVisibility}}" >
+                <Path Margin="1,0" VerticalAlignment="Center" Width="20" 
+                      Fill="DarkRed" Stretch="Uniform" 
+                      HorizontalAlignment="Right" 
+                      Data="F1M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" 
+                     />
+                <TextBlock Foreground="DarkRed">A numeric value is required</TextBlock>
+            </StackPanel>
         </WrapPanel>
         <WrapPanel Margin="5" Visibility="{Binding Path=IsCustom, Converter={StaticResource ObjectToVisibility}}">
             <TextBox Text="{Binding Path=Value}" IsReadOnly="True" Width="100" Height="18"/>
@@ -52,6 +92,14 @@
                     <ContentPresenter x:Name="ContentCustomPopup" Content="{Binding Path=CustomPopup}" />
                 </Border>
             </Popup>
+            <StackPanel Orientation="Horizontal" Visibility="{Binding IsInvalid, Converter={StaticResource ObjectToVisibility}}" >
+                <Path Margin="1,0" VerticalAlignment="Center" Width="20" 
+                      Fill="DarkRed" Stretch="Uniform" 
+                      HorizontalAlignment="Right" 
+                      Data="F1M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" 
+                     />
+                <TextBlock Foreground="DarkRed">A selection is required</TextBlock>
+            </StackPanel>
         </WrapPanel>
     </WrapPanel>
 </UserControl>
