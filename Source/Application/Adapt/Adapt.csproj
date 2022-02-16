@@ -8,6 +8,7 @@
     <Copyright>MIT License</Copyright>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ApplicationIcon>ADAPT.ico</ApplicationIcon>
+    <AssemblyName>SciSync</AssemblyName>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
