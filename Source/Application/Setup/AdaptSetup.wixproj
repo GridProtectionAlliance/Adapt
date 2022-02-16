@@ -7,14 +7,14 @@
     <ProductVersion>3.10</ProductVersion>
     <ProjectGuid>573fbf22-3d63-449a-a31f-2d5622342c42</ProjectGuid>
     <SchemaVersion>2.0</SchemaVersion>
-    <OutputName>PQioSetup</OutputName>
+    <OutputName>SciSyncSetup</OutputName>
     <OutputType>Package</OutputType>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
     <Name>PQdsSetup</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
-    <OutputPath>$(SolutionDir)\..\Build\Output\$(Configuration)\Setup\</OutputPath>
+    <OutputPath>$(SolutionDir)\..\Build\Outputs\$(Configuration)\Setup\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
     <DefineConstants>Debug</DefineConstants>
   </PropertyGroup>

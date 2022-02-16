@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-	<Product Id="*" Name="SciSync" Language="1033" Version="!(bind.FileVersion.Adapt.exe)" Manufacturer="Grid Protection Alliance" UpgradeCode="37B7137B-E7F5-4F77-AAF1-CD31DD4D6333">
+	<Product Id="*" Name="SciSync" Language="1033" Version="!(bind.FileVersion.SciSync.exe)" Manufacturer="Grid Protection Alliance" UpgradeCode="37B7137B-E7F5-4F77-AAF1-CD31DD4D6333">
 		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
 
 		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
@@ -11,7 +11,7 @@
       <![CDATA[Installed OR WIX_IS_NETFRAMEWORK_46_OR_LATER_INSTALLED]]>
     </Condition>
 
-		<Feature Id="ProductFeature" Title="Adapt" Level="1">
+		<Feature Id="ProductFeature" Title="SciSync" Level="1">
 			<ComponentGroupRef Id="ProductComponents" />
 		</Feature>
 
@@ -41,19 +41,21 @@
 		<Directory Id="TARGETDIR" Name="SourceDir">
       <?if $(var.Platform) = x64 ?>
         <Directory Id="ProgramFiles64Folder">
-          <Directory Id="INSTALLFOLDER" Name="Adapt">
+          <Directory Id="INSTALLFOLDER" Name="SciSync">
+            <Directory Id="AFSDKFolder" Name="AFSDKHost">
+            </Directory>
           </Directory>
         </Directory>
       <?else ?>
         <Directory Id="ProgramFilesFolder">
-          <Directory Id="INSTALLFOLDER" Name="Adapt">
+          <Directory Id="INSTALLFOLDER" Name="SciSync">
             <Directory Id="AFSDKFolder" Name="AFSDKHost">
             </Directory>
           </Directory>
         </Directory>
       <?endif ?>
     <Directory Id="ProgramMenuFolder">
-      <Directory Id="StartMenuFolderName" Name="Adapt" />
+      <Directory Id="StartMenuFolderName" Name="SciSync" />
       <Directory Id="DesktopFolder" />
     </Directory>
     </Directory>
@@ -62,11 +64,11 @@
 
 	<Fragment>
 		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-			<Component Id="Adapt.dll">
-        <File Id="Adapt.dll" Name="$(var.Adapt.TargetFileName)" Source="$(var.Adapt.TargetPath)" />
+			<Component Id="SciSync.dll">
+        <File Id="SciSync.dll" Name="$(var.Adapt.TargetFileName)" Source="$(var.Adapt.TargetPath)" />
 			</Component>
-      <Component Id="Adapt">
-        <File Id="Adapt.exe" Name="Adapt.exe" Source="$(var.Adapt.TargetDir)Adapt.exe" />
+      <Component Id="SciSync">
+        <File Id="SciSync.exe" Name="SciSync.exe" Source="$(var.Adapt.TargetDir)SciSync.exe" />
 			</Component>
       <Component Id="Adapt.Models">
         <File Id="Adapt.Models.dll" Name="$(var.Adapt.Models.TargetFileName)" Source="$(var.Adapt.Models.TargetPath)" />
@@ -246,7 +248,7 @@
         <File Id="DataBase.db" Name="DataBase.db" Source="$(var.SolutionDir)Application\Data\DataBase.db" />
       </Component>
       <Component Id="RuntimeConfig">
-        <File Id="Adapt.runtimeconfig.json" Name="Adapt.runtimeconfig.json" Source="$(var.Adapt.TargetDir)Adapt.runtimeconfig.json" />
+        <File Id="SciSync.runtimeconfig.json" Name="SciSync.runtimeconfig.json" Source="$(var.Adapt.TargetDir)SciSync.runtimeconfig.json" />
       </Component>
     </ComponentGroup>
                 
@@ -256,7 +258,7 @@
       <Shortcut Id="ApplicationStartMenuShortcut"
                 Name="SciSync"
                 Description="Scientific Tools for Advanced Synchrophasor Data Analytics with the PI System"
-                Target="[#Adapt.exe]"
+                Target="[#SciSync.exe]"
                 WorkingDirectory="INSTALLFOLDER"
                 Icon ="icon.ico"/>
       
@@ -268,7 +270,7 @@
       <Shortcut Id="ApplicationDesktopShortcut"
                 Name="SciSync"
                 Description="Scientific Tools for Advanced Synchrophasor Data Analytics with the PI System"
-                Target="[#Adapt.exe]"
+                Target="[#SciSync.exe]"
                 WorkingDirectory="INSTALLFOLDER"
                 Icon ="icon.ico"/>
       <RegistryValue Root="HKCU" Key="Software\GPA\SciSync" Name="installed-Desktop" Type="integer" Value="1" KeyPath="yes"/>
