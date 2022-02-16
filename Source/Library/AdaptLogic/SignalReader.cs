@@ -130,6 +130,18 @@ namespace AdaptLogic
         /// <returns></returns>
         public IEnumerable<ITimeSeriesValue> GetTrend(DateTime start, DateTime end, int points=NPoints)
         {
+            return GetRangeTrend(start, end, points).Select(item => new AdaptValue(Signal.ID, item.Avg, item.Tmin.Add(item.Tmax - item.Tmin)));
+        }
+
+        /// <summary>
+        /// Gets an avg Trend Series of up to 400 points
+        /// </summary>
+        /// <param name="start">the start Time of the Series.</param>
+        /// <param name="end">The end time of the Series.</param>
+        /// <param name="points"> The minimum number of points requested.</param>
+        /// <returns></returns>
+        public IEnumerable<GraphPoint> GetRangeTrend(DateTime start, DateTime end, int points = NPoints)
+        {
             // Estimate how many levels we need to go down to get as many points as required
             double seconds = (end - start).TotalSeconds;
             int nPoints = (int)Math.Floor(seconds * Signal.FramesPerSecond);
@@ -138,7 +150,7 @@ namespace AdaptLogic
                 pointsPerLevel = 30;
             int requiredLevels = NLevels + 1;
 
-            if (nPoints > (pointsPerLevel* points))
+            if (nPoints > (pointsPerLevel * points))
                 requiredLevels--;
 
             nPoints = (int)Math.Floor(seconds);
@@ -169,8 +181,8 @@ namespace AdaptLogic
             if (points == 0)
                 requiredLevels = NLevels + 1;
 
-            return GetPoints(m_rootFolder, requiredLevels, 0,start, end).Select(item => new AdaptValue(Signal.ID, item.Avg, item.Tmin.Add(item.Tmax - item.Tmin)));
-            
+            return GetPoints(m_rootFolder, requiredLevels, 0, start, end);
+
         }
 
         /// <summary>
