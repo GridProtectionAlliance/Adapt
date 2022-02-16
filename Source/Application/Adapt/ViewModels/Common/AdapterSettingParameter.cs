@@ -85,6 +85,7 @@ namespace Adapt.ViewModels.Common
             m_customButtonCmd = new RelayCommand(OpenCustom, () => true);
         }
         #endregion
+
         #region [ Properties ]
 
         /// <summary>
@@ -176,6 +177,7 @@ namespace Adapt.ViewModels.Common
                 m_value = value;
                 SettingChanged?.Invoke(this, new SettingChangedArg() { Name = m_name, Value = value });
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsInvalid));
             
             }
         }
@@ -374,6 +376,28 @@ namespace Adapt.ViewModels.Common
             set => m_ConnectionSTringNames = value;
         }
 
+        /// <summary>
+        /// Indicates if a Setting is incorrect e.g. numeric vs Text, required etc
+        /// </summary>
+        public bool IsInvalid 
+        { 
+            get
+            {
+                if (IsRequired && m_value == null)
+                    return true;
+                if (IsCustom && IsRequired)
+                    return m_value.ToString().Length < 1;
+                if (IsEnum)
+                    return EnumIndex < 0 || EnumIndex >= EnumValues.Count;
+                if (IsText && IsRequired)
+                    return m_value.ToString().Length < 1;
+                if (IsNumeric && IsRequired)
+                    return !double.TryParse( m_value.ToString(), out double i);
+                if (IsNumeric && !IsRequired && m_value != null)
+                    return !double.TryParse(m_value.ToString(), out double i);
+                return m_value != null && m_value.ToString().Length < 1;
+            }
+        }
         #endregion
 
         #region[ Methods ]
