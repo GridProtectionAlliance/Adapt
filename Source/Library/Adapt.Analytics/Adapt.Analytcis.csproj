@@ -5,11 +5,11 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>D:\Projects\PNNL\Adapt\Build\Outputs\($Configuration)\Library\Adapt.Analytics\</OutputPath>
+    <OutputPath>..\..\..\Build\Outputs\Debug\Library\Adapt.Anlytics\</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>D:\Projects\PNNL\Adapt\Build\Outputs\($Configuration)\Library\Adapt.Analytics\</OutputPath>
+    <OutputPath>..\..\..\Build\Outputs\Release\Library\Adapt.Anlytics\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
