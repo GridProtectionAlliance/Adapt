@@ -59,5 +59,8 @@ namespace Adapt.Models
         /// Gets the <see cref="AdaptSignal"/> This reader is attached to
         /// </summary>
         public AdaptSignal Signal { get; }
+
+        public IEnumerable<GraphPoint> GetRangeTrend(DateTime start, DateTime end, int points);
+
     }
 }
