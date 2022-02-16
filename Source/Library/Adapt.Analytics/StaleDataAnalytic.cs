@@ -53,6 +53,8 @@ namespace Adapt.DataSources
 
         public int PrevFrames => 1;
 
+        public int FutureFrames => 0;
+
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
             return new List<AnalyticOutputDescriptor>() { 

@@ -53,6 +53,8 @@ namespace Adapt.DataSources
 
         public int PrevFrames => 1;
 
+        public int FutureFrames => 0;
+
         public class Setting 
         {
             [DisplayName("Upper Threshold")]

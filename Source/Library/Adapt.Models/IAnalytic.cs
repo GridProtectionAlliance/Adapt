@@ -75,5 +75,10 @@ namespace Adapt.Models
         /// </summary>
         public int PrevFrames { get; }
 
+        /// <summary>
+        /// Gets the number of future frames that need to be sent to the Analytic
+        /// </summary>
+        public int FutureFrames { get; }
+
     }
 }
