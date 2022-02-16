@@ -47,9 +47,14 @@ namespace Adapt.DataSources
         public int m_fps;
         public class Setting
         {
+            [DefaultValue(60)]
             [SettingName("Base Voltage")]
             public double BaseVoltage { get; set; }
+
+            [DefaultValue(2)]
             public double Max { get; set; }
+
+            [DefaultValue(1)]
             public double Min { get; set; }
         }
 

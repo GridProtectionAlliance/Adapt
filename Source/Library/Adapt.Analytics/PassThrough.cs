@@ -43,10 +43,7 @@ namespace Adapt.DataSources
     {
         private Setting m_settings;
         private int m_fps;
-        public class Setting
-        {
-            public string TestString { get; }
-        }
+        public class Setting{}
 
         public Type SettingType => typeof(Setting);
 

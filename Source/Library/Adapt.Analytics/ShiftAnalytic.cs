@@ -47,6 +47,7 @@ namespace Adapt.DataSources
         private Setting m_settings;
         public class Setting
         {
+            [DefaultValue(10)]
             public double Shift { get; set; }
         }
 

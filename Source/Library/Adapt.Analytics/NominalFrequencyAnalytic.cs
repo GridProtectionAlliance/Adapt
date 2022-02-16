@@ -40,16 +40,21 @@ namespace Adapt.DataSources
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Frequency Limits: Returns frequency if frequency / baseFrequency is between max and min.")]
+    [Description("Frequency Limits: Returns frequency if frequency / Nominal Frequency is between max and min.")]
     public class NominalFrequency: IAnalytic
     {
         private Setting m_settings;
         private int m_fps;
         public class Setting
         {
+            [DefaultValue(1)]
             [SettingName("Nominal Frequency")]
             public double NominalFrequency { get; set; }
+
+            [DefaultValue(2)]
             public double Max { get; set; }
+
+            [DefaultValue(1)]
             public double Min { get; set; }
         }
 

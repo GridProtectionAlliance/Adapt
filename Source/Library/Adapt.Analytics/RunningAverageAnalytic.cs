@@ -49,6 +49,7 @@ namespace Adapt.DataSources
 
         public class Setting
         {
+            [DefaultValue(5)]
             [SettingName("Average of last")]
             public double AverageOfLast { get; set; }
         }

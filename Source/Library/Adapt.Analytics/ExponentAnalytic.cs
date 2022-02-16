@@ -52,6 +52,7 @@ namespace Adapt.DataSources
 
         public class Setting
         {
+            [DefaultValue(2)]
             public double Exponent { get; set; }
         }
 
