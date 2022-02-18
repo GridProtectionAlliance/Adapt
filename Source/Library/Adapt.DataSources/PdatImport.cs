@@ -69,6 +69,7 @@ namespace Adapt.DataSources
         #region [ Methods ]
         public void Configure(IConfiguration config)
         {
+            m_ConfigFrameSource = new TaskCompletionSource<IConfigurationFrame>();
             m_settings = new PdatSettings();
             config.Bind(m_settings);
 
@@ -76,9 +77,12 @@ namespace Adapt.DataSources
 
             // Find all Files and parse into dateTime
             if (!Directory.Exists(m_settings.RootFolder))
+            {
+                m_ConfigFrameSource.SetResult(null);
                 return;
+            }
 
-            List <string> files = Directory.GetFiles(m_settings.RootFolder,"*.pdat",SearchOption.AllDirectories).ToList();
+                List <string> files = Directory.GetFiles(m_settings.RootFolder,"*.pdat",SearchOption.AllDirectories).ToList();
 
             //Parse these Files into DateTime and File Path
             foreach (string path in files)
@@ -107,6 +111,7 @@ namespace Adapt.DataSources
                 else
                     m_Files.Add(dateTime, fileInfo.FullName);
             }
+
 
             GetConfigFrame();
         }
@@ -236,6 +241,9 @@ namespace Adapt.DataSources
             if (!m_ConfigFrameSource.Task.IsCompleted && m_ConfigFrameSource.Task.Status != TaskStatus.WaitingForActivation)
                 return new List<AdaptDevice>();
 
+            if (m_ConfigFrameSource.Task.Result == null)
+                return new List<AdaptDevice>();
+
             IConfigurationFrame configuration = m_ConfigFrameSource.Task.Result;
 
             return configuration.Cells.Select(cell => new AdaptDevice(cell.IDCode.ToString(),cell.StationName)).ToList();
@@ -252,8 +260,11 @@ namespace Adapt.DataSources
         {
             if (!m_ConfigFrameSource.Task.IsCompleted && m_ConfigFrameSource.Task.Status != TaskStatus.WaitingForActivation)
                 return new List<AdaptSignal>();
-
+            
             IConfigurationFrame configuration = m_ConfigFrameSource.Task.Result;
+
+            if (configuration == null)
+                return new List<AdaptSignal>();
 
             IEnumerable<AdaptSignal> analogs = configuration.Cells.SelectMany(cell => cell.AnalogDefinitions
                 .Select(aD => new AdaptSignal(aD.Label, aD.Label, cell.IDCode.ToString(), cell.FrameRate)
@@ -312,7 +323,7 @@ namespace Adapt.DataSources
         private void GetConfigFrame()
         {
             if (m_Files.Count == 0)
-                return;
+                m_ConfigFrameSource.SetResult(null);
 
             if (m_ConfigFrameSource.Task.IsCompleted)
                 return;
