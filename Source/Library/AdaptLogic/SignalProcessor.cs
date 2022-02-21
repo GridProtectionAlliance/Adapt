@@ -50,7 +50,8 @@ namespace AdaptLogic
         private Channel<IFrame> m_queueOutput;
 
         private List<AnalyticProcessor> m_analyticProcesors;
-        
+        private int m_futureFrameBufferSize;
+        private Queue<IFrame> m_futureFrameBuffer;
 
         #endregion
 
@@ -61,7 +62,8 @@ namespace AdaptLogic
             m_queueInput = input;
             m_queueOutput = output;
             m_analyticProcesors = section.Analytics.Select(item => new AnalyticProcessor(item, framesPerSecond)).ToList();
-           
+            m_futureFrameBufferSize = m_analyticProcesors.Max(a => a.NFutureFrames);
+            m_futureFrameBuffer = new Queue<IFrame>(m_futureFrameBufferSize);
         }
         
         #endregion
@@ -96,27 +98,33 @@ namespace AdaptLogic
             {
                 try
                 {
+                    IFrame point;
+                    m_futureFrameBuffer = new Queue<IFrame>(m_futureFrameBufferSize + 1);
+                    int nPoints = 0;
 
-                    await foreach (IFrame point in m_queueInput.Reader.ReadAllAsync(cancellationToken))
+                    while (await m_queueInput.Reader.WaitToReadAsync(cancellationToken))
                     {
-                        IFrame result = new Frame() {
-                            Timestamp = point.Timestamp,
-                            Published=point.Published,
-                            Measurements = point.Measurements
-                        };
+                        if (!m_queueInput.Reader.TryRead(out point))
+                            continue;
 
-                        Task<ITimeSeriesValue[]>[] analytics = m_analyticProcesors.Select(p => p.Run(point)).ToArray();
+                        nPoints++;
+                        m_futureFrameBuffer.Enqueue(point);
+                        if (nPoints <= m_futureFrameBufferSize)
+                           continue;
 
-                        await Task.WhenAll(analytics).ConfigureAwait(false);
+                        point = m_futureFrameBuffer.Dequeue();
 
-                        int i = 0;
-                        foreach (Task<ITimeSeriesValue[]> analyticResult in analytics)
-                        {
-                            m_analyticProcesors[i].RouteOutput(point, analyticResult.Result);
-                        }
-
-                        m_queueOutput.Writer.TryWrite(result);
+                        ProcessPoint(point);
                     }
+
+                    // Run through the last set of Points 
+                    int i = 0;
+                    while (i < m_futureFrameBuffer.Count)
+                    {
+                        point = m_futureFrameBuffer.Dequeue();
+                        ProcessPoint(point);
+                        i++;
+                    }    
 
                     Complete();
                 }
@@ -126,6 +134,30 @@ namespace AdaptLogic
                 }
             }, cancellationToken);
 
+        }
+
+        private async void ProcessPoint(IFrame point)
+        {
+
+            IFrame result = new Frame()
+            {
+                Timestamp = point.Timestamp,
+                Published = point.Published,
+                Measurements = point.Measurements
+            };
+
+            Task<ITimeSeriesValue[]>[] analytics = m_analyticProcesors.Select(p => p.Run(point, m_futureFrameBuffer.ToArray())).ToArray();
+
+            await Task.WhenAll(analytics).ConfigureAwait(false);
+
+            int i = 0;
+            foreach (Task<ITimeSeriesValue[]> analyticResult in analytics)
+            {
+                m_analyticProcesors[i].RouteOutput(point, analyticResult.Result);
+                i++;
+            }
+
+            m_queueOutput.Writer.TryWrite(result);
         }
 
         #endregion

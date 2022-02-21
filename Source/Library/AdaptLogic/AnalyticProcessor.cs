@@ -54,8 +54,13 @@ namespace AdaptLogic
         private Analytic m_analytic;
 
         private Queue<IFrame> m_pastPoints;
+
         private int NProcessed;
 
+        /// <summary>
+        /// Returns the number of future Frames required for this Analytic
+        /// </summary>
+        public int NFutureFrames => m_instance?.FutureFrames ?? 0;
         #endregion
 
         #region [ Constructor ]
@@ -82,7 +87,7 @@ namespace AdaptLogic
 
         #region [ Methods ]
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame)
+        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] futureFrames)
         {
             NProcessed++;
             if (m_nextTimeStamp == Gemstone.Ticks.MinValue)
@@ -94,7 +99,7 @@ namespace AdaptLogic
                 IFrame input = RouteInput(frame);
                 m_nextTimeStamp = m_nextTimeStamp + (long)(Gemstone.Ticks.PerSecond * 1.0 / ((double)m_instance.FramesPerSecond));
                 
-                Task<ITimeSeriesValue[]> task = m_instance.Run(input, m_pastPoints.ToArray(), new IFrame[0]);
+                Task<ITimeSeriesValue[]> task = m_instance.Run(input, m_pastPoints.ToArray(), futureFrames.Skip(futureFrames.Length - NFutureFrames).ToArray());
 
                 if (m_instance.PrevFrames > 0)
                 {
