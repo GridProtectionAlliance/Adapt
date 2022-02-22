@@ -84,6 +84,7 @@ namespace Adapt.DataSources
 
 
             f = GetRandom(m_settings.NominalFrequency, m_settings.FreqStandardDev);
+
             Va = new Phasor(PhasorType.Voltage,Angle.FromDegrees(GetRandom(0, 5)),GetRandom(m_settings.LLBaseVoltage / Math.Sqrt(3), m_settings.VoltageStandardDev));
             Vc = new Phasor(PhasorType.Voltage, Angle.FromDegrees(GetRandom(120.0, 5)), GetRandom(m_settings.LLBaseVoltage / Math.Sqrt(3), m_settings.VoltageStandardDev));
             Vb = new Phasor(PhasorType.Voltage, Angle.FromDegrees(GetRandom(240.0, 5)), GetRandom(m_settings.LLBaseVoltage / Math.Sqrt(3), m_settings.VoltageStandardDev));
@@ -153,6 +154,14 @@ namespace Adapt.DataSources
 
         private double GetRandom(double mean, double stdev)
         {
+            double zero = m_random.NextDouble();
+            double missing = m_random.NextDouble();
+
+            if ((m_settings.Missing / 100.0D) > missing)
+                return double.NaN;
+            if ((m_settings.ZeroValue / 100.0D) > zero)
+                return 0.0D;
+
             double u1 = 1.0 - m_random.NextDouble();
             double u2 = 1.0 - m_random.NextDouble();
             double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);

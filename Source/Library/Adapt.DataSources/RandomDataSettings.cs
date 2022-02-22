@@ -69,5 +69,14 @@ namespace Adapt.DataSources
         [DefaultValue(60.0)]
         public double NominalFrequency { get; set; }
 
+        [SettingName("Missing Data (%)")]
+        [DefaultValue(0.0D)]
+        public double Missing { get; set; }
+
+        [SettingName("Zero Value Data (%)")]
+        [DefaultValue(0.0D)]
+        public double ZeroValue { get; set; }
+
+
     }
 }
