@@ -51,7 +51,7 @@ namespace Adapt.DataSources
         {
             [DefaultValue(5)]
             [SettingName("Average of last")]
-            public double AverageOfLast { get; set; }
+            public int AverageOfLast { get; set; }
         }
 
         public Type SettingType => typeof(Setting);
