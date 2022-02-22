@@ -45,7 +45,6 @@ namespace Adapt.DataSources
     {
         private Setting m_settings;
         private int m_fps;
-        private double[] values = Array.Empty<double>();
 
         public class Setting
         {
@@ -58,7 +57,7 @@ namespace Adapt.DataSources
 
         public int FramesPerSecond => m_fps;
 
-        public int PrevFrames => 0;
+        public int PrevFrames => m_settings.AverageOfLast - 1;
 
         public int FutureFrames => 0;
 
@@ -81,19 +80,13 @@ namespace Adapt.DataSources
 
         public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames) 
         {
-            ITimeSeriesValue original = frame.Measurements["Original"];
-            if (values.Length >= m_settings.AverageOfLast)
-            {
-                values = values.Skip(1).ToArray();
-                values = values.Append(original.Value).ToArray();
-                return new AdaptValue[] { new AdaptValue("Average", values.Average(), original.Timestamp) };
-            }
+            double original = frame.Measurements.First().Value.Value;
+            double values = 0;
+            foreach (IFrame x in previousFrames)
+                values += x.Measurements.First().Value.Value;
+            values += original;
 
-            else 
-            {
-                values = values.Append(original.Value).ToArray();
-                return new AdaptValue[] { new AdaptValue("Average", values.Average(), original.Timestamp) };
-            }
+            return new AdaptValue[] { new AdaptValue("Average", values / (previousFrames.Length + 1), frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)
