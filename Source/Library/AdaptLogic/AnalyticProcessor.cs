@@ -56,6 +56,7 @@ namespace AdaptLogic
         private Queue<IFrame> m_pastPoints;
 
         private int NProcessed;
+        public int FramesPerSecond => m_instance?.FramesPerSecond ?? -1;
 
         /// <summary>
         /// Returns the number of future Frames required for this Analytic
@@ -122,7 +123,11 @@ namespace AdaptLogic
                 Published = frame.Published,
 
                 Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(
-                            m_analytic.Inputs.Select(item => frame.Measurements[item])
+                            m_analytic.Inputs.Select(item => {
+                                if (frame.Measurements.ContainsKey(item))
+                                    return frame.Measurements[item];
+                                return new AdaptValue(item, double.NaN, frame.Timestamp);
+                            })
                             .ToDictionary(item => InputNames[m_analytic.Inputs.FindIndex((s) => s == item.ID)], item => item)
                             )
             };

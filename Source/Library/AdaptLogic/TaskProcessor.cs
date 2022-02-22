@@ -23,6 +23,7 @@
 
 using Adapt.Models;
 using Gemstone;
+using GemstoneAnalytic;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -51,6 +52,8 @@ namespace AdaptLogic
         private DateTime m_start;
         private DateTime m_end;
         private Task m_mainProcess;
+
+        private int m_commonFrameRate;
 
         private List<Channel<IFrame>> m_sectionQueue;
 
@@ -89,7 +92,7 @@ namespace AdaptLogic
             m_end = end;
             m_sourceSignals = Signals;
             m_cancelationSource = new CancellationTokenSource();
-            
+            m_commonFrameRate = TimeAlignment.Combine(Signals.Select(item => item.FramesPerSecond).ToArray());
         }
 
         /// <summary>
@@ -102,13 +105,6 @@ namespace AdaptLogic
             SignalWritter.CleanAppData();
             CreateSourceInstance(task.DataSource);
             List<AdaptSignal> inputSignals = m_Source.GetSignals().Where(s => task.InputSignalIds.Contains(s.ID)).ToList();
-
-            // Compute FrameRates for initial Analytics Based on InputSignals
-
-            // Adjust FrameRates of OutputSignals
-
-            // ToDo Adjust SignalProcessor to use correct FPS based on inputSignals
-            // Return FPS and ensure the next SignalProcessor uses those FPS as inputs
         
             m_sourceQueue = Channel.CreateUnbounded<IFrame>();
             m_start = task.Start;
@@ -127,6 +123,7 @@ namespace AdaptLogic
             task.OutputSignals.ForEach(s => s.FramesPerSecond = framesPerSecond[s.ID]);
             m_writers = new ConcurrentDictionary<string, SignalWritter>(task.OutputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
 
+            m_commonFrameRate = TimeAlignment.Combine(m_processors.Select(item => item.FramesPerSecond).Where(fps => fps > 0).ToArray());
         }
         #endregion
 
@@ -197,6 +194,7 @@ namespace AdaptLogic
 
                 await foreach (IFrame frame in m_Source.GetData(m_sourceSignals, m_start, m_end))
                 {
+                    frame.Timestamp = Ticks.AlignToMicrosecondDistribution(frame.Timestamp, m_commonFrameRate);
                     await m_sourceQueue.Writer.WriteAsync(frame, cancelationToken);
                     count++;
                     if (count % 1000 == 0 && m_Source.SupportProgress())

@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Adapt.Models\Adapt.Models.csproj" />
+    <ProjectReference Include="..\GemstoneAnalytic\GemstoneAnalytic.csproj" />
     <ProjectReference Include="..\GemstoneCommon\GemstoneCommon.csproj" />
   </ItemGroup>
 

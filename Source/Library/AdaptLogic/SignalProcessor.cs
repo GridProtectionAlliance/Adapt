@@ -22,6 +22,8 @@
 // ******************************************************************************************************
 
 using Adapt.Models;
+using Gemstone;
+using GemstoneAnalytic;
 using GemstoneCommon;
 using System;
 using System.Collections;
@@ -53,6 +55,8 @@ namespace AdaptLogic
         private int m_futureFrameBufferSize;
         private Queue<IFrame> m_futureFrameBuffer;
 
+        private Ticks m_lastProcessedTS;
+        public int FramesPerSecond { get; }
         #endregion
 
         #region [ Constructor ]
@@ -64,6 +68,8 @@ namespace AdaptLogic
             m_analyticProcesors = section.Analytics.Select(item => new AnalyticProcessor(item, framesPerSecond)).ToList();
             m_futureFrameBufferSize = m_analyticProcesors.Max(a => a.NFutureFrames);
             m_futureFrameBuffer = new Queue<IFrame>(m_futureFrameBufferSize);
+            FramesPerSecond = TimeAlignment.Combine(m_analyticProcesors.Select(item => item.FramesPerSecond).Where(fps => fps >0).ToArray());
+            m_lastProcessedTS = Ticks.MinValue;
         }
         
         #endregion
@@ -107,14 +113,45 @@ namespace AdaptLogic
                         if (!m_queueInput.Reader.TryRead(out point))
                             continue;
 
+                       
+                        // Tolerance withing a few Ticks of expected TimeStamp
+                        Ticks aligned = Ticks.AlignToMicrosecondDistribution(point.Timestamp, FramesPerSecond);
+                        long diff = aligned - point.Timestamp;
+
+                        if (diff > Ticks.PerMillisecond || diff < -Ticks.PerMillisecond)
+                            continue;
+
+                        // Generate Timestamps in between if necessary
+                        while (aligned - m_lastProcessedTS > (long)(Ticks.PerSecond*(0.5D/ (double)FramesPerSecond)) 
+                            && m_lastProcessedTS != Ticks.MinValue)
+                        {
+                            m_lastProcessedTS = m_lastProcessedTS + (long)(Ticks.PerSecond * (1.0D / (double)FramesPerSecond));
+                            IFrame frame = new Frame()
+                            {
+                                Timestamp = Ticks.AlignToMicrosecondDistribution(m_lastProcessedTS, FramesPerSecond),
+                                Published = point.Published,
+                                Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>()
+                            };
+
+                            nPoints++;
+                            m_futureFrameBuffer.Enqueue(frame);
+                            if (nPoints <= m_futureFrameBufferSize)
+                                continue;
+
+                            frame = m_futureFrameBuffer.Dequeue();
+
+                            ProcessPoint(frame);
+                        }
+
                         nPoints++;
                         m_futureFrameBuffer.Enqueue(point);
                         if (nPoints <= m_futureFrameBufferSize)
-                           continue;
+                            continue;
 
                         point = m_futureFrameBuffer.Dequeue();
-
+                        m_lastProcessedTS = aligned;
                         ProcessPoint(point);
+
                     }
 
                     // Run through the last set of Points 
@@ -141,7 +178,7 @@ namespace AdaptLogic
 
             IFrame result = new Frame()
             {
-                Timestamp = point.Timestamp,
+                Timestamp = Ticks.AlignToMicrosecondDistribution(point.Timestamp, FramesPerSecond),
                 Published = point.Published,
                 Measurements = point.Measurements
             };

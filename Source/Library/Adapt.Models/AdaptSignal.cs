@@ -39,7 +39,7 @@ namespace Adapt.Models
     {
         #region [ Members ]
         private string m_Key;
-        private double m_fps;
+        private int m_fps;
         private string m_Name;
         private string m_DeviceKey;
         private Phase m_phase;
@@ -50,7 +50,7 @@ namespace Adapt.Models
         #region [ Properties ]
         public string ID => m_Key;
 
-        public double FramesPerSecond
+        public int FramesPerSecond
         {
             get => m_fps;
             set => m_fps = value;
