@@ -384,6 +384,13 @@ namespace Adapt.ViewModels
                 SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {Name} does not have a valid Type");
                 args.Cancel = true;
             }
+
+            if (SectionViewModel.Analytics.Any(p => p.Name == Name && p.ID != ID)) 
+            {
+                SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic: {Name} does not have a valid Name");
+                args.Cancel = true;
+            }
+
             List<string> settingErrors = m_settings.Where(s => s.IsInvalid).Select(s => $"Analytic {Name} {s.Label} setting is not valid.").ToList();
 
             if (settingErrors.Count > 0)

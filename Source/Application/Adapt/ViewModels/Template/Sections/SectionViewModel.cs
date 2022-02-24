@@ -141,8 +141,15 @@ namespace Adapt.ViewModels
         }
         private void AddAnalytic()
         {
+            string name = "Analytic";
+            int i = 1;
+            while (m_analytics.Select(item => item.Name).Contains(name))
+            {
+                name = "Analytic " + i.ToString();
+                i++;
+            }
             m_analytics.Add(new AnalyticVM(new Analytic() { 
-                Name="Analytic name",
+                Name=name,
                 SectionID = m_section.ID,
                 TemplateID = TemplateViewModel.ID,
                 ID = TemplateViewModel.CreateAnalyticID()
