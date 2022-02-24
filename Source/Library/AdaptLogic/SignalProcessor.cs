@@ -122,7 +122,7 @@ namespace AdaptLogic
                             continue;
 
                         // Generate Timestamps in between if necessary
-                        while (aligned - m_lastProcessedTS > (long)(Ticks.PerSecond*(0.5D/ (double)FramesPerSecond)) 
+                        while (aligned - (m_lastProcessedTS + (long)(Ticks.PerSecond * (1.0D / (double)FramesPerSecond))) > (long)(Ticks.PerSecond*(0.5D/ (double)FramesPerSecond)) 
                             && m_lastProcessedTS != Ticks.MinValue)
                         {
                             m_lastProcessedTS = m_lastProcessedTS + (long)(Ticks.PerSecond * (1.0D / (double)FramesPerSecond));
@@ -185,6 +185,8 @@ namespace AdaptLogic
 
             Task<ITimeSeriesValue[]>[] analytics = m_analyticProcesors.Select(p => p.Run(point, m_futureFrameBuffer.ToArray())).ToArray();
 
+            
+            
             await Task.WhenAll(analytics).ConfigureAwait(false);
 
             int i = 0;

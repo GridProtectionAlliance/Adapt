@@ -98,13 +98,14 @@ namespace AdaptLogic
             {
 
                 IFrame input = RouteInput(frame);
+                IFrame[] forwardFrames = futureFrames.Skip(futureFrames.Length - NFutureFrames).Select(f => RouteInput(f)).ToArray();
                 m_nextTimeStamp = m_nextTimeStamp + (long)(Gemstone.Ticks.PerSecond * 1.0 / ((double)m_instance.FramesPerSecond));
                 
-                Task<ITimeSeriesValue[]> task = m_instance.Run(input, m_pastPoints.ToArray(), futureFrames.Skip(futureFrames.Length - NFutureFrames).ToArray());
+                Task<ITimeSeriesValue[]> task = m_instance.Run(input, m_pastPoints.ToArray(), forwardFrames);
 
                 if (m_instance.PrevFrames > 0)
                 {
-                    m_pastPoints.Enqueue(frame);
+                    m_pastPoints.Enqueue(input);
                     if (m_pastPoints.Count > m_instance.PrevFrames)
                         m_pastPoints.Dequeue();
                 }
