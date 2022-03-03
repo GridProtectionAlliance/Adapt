@@ -47,7 +47,6 @@ namespace Adapt.DataSources
     {
         private Setting m_settings;
         private int m_fps;
-        private double last;
 
         public class Setting
         {
@@ -82,180 +81,47 @@ namespace Adapt.DataSources
 
         public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames) 
         {
-            double original = frame.Measurements["Original"].Value;
+            double original = frame.Measurements.First().Value.Value; ;
             double prev = previousFrames.FirstOrDefault()?.Measurements.First().Value.Value ?? double.NaN;
             double future = futureFrames.FirstOrDefault()?.Measurements.First().Value.Value ?? double.NaN;
 
-            double next = 0;
-            double value = 0;
-            if (!double.IsNaN(original)) 
-            {
-                return new AdaptValue[] { new AdaptValue("Linear", original, frame.Timestamp) };
-            }
-
             if (double.IsNaN(original) && !double.IsNaN(prev) && !double.IsNaN(future))
+                return new AdaptValue[] { new AdaptValue("Linear", GetY(previousFrames.First().Timestamp, prev, futureFrames.First().Timestamp, future, frame.Timestamp), frame.Timestamp) };
+            if (double.IsNaN(original) && (double.IsNaN(prev) || double.IsNaN(future))) 
             {
-                value = GetY(previousFrames.First().Timestamp, prev, futureFrames.First().Timestamp, future, frame.Timestamp);
-                return new AdaptValue[] { new AdaptValue("Linear", value, frame.Timestamp) };
+                int n_prev = 0;
+                int n_future = 0;
+
+                while (n_prev < previousFrames.Length) 
+                {
+                    if (!double.IsNaN(previousFrames[n_prev].Measurements.First().Value.Value)) 
+                    {
+                        prev = previousFrames[n_prev].Measurements.First().Value.Value;
+                        break;
+                    }
+                    n_prev++;
+                }
+
+                while (n_future < futureFrames.Length) 
+                {
+                    if (!double.IsNaN(futureFrames[n_future].Measurements.First().Value.Value)) 
+                    {
+                        future = futureFrames[n_future].Measurements.First().Value.Value;
+                        break;
+                    }
+                    n_future++;
+                }
+
+                if (double.IsNaN(prev) || double.IsNaN(future))
+                    return new AdaptValue[] { new AdaptValue("Linear", double.NaN, frame.Timestamp) };
+                return new AdaptValue[] { new AdaptValue("Linear", GetY(previousFrames[n_prev].Timestamp, prev, futureFrames[n_future].Timestamp, future, frame.Timestamp), frame.Timestamp) };
             }
-
-            if (double.IsNaN(original) && (double.IsNaN(prev) || double.IsNaN(future)) && previousFrames.Length != 0 && futureFrames.Length != 0) 
-            {
-                //if current and prev values are both NaN
-                if (double.IsNaN(prev) && !double.IsNaN(future)) 
-                {
-                    //if we have already calculated the last value, use it to calculate the current one
-                    if (!double.IsNaN(last)) 
-                    {
-                        value = GetY(previousFrames.First().Timestamp, last, futureFrames.First().Timestamp, future, frame.Timestamp);
-                        last = value;
-                        return new AdaptValue[] { new AdaptValue("Linear", value, frame.Timestamp) };
-                    }
-
-                    //find next frame that doesn't contain NaN
-                    int n = 0;
-                    bool contains = false;
-                    while (n < previousFrames.Length) 
-                    {
-                        if (!double.IsNaN(previousFrames[n].Measurements.First().Value.Value)) 
-                        {
-                            last = previousFrames[n].Measurements.First().Value.Value;
-                            contains = true;
-                            break;
-                        }
-                        n++;
-                    }
-
-                    //if there are no previousFrames within the set limit that contain a value, return NaN and move to the next one
-                    if (!contains)
-                        return new AdaptValue[] { new AdaptValue("Linear", double.NaN, frame.Timestamp) };
-
-                    //use the next previousFrame to have a value to calculate the line
-                    while (n >= 1) 
-                    {
-                        previousFrames[n-1].Measurements.First().Value.Value = GetY(previousFrames[n].Timestamp, previousFrames[n].Measurements.First().Value.Value, futureFrames.First().Timestamp, future, previousFrames[n - 1].Timestamp);
-                        n--;
-                    }
-                    value = GetY(previousFrames.First().Timestamp, previousFrames.First().Measurements.First().Value.Value, futureFrames.First().Timestamp, future, frame.Timestamp);
-                    last = value;
-                    return new AdaptValue[] { new AdaptValue("Linear", value, frame.Timestamp) };
-                }
-                //if current and future value are both NaN
-                if (double.IsNaN(future) && !double.IsNaN(prev)) 
-                {
-                    //find the next frame that has an actual value
-                    int n = 0;
-                    bool contains = false;
-                    while (n < futureFrames.Length) 
-                    {
-                        if (!double.IsNaN(futureFrames[n].Measurements.First().Value.Value)) 
-                        {
-                            contains = true;
-                            break;
-                        }
-                        n++;
-                    }
-
-                    //if there are no futureFrames that contain a value, return NaN and move on
-                    if (!contains)
-                        return new AdaptValue[] { new AdaptValue("Linear", double.NaN, frame.Timestamp) };
-
-                    //use the next futureFrame with a value to find the line and then return it
-                    while (n >= 1)
-                    {
-                        futureFrames[n-1].Measurements.First().Value.Value = GetY(previousFrames.First().Timestamp, prev, futureFrames[n].Timestamp, futureFrames[n].Measurements.First().Value.Value, futureFrames[n - 1].Timestamp);
-                        n--;
-                    }
-                    value = GetY(previousFrames.First().Timestamp, prev, futureFrames.First().Timestamp, futureFrames.First().Measurements.First().Value.Value, frame.Timestamp);
-                    last = value;
-                    return new AdaptValue[] { new AdaptValue("Linear", value, frame.Timestamp) };
-                }
-                //if current, future and previous value are all NaN
-                if (double.IsNaN(prev) && double.IsNaN(future))
-                {
-                    //we have the last value but not current or future so do the same as the previous case
-                    if (!double.IsNaN(last))
-                    {
-                        //find the next frame that has an actual value
-                        int x = 0;
-                        bool contains = false;
-                        while (x < futureFrames.Length)
-                        {
-                            if (!double.IsNaN(futureFrames[x].Measurements.First().Value.Value))
-                             {
-                                next = futureFrames[x].Measurements.First().Value.Value;
-                                contains = true;
-                                break;
-                             }
-                             x++;
-                         }
-
-                         //if there are no futureFrames that contain a value, return NaN and move on
-                         if (!contains)
-                            return new AdaptValue[] { new AdaptValue("Linear", double.NaN, frame.Timestamp) };
-
-                        //use the next futureFrame with a value to find the line and then return it
-                        while(x >= 1)
-                        {
-                            futureFrames[x-1].Measurements.First().Value.Value = GetY(previousFrames.First().Timestamp, prev, futureFrames[x].Timestamp, futureFrames[x].Measurements.First().Value.Value, futureFrames[x-1].Timestamp);
-                            x--;
-                        }
-                        value = GetY(previousFrames.First().Timestamp, prev, futureFrames.First().Timestamp, futureFrames.First().Measurements.First().Value.Value, frame.Timestamp);
-                        last = value;
-                        return new AdaptValue[] { new AdaptValue("Linear", value, frame.Timestamp) };
-                    }
-
-                    //find the next futureFrame that has a real value
-                    int n_next = 0;
-                    bool future_contains = false;
-                    while (n_next < futureFrames.Length) 
-                    {
-                        if (!double.IsNaN(futureFrames[n_next].Measurements.First().Value.Value)) 
-                        {
-                            next = futureFrames[n_next].Measurements.First().Value.Value;
-                            future_contains = true;
-                            break;
-                        }
-                        n_next++;
-                    }
-
-                    //if there are no futureFrames that contain real values, then return NaN
-                    if (!future_contains)
-                        return new AdaptValue[] { new AdaptValue("Linear", double.NaN, frame.Timestamp) };
-
-                    int n_prev = 0;
-                    bool prev_contains = false;
-                    while (n_prev < previousFrames.Length) 
-                    {
-                        if (!double.IsNaN(previousFrames[n_prev].Measurements.First().Value.Value)) 
-                        {
-                            last = previousFrames[n_prev].Measurements.First().Value.Value;
-                            prev_contains = true;
-                            break;
-                        }
-                        n_prev++;
-                    }
-
-                    //if there are no previousFrames that contain values, then return NaN
-                    if (!prev_contains)
-                        return new AdaptValue[] { new AdaptValue("Linear", double.NaN, frame.Timestamp) };
-
-
-
-                    value = GetY(previousFrames[n_prev].Timestamp, last, futureFrames[n_next].Timestamp, next, frame.Timestamp);
-                    
-                    return new AdaptValue[] { new AdaptValue("Linear", value, frame.Timestamp) };
-                }
-            }
-
             return new AdaptValue[] { new AdaptValue("Linear", original, frame.Timestamp) };
         }
 
         public double GetY(double x1, double y1, double x2, double y2, double x) 
         {
-            double slope = (y2 - y1) / (x2 - x1);
-            double b = y1 - (slope * x1);
-            return (slope * x) + b;
+            return y1 + ((x - x1) * ((y2 - y1) / (x2 - x1)));
         }
 
         public void Configure(IConfiguration config)
