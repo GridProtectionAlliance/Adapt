@@ -16,4 +16,8 @@
     <OutputPath>..\..\..\Build\Outputs\Release\Library\GemstoneAnalytic\</OutputPath>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Gemstone.Numeric" Version="1.0.83" />
+  </ItemGroup>
+
 </Project>
