@@ -129,6 +129,11 @@ namespace Adapt.ViewModels
                     else
                         m_dataSourceList.SelectedID = m_dataSource.ID;
             }
+
+            if (e.PropertyName == nameof(m_dataSourceList.DataSource))
+            {
+                m_task.LoadDataSources();
+            }
         }
 
         public void TemplateList_Changed(object sender, PropertyChangedEventArgs e)
@@ -137,6 +142,11 @@ namespace Adapt.ViewModels
             {
                 if (m_template.ID != m_templateList.SelectedID)
                     m_template.ID = m_templateList.SelectedID;
+            }
+
+            if (e.PropertyName == nameof(m_templateList.Templates))
+            {
+                m_task.LoadTemplates();
             }
         }
 
@@ -147,6 +157,7 @@ namespace Adapt.ViewModels
                 if (m_dataSource.ID != m_dataSourceList.SelectedID)
                     m_dataSourceList.Load(m_dataSource.ID);
             }
+
         }
 
         public void Template_Changed(object sender, PropertyChangedEventArgs e)
