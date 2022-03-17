@@ -224,7 +224,7 @@ namespace Adapt.DataSources
                     parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
                     parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
                     parser.ConnectionString = $"file={m_Files[files[i]]}";
-                    parser.CompletedFileParsing += ConnectionTerminated;
+                    parser.CompletedFileParsing += CompletedFileParsing;
                     parser.ReceivedDataFrame += RecievedDataFrame;
                     parser.DefinedFrameRate = 10000000;
                     parser.DisconnectAtEOF = true;
@@ -354,7 +354,7 @@ namespace Adapt.DataSources
             bool a = m_dataQueue.Writer.TryWrite(conf.Argument);
         }
 
-        private void ConnectionTerminated(object sender, EventArgs conf)
+        private void CompletedFileParsing(object sender, EventArgs conf)
         {
             m_FileComplete.Set();
         }
