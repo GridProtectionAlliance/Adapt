@@ -57,6 +57,7 @@ namespace AdaptLogic
         private Channel<ITimeSeriesValue> m_queue;
 
         private AdaptSignal m_signal;
+        private bool m_isEvent;
 
         private const int NLevels = 5;
         #endregion
@@ -74,7 +75,7 @@ namespace AdaptLogic
             m_BadTSData = new List<ITimeSeriesValue>();
 
             m_activeFolder = new string[NLevels] { "", "", "", "", "" };
-            m_activeSummary = new GraphPoint[(NLevels+1)] { new GraphPoint(), new GraphPoint(), new GraphPoint(), new GraphPoint(), new GraphPoint(), new GraphPoint() };
+            m_activeSummary = new GraphPoint[(NLevels + 1)] { new GraphPoint(), new GraphPoint(), new GraphPoint(), new GraphPoint(), new GraphPoint(), new GraphPoint() };
             m_currentSecond = 0;
         }
 
@@ -111,6 +112,30 @@ namespace AdaptLogic
             }
         }
 
+        ///
+        /// 
+        private void UpdateGeneralEventFile(ITimeSeriesValue Value)
+        {
+            m_isEvent = false;
+            if (!Value.IsEvent)
+                return;
+            try
+            {
+                m_isEvent = true;
+                AdaptEvent evt = (AdaptEvent) Value;
+                using (StreamWriter writer = new StreamWriter($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config", true))
+                {
+                    writer.WriteLine("Event Parameters");
+                    foreach (string v in evt.ParameterNames)
+                        writer.WriteLine(v);  
+                }
+            }
+            catch (Exception ex)
+            {
+                m_isEvent = false;
+            }
+
+        }
         /// <summary>
         /// Adds a <see cref="ITimeSeriesValue"/> to be processed by this <see cref="SignalWritter"/>
         /// </summary>
@@ -142,11 +167,17 @@ namespace AdaptLogic
                 try
                 {
                     ITimeSeriesValue point;
-
+                    bool processFirst = true;
                     while (await m_queue.Reader.WaitToReadAsync(cancellationToken))
                     {
                         if (!m_queue.Reader.TryRead(out point))
                             continue;
+
+                        if (processFirst)
+                        {
+                            UpdateGeneralEventFile(point);
+                            processFirst = false;
+                        }    
 
                         if (double.IsNaN(point.Value))
                             continue;
@@ -165,8 +196,6 @@ namespace AdaptLogic
 
                         m_data.Add(point);
                         m_currentSecond = second;
-
-
                     }
 
                     WriteSecond(true);

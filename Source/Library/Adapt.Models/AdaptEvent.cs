@@ -25,6 +25,7 @@
 using Gemstone;
 using GemstoneCommon;
 using System;
+using System.Collections.Generic;
 
 namespace Adapt.Models
 {
@@ -36,6 +37,7 @@ namespace Adapt.Models
         private double m_Value = 1;
         private string m_Guid;
         private Ticks m_Time;
+        private List<string> m_parameterNames;
 
         public double Value
         {
@@ -54,10 +56,18 @@ namespace Adapt.Models
 
         public Ticks Timestamp { get => m_Time; set => m_Time = value; }
 
+        public double LenghtSeconds { get; set; }
+
+        public double[] Parameters { get; set; }
+
+        public List<string> ParameterNames => m_parameterNames;
+
+        public bool IsEvent => true;
         public AdaptEvent(string guid)
         {
             m_Guid = guid;
             m_Value = 1;
+            LenghtSeconds = 0;
         }
 
         public AdaptEvent(string guid, Ticks Time)
@@ -65,6 +75,24 @@ namespace Adapt.Models
             m_Guid = guid;
             m_Time = Time;
             m_Value = 1;
+            LenghtSeconds = 0;
+        }
+
+        public AdaptEvent(string guid, Ticks Time, double Length)
+        {
+            m_Guid = guid;
+            m_Time = Time;
+            m_Value = 1;
+            LenghtSeconds = Length;
+        }
+
+        public AdaptEvent(string guid, Ticks Time, double Length, List<string> ParameterNames)
+        {
+            m_Guid = guid;
+            m_Time = Time;
+            m_Value = 1;
+            LenghtSeconds = Length;
+            m_parameterNames = ParameterNames;
         }
     }
 }

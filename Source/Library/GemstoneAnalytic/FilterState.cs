@@ -35,6 +35,11 @@ namespace GemstoneAnalytic
     /// </summary>
     public class FilterState
     {
+        public FilterState()
+        {
+            StateValue = new double[0];
+        }
+
        public double[] StateValue { get; set; }
     }
 }

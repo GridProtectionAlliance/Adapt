@@ -40,8 +40,8 @@ namespace Adapt.Models
         public double Value { get => m_Value; set => m_Value = value; }
 
         public string ID =>  m_Guid;
-        
 
+        public bool IsEvent => false;
         public Ticks Timestamp { get => m_Time; set => m_Time = value; }
 
         public AdaptValue(string guid)
