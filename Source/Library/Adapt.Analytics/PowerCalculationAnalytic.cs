@@ -88,7 +88,7 @@ namespace Adapt.DataSources
 
         public Task CompleteComputation() 
         {
-            return null;
+            return Task.Run(() => { });
         }
 
         public Complex GetComplex(IFrame frame)

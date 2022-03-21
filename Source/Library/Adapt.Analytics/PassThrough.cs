@@ -70,7 +70,7 @@ namespace Adapt.DataSources
 
         public Task CompleteComputation() 
         {
-            return null;
+            return Task.Run(() => { });
         }
 
         public void Configure(IConfiguration config)

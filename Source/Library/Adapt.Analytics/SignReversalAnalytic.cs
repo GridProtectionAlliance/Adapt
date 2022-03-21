@@ -76,7 +76,7 @@ namespace Adapt.DataSources
 
         public Task CompleteComputation() 
         {
-            return null;
+            return Task.Run(() => { });
         }
 
         public ITimeSeriesValue[] Compute(IFrame frame) 
