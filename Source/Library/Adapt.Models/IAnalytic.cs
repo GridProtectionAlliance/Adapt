@@ -60,6 +60,11 @@ namespace Adapt.Models
         public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames);
 
         /// <summary>
+        /// Clean up after last computation
+        /// </summary>
+        public Task CompleteComputation();
+
+        /// <summary>
         /// Gets the Current FrameRate of this Adapter
         /// </summary>
         public int FramesPerSecond { get; }

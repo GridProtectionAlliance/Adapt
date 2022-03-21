@@ -85,6 +85,11 @@ namespace Adapt.DataSources
             return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { real, imaginary });
         }
 
+        public Task CompleteComputation() 
+        {
+            return null;
+        }
+
         public Complex GetComplex(IFrame frame) 
         {
             ITimeSeriesValue magnitude = frame.Measurements["Magnitude"];

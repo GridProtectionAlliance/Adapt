@@ -72,6 +72,11 @@ namespace Adapt.DataSources
             return Task.FromResult<ITimeSeriesValue[]>(Compute(frame, previousFrames));
         }
 
+        public Task CompleteComputation() 
+        {
+            return null;
+        }
+
         public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames) 
         {
             double original = frame.Measurements.First().Value.Value;

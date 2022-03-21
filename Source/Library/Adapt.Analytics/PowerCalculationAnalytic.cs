@@ -86,6 +86,11 @@ namespace Adapt.DataSources
             return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { apparent, active, reactive });
         }
 
+        public Task CompleteComputation() 
+        {
+            return null;
+        }
+
         public Complex GetComplex(IFrame frame)
         {
             ITimeSeriesValue voltage_mag = frame.Measurements["Voltage Magnitude"];

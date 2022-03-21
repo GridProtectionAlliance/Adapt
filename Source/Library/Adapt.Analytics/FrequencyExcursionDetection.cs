@@ -97,6 +97,11 @@ namespace Adapt.DataSources
             return Task.Run(() => Compute(frame, previousFrames) );
         }
 
+        public Task CompleteComputation() 
+        {
+            return null;
+        }
+
         public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames) 
         {
             List<AdaptEvent> result = new List<AdaptEvent>();
