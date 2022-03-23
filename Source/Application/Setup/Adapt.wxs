@@ -190,6 +190,75 @@
       <Component Id="Microsoft.Extensions.Logging.Abstractions">
         <File Id="Microsoft.Extensions.Logging.Abstractions.dll" Name="Microsoft.Extensions.Logging.Abstractions.dll" Source="$(var.Adapt.TargetDir)Microsoft.Extensions.Logging.Abstractions.dll" />
       </Component>
+
+      <Component Id="Microsoft.CodeAnalysis.CSharp">
+        <File Id="Microsoft.CodeAnalysis.CSharp.dll" Name="Microsoft.CodeAnalysis.CSharp.dll" Source="$(var.Adapt.TargetDir)Microsoft.CodeAnalysis.CSharp.dll" />
+      </Component>
+      <Component Id="Microsoft.CodeAnalysis.CSharp.Scripting">
+        <File Id="Microsoft.CodeAnalysis.CSharp.Scripting.dll" Name="Microsoft.CodeAnalysis.CSharp.Scripting.dll" Source="$(var.Adapt.TargetDir)Microsoft.CodeAnalysis.CSharp.Scripting.dll" />
+      </Component>
+      <Component Id="Microsoft.CodeAnalysis">
+        <File Id="Microsoft.CodeAnalysis.dll" Name="Microsoft.CodeAnalysis.dll" Source="$(var.Adapt.TargetDir)Microsoft.CodeAnalysis.dll" />
+      </Component>
+      <Component Id="Microsoft.CodeAnalysis.Scripting">
+        <File Id="Microsoft.CodeAnalysis.Scripting.dll" Name="Microsoft.CodeAnalysis.Scripting.dll" Source="$(var.Adapt.TargetDir)Microsoft.CodeAnalysis.Scripting.dll" />
+      </Component>
+      <Component Id="Microsoft.Data.SqlClient">
+        <File Id="Microsoft.Data.SqlClient.dll" Name="Microsoft.Data.SqlClient.dll" Source="$(var.Adapt.TargetDir)Microsoft.Data.SqlClient.dll" />
+      </Component>
+      <Component Id="Microsoft.Identity.Client">
+        <File Id="Microsoft.Identity.Client.dll" Name="Microsoft.Identity.Client.dll" Source="$(var.Adapt.TargetDir)Microsoft.Identity.Client.dll" />
+      </Component>
+      <Component Id="Microsoft.IdentityModel.JsonWebTokens">
+        <File Id="Microsoft.IdentityModel.JsonWebTokens.dll" Name="Microsoft.IdentityModel.JsonWebTokens.dll" Source="$(var.Adapt.TargetDir)Microsoft.IdentityModel.JsonWebTokens.dll" />
+      </Component>
+      <Component Id="Microsoft.IdentityModel.Logging">
+        <File Id="Microsoft.IdentityModel.Logging.dll" Name="Microsoft.IdentityModel.Logging.dll" Source="$(var.Adapt.TargetDir)Microsoft.IdentityModel.Logging.dll" />
+      </Component>
+      <Component Id="Microsoft.IdentityModel.Protocols">
+        <File Id="Microsoft.IdentityModel.Protocols.dll" Name="Microsoft.IdentityModel.Protocols.dll" Source="$(var.Adapt.TargetDir)Microsoft.IdentityModel.Protocols.dll" />
+      </Component>
+      <Component Id="Microsoft.IdentityModel.Protocols.OpenIdConnect">
+        <File Id="Microsoft.IdentityModel.Protocols.OpenIdConnect.dll" Name="Microsoft.IdentityModel.Protocols.OpenIdConnect.dll" Source="$(var.Adapt.TargetDir)Microsoft.IdentityModel.Protocols.OpenIdConnect.dll" />
+      </Component>
+      <Component Id="Microsoft.IdentityModel.Tokens">
+        <File Id="Microsoft.IdentityModel.Tokens.dll" Name="Microsoft.IdentityModel.Tokens.dll" Source="$(var.Adapt.TargetDir)Microsoft.IdentityModel.Tokens.dll" />
+      </Component>
+      <Component Id="System.IdentityModel.Tokens.Jwt">
+        <File Id="System.IdentityModel.Tokens.Jwt.dll" Name="System.IdentityModel.Tokens.Jwt.dll" Source="$(var.Adapt.TargetDir)System.IdentityModel.Tokens.Jwt.dll" />
+      </Component>
+      <Component Id="System.IO.FileSystem.AccessControl">
+        <File Id="System.IO.FileSystem.AccessControl.dll" Name="System.IO.FileSystem.AccessControl.dll" Source="$(var.Adapt.TargetDir)System.IO.FileSystem.AccessControl.dll" />
+      </Component>
+      <Component Id="System.IO.Ports">
+        <File Id="System.IO.Ports.dll" Name="System.IO.Ports.dll" Source="$(var.Adapt.TargetDir)System.IO.Ports.dll" />
+      </Component>
+      <Component Id="System.Linq.Async">
+        <File Id="System.Linq.Async.dll" Name="System.Linq.Async.dll" Source="$(var.Adapt.TargetDir)System.Linq.Async.dll" />
+      </Component>
+      <Component Id="System.Private.ServiceModel">
+        <File Id="System.Private.ServiceModel.dll" Name="System.Private.ServiceModel.dll" Source="$(var.Adapt.TargetDir)System.Private.ServiceModel.dll" />
+      </Component>
+      <Component Id="System.Runtime.Caching">
+        <File Id="System.Runtime.Caching.dll" Name="System.Runtime.Caching.dll" Source="$(var.Adapt.TargetDir)System.Runtime.Caching.dll" />
+      </Component>
+      <Component Id="System.Runtime.CompilerServices.Unsafe">
+        <File Id="System.Runtime.CompilerServices.Unsafe.dll" Name="System.Runtime.CompilerServices.Unsafe.dll" Source="$(var.Adapt.TargetDir)System.Runtime.CompilerServices.Unsafe.dll" />
+      </Component>
+      <Component Id="System.Security.AccessControl">
+        <File Id="System.Security.AccessControl.dll" Name="System.Security.AccessControl.dll" Source="$(var.Adapt.TargetDir)System.Security.AccessControl.dll" />
+      </Component>
+      <Component Id="System.Security.Principal.Windows">
+        <File Id="System.Security.Principal.Windows.dll" Name="System.Security.Principal.Windows.dll" Source="$(var.Adapt.TargetDir)System.Security.Principal.Windows.dll" />
+      </Component>
+      <Component Id="System.ServiceModel">
+        <File Id="System.ServiceModel.dll" Name="System.ServiceModel.dll" Source="$(var.Adapt.TargetDir)System.ServiceModel.dll" />
+      </Component>
+      <Component Id="System.ServiceModel.Primitives">
+        <File Id="System.ServiceModel.Primitives.dll" Name="System.ServiceModel.Primitives.dll" Source="$(var.Adapt.TargetDir)System.ServiceModel.Primitives.dll" />
+      </Component>
+      
+
     </ComponentGroup>
 
     <!-- AFSDKHost Dependencies-->
@@ -237,8 +306,8 @@
       <Component Id="System.Numerics.Vectors">
         <File Id="System.Numerics.Vectors.dll" Name="System.Numerics.Vectors.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\System.Numerics.Vectors.dll" />
       </Component>
-      <Component Id="System.Runtime.CompilerServices.Unsafe">
-        <File Id="System.Runtime.CompilerServices.Unsafe.dll" Name="System.Runtime.CompilerServices.Unsafe.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\System.Runtime.CompilerServices.Unsafe.dll" />
+      <Component Id="AFSDKHost.System.Runtime.CompilerServices.Unsafe">
+        <File Id="AFSDKHost.System.Runtime.CompilerServices.Unsafe.dll" Name="System.Runtime.CompilerServices.Unsafe.dll" Source="$(var.SolutionDir)Dependencies\AFSDKHost\System.Runtime.CompilerServices.Unsafe.dll" />
       </Component>
     </ComponentGroup>
     
