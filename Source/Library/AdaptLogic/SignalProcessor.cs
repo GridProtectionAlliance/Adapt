@@ -161,7 +161,10 @@ namespace AdaptLogic
                         point = m_futureFrameBuffer.Dequeue();
                         await ProcessPoint(point);
                         i++;
-                    }    
+                    }
+
+                    Task[] analyticCleanups = m_analyticProcesors.Select(p => p.RunCleanup()).ToArray();
+                    await Task.WhenAll(analyticCleanups).ConfigureAwait(false);
 
                     Complete();
                 }
