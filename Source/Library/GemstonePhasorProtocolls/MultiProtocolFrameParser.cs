@@ -1340,6 +1340,14 @@ namespace GemstonePhasorProtocolls
         public event EventHandler<EventArgs<FundamentalFrameType, int>> ReceivedFrameImage;
 
         /// <summary>
+        /// Occurs when a file has been fully Parsed.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="EventArgs{T1}.Argument"/> is the size of the file parsed in Bytes.<br/>
+        /// </remarks>
+        public event EventHandler<EventArgs<int>> CompletedFileParsing;
+
+        /// <summary>
         /// Occurs when a frame buffer image has been received.
         /// </summary>
         /// <remarks>
@@ -1447,6 +1455,9 @@ namespace GemstonePhasorProtocolls
         private long m_lastFrameReceivedTime;
         private int m_frameRateTotal;
         private int m_byteRateTotal;
+        private int m_fileBytesTotal;
+        private int m_fileBytesSkipped;
+        private int m_bytesProcessed;
         private int m_parsingExceptionCount;
         private long m_lastParsingExceptionTime;
         private int m_definedFrameRate;
@@ -2560,6 +2571,7 @@ namespace GemstonePhasorProtocolls
         /// <param name="settings">Key/value pairs dictionary parsed from connection string.</param>
         private void InitializeDataChannel(Dictionary<string, string> settings)
         {
+            m_bytesProcessed = 0;
             // Instantiate selected transport layer
             switch (m_transportProtocol)
             {
@@ -2601,6 +2613,9 @@ namespace GemstonePhasorProtocolls
                     fileClient.DisconnectAtEOF = DisconnectAtEOF;
                     m_skippedHeader = false;
                     m_pdatHeader = new byte[0];
+                    m_fileBytesTotal = 0;
+                    m_fileBytesSkipped = 0;
+                    
                     // Setup synchronized read operation for file client operations
                     m_readNextBuffer = new ShortSynchronizedOperation(ReadNextFileBuffer, ex => OnParsingException(new InvalidOperationException($"Encountered an exception while reading file data: {ex.Message}", ex)));
                     break;
@@ -3284,6 +3299,7 @@ namespace GemstonePhasorProtocolls
 
                 buffer = new byte[length];
                 length = m_dataChannel.Read(buffer, 0, length);
+                m_fileBytesTotal += length;
 
                 byte Flag = buffer[3];
 
@@ -3309,7 +3325,7 @@ namespace GemstonePhasorProtocolls
                 idx += (int)headerPtrLen;
                 uint cfgDataLen = BigEndian.ToUInt32(buffer, idx);
                 idx += 4;
-
+                m_fileBytesSkipped = idx;
                 // #ToDo: Add Logic if Config Frames are in a separate File
                 if (buffer[0] != 0xaa && (Flag & 0x02) > 0)
                 {
@@ -3320,12 +3336,18 @@ namespace GemstonePhasorProtocolls
                 // Skip all of the .ini Data
                 uint iniPtrLen = BigEndian.ToUInt32(buffer, idx);
                 idx += 4;
+                m_fileBytesSkipped += 4;
                 idx += (int)iniPtrLen;
+                m_fileBytesSkipped += (int)iniPtrLen;
                 uint iniDataLen = BigEndian.ToUInt32(buffer, idx);
                 idx += 4;
                 idx += (int)iniDataLen;
+                m_fileBytesSkipped += 4;
+                m_fileBytesSkipped += (int)iniDataLen;
 
                 m_skippedHeader = true;
+                m_pdatHeader = new byte[dataOffset];
+                Buffer.BlockCopy(buffer, 0, m_pdatHeader, 0, dataOffset);
 
                 Parse(SourceChannel.Data, buffer, dataOffset, length - dataOffset);
               
@@ -3334,6 +3356,8 @@ namespace GemstonePhasorProtocolls
            
             buffer = new byte[length];
             length = m_dataChannel.Read(buffer, 0, length);
+            m_fileBytesTotal += length;
+
             Parse(SourceChannel.Data, buffer, 0, length);
         }
 
@@ -3583,6 +3607,8 @@ namespace GemstonePhasorProtocolls
             // If user has requested to not keep the command channel open, disconnect it once the system has received a configuration frame
             if (!KeepCommandChannelOpen && !(m_commandChannel is null) && m_commandChannel.CurrentState == ClientState.Connected)
                 m_commandChannel.Disconnect();
+
+            m_frameParser_RecivedFrame();
         }
 
         private void m_frameParser_ReceivedDataFrame(object sender, EventArgs<IDataFrame> e)
@@ -3624,6 +3650,8 @@ namespace GemstonePhasorProtocolls
             {
                 OnParsingException(ex, "MultiProtocolFrameParser \"ReceivedDataFrame\" consumer event handler exception: {0}", ex.Message);
             }
+
+            m_frameParser_RecivedFrame();
         }
 
         private void m_frameParser_ReceivedHeaderFrame(object sender, EventArgs<IHeaderFrame> e)
@@ -3673,6 +3701,7 @@ namespace GemstonePhasorProtocolls
             {
                 OnParsingException(ex, "MultiProtocolFrameParser \"ReceivedFrameImage\" consumer event handler exception: {0}", ex.Message);
             }
+            m_bytesProcessed += e.Argument2;
         }
 
         private void m_frameParser_ReceivedFrameBufferImage(object sender, EventArgs<FundamentalFrameType, byte[], int, int> e)
@@ -3722,6 +3751,7 @@ namespace GemstonePhasorProtocolls
             {
                 OnParsingException(ex, "MultiProtocolFrameParser \"BufferParsed\" consumer event handler exception: {0}", ex.Message);
             }
+
         }
 
         private void ReadNextFileBuffer()
@@ -3733,6 +3763,14 @@ namespace GemstonePhasorProtocolls
                 fileClient.ReadNextBuffer();
         }
 
+        private void m_frameParser_RecivedFrame()
+        {
+            // If we are using File Based Connection we check against length of the file
+            if (!(m_dataChannel is FileClient fileClient))
+                return;
+            if (m_fileBytesSkipped + m_bytesProcessed >= m_fileBytesTotal)
+                CompletedFileParsing?.Invoke(this, new EventArgs<int>(m_fileBytesTotal));
+        }
         #endregion
 
         #endregion

@@ -1,7 +1,7 @@
 ﻿//******************************************************************************************************
-//  ITimeSeriesValue.cs - Gbtc
+//  Constantc.cs - Gbtc
 //
-//  Copyright © 2012, Grid Protection Alliance.  All Rights Reserved.
+//  Copyright © 2022, Grid Protection Alliance.  All Rights Reserved.
 //
 //  Licensed to the Grid Protection Alliance (GPA) under one or more contributor license agreements. See
 //  the NOTICE file distributed with this work for additional information regarding copyright ownership.
@@ -16,62 +16,54 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  06/29/2011 - J. Ritchie Carroll
+//  03/02/2022 - C. Lackner
 //       Generated original version of source code.
-//  12/20/2012 - Starlynn Danyelle Gilliam
-//       Modified Header.
-//  04/01/2021 - C. Lackner
-//       Moved to .NET Core.
 //
 //******************************************************************************************************
 
-using Gemstone;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
 
-namespace GemstoneCommon
+namespace GemstoneAnalytic
 {
+
+ 
     /// <summary>
-    /// Represents the interface for a time-series value.
+    /// Constants for Statistical use
     /// </summary>
-    public interface ITimeSeriesValue
+    internal static class Constants 
     {
         /// <summary>
-        /// Gets or sets the <see cref="string"/> based signal ID of this <see cref="ITimeSeriesValue"/>.
+        ///   Double-precision machine round-off error.
         /// </summary>
+        /// 
         /// <remarks>
-        /// This is the fundamental identifier of the <see cref="ITimeSeriesValue"/>.
+        ///   This value is actually different from Double.Epsilon. It
+        ///   is defined as 1.11022302462515654042E-16.
         /// </remarks>
-        string ID
-        {
-            get;
-        }
+        /// 
+        public const double DoubleEpsilon = 1.11022302462515654042e-16;
 
         /// <summary>
-        /// Gets or sets the Value of this <see cref="ITimeSeriesValue"/>.
+        ///   Maximum log on the machine.
         /// </summary>
-        double Value
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Gets or sets exact timestamp, in ticks, of the data represented by this <see cref="ITimeSeriesValue{T}"/>.
-        /// </summary>
+        /// 
         /// <remarks>
-        /// The value of this property represents the number of 100-nanosecond intervals that have elapsed since 12:00:00 midnight, January 1, 0001.
+        ///   This constant is defined as 7.09782712893383996732E2.
         /// </remarks>
-        Ticks Timestamp
-        {
-            get;
-            set;
-        }
+        /// 
+        public const double LogMax = 7.09782712893383996732E2;
 
         /// <summary>
-        /// Indicates if a ITimeSeriesValue is an event and needs to be saved with additional Parameters
+        ///   Log of number pi: log(pi).
         /// </summary>
-        bool IsEvent { get; }
-        
-
+        /// 
+        /// <remarks>
+        ///   This constant has the value 1.14472988584940017414.
+        /// </remarks>
+        /// 
+        public const double LogPI = 1.14472988584940017414;
     }
 }

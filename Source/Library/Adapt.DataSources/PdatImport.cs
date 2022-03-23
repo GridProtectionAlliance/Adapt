@@ -134,6 +134,7 @@ namespace Adapt.DataSources
 
             //Start File Read Process
             m_dataQueue = Channel.CreateUnbounded<IDataFrame>();
+            files.Sort();
 
             CancellationTokenSource tokenSource = new CancellationTokenSource();
             ReadFile(files, tokenSource.Token).Start();
@@ -223,7 +224,7 @@ namespace Adapt.DataSources
                     parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
                     parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
                     parser.ConnectionString = $"file={m_Files[files[i]]}";
-                    parser.ConnectionTerminated += ConnectionTerminated;
+                    parser.CompletedFileParsing += CompletedFileParsing;
                     parser.ReceivedDataFrame += RecievedDataFrame;
                     parser.DefinedFrameRate = 10000000;
                     parser.DisconnectAtEOF = true;
@@ -334,7 +335,6 @@ namespace Adapt.DataSources
             parser.ConnectionString = $"file={m_Files.First().Value}";
 
             parser.ReceivedConfigurationFrame += RecievedConfigFrame;
-
             parser.Start();
 
             m_ConfigFrameSource.Task.ContinueWith((t) => {
@@ -354,7 +354,7 @@ namespace Adapt.DataSources
             bool a = m_dataQueue.Writer.TryWrite(conf.Argument);
         }
 
-        private void ConnectionTerminated(object sender, EventArgs conf)
+        private void CompletedFileParsing(object sender, EventArgs conf)
         {
             m_FileComplete.Set();
         }

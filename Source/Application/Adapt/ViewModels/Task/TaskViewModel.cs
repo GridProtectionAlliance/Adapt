@@ -143,7 +143,7 @@ namespace Adapt.ViewModels
         /// <summary>
         /// Loads all Templates available.
         /// </summary>
-        private void LoadTemplates()
+        public void LoadTemplates()
         {
             Templates = new ObservableCollection<Template>();
 
@@ -158,7 +158,7 @@ namespace Adapt.ViewModels
         /// <summary>
         /// Loads all DataSources available.
         /// </summary>
-        private void LoadDataSources()
+        public void LoadDataSources()
         {
             DataSources = new ObservableCollection<DataSource>();
 

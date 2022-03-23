@@ -506,7 +506,7 @@ namespace GemstoneCommon
             ulong id;
 
             // Establish default measurement key cache
-            foreach (DataRow measurement in connection.RetrieveData(adapterType, $"SELECT ID, SignalID FROM {measurementTable}").Rows)
+            foreach (DataRow measurement in connection.RetrieveData($"SELECT ID, SignalID FROM {measurementTable}").Rows)
             {
                 if (TrySplit(measurement["ID"].ToString(), out source, out id))
                     CreateOrUpdate(measurement["SignalID"].ToNonNullString(Guid.Empty.ToString()).ConvertToType<Guid>(), source, id);

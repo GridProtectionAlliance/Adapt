@@ -109,6 +109,7 @@ namespace GemstoneCommon
             }
         }
 
+        public bool IsEvent => false;
         /// <summary>
         /// Gets or sets associated metadata values for the <see cref="Measurement"/> implementation.
         /// </summary>

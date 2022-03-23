@@ -140,7 +140,7 @@ namespace AdaptLogic
 
                             frame = m_futureFrameBuffer.Dequeue();
 
-                            ProcessPoint(frame);
+                            await ProcessPoint(frame);
                         }
 
                         nPoints++;
@@ -150,7 +150,7 @@ namespace AdaptLogic
 
                         point = m_futureFrameBuffer.Dequeue();
                         m_lastProcessedTS = aligned;
-                        ProcessPoint(point);
+                        await ProcessPoint(point);
 
                     }
 
@@ -159,7 +159,7 @@ namespace AdaptLogic
                     while (i < m_futureFrameBuffer.Count)
                     {
                         point = m_futureFrameBuffer.Dequeue();
-                        ProcessPoint(point);
+                        await ProcessPoint(point);
                         i++;
                     }    
 
@@ -173,7 +173,7 @@ namespace AdaptLogic
 
         }
 
-        private async void ProcessPoint(IFrame point)
+        private async Task ProcessPoint(IFrame point)
         {
 
             IFrame result = new Frame()
