@@ -1,0 +1,23 @@
+﻿<Window x:Class="Adapt.View.NewTemplateWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Name="AddTemplateWindow"
+        mc:Ignorable="d"
+        Title="New Template" Height="200" Width="350">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Height="50">
+            <Label Margin="0,2" Width="60" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Name:"/>
+            <TextBox Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}">
+            </TextBox>
+        </StackPanel>
+        <StackPanel Grid.Row="1"  Orientation="Horizontal" HorizontalAlignment="Left" >
+            <Button Margin="10,0" Height="20" Command="{Binding SaveCommand}">Add New Template</Button>
+        </StackPanel>
+    </Grid>
+</Window>
