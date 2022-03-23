@@ -131,5 +131,10 @@ namespace Adapt.DataSources
         {
             m_fps = inputFramesPerSeconds.FirstOrDefault();
         }
+
+        public Task CompleteComputation()
+        {
+            return Task.Run(() => { });
+        }
     }
 }
