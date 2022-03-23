@@ -62,6 +62,7 @@ namespace Adapt.DataSources
         public string User { get; set; }
 
         [DefaultValue("")]
+        [PasswordPropertyText]
         public string Password { get; set; }
 
         [DefaultValue("PPA")]

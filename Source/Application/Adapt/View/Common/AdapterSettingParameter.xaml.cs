@@ -24,5 +24,11 @@ namespace Adapt.View.Common
         {
             InitializeComponent();
         }
+
+        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (this.DataContext != null)
+            { ((dynamic)this.DataContext).Value = ((PasswordBox)sender).Password.ToString(); }
+        }
     }
 }

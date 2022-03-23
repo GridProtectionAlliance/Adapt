@@ -5,10 +5,12 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.DataSource"
              xmlns:localcv="clr-namespace:Adapt.Converter"
+             xmlns:System="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" >
     <UserControl.Resources>
         <CollectionViewSource Source="{Binding Path=DataSourceTypes}" x:Key="DataSourceTypes" />
         <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
+        <System:Boolean x:Key="TrueValue">True</System:Boolean>
     </UserControl.Resources>
 
     <WrapPanel Margin="0,0,10,0">
@@ -63,7 +65,12 @@
             </StackPanel>
         </WrapPanel>
         <WrapPanel Width="180" Margin="5" Visibility="{Binding Path=IsText, Converter={StaticResource ObjectToVisibility}}">
-            <TextBox Text="{Binding Path=Value}" MinWidth="150"/>
+            <WrapPanel Visibility="{Binding Path=IsPassword, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" >
+                <TextBox Text="{Binding Path=Value}" MinWidth="150"/>
+            </WrapPanel>
+            <WrapPanel Visibility="{Binding Path=IsPassword, Converter={StaticResource ObjectToVisibility}}" >
+                <PasswordBox PasswordChar="*" PasswordChanged="PasswordBox_PasswordChanged"  MinWidth="150"/>
+            </WrapPanel>
             <StackPanel Orientation="Horizontal" Visibility="{Binding IsInvalid, Converter={StaticResource ObjectToVisibility}}" >
                 <Path Margin="1,0" VerticalAlignment="Center" Width="20" 
                       Fill="DarkRed" Stretch="Uniform" 
