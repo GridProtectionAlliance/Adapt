@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  TemplateListViewModel.tsx - Gbtc
+//  NewTemplateWindowViewModel.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -16,115 +16,133 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  05/28/2020 - C. Lackner
+//  03/20/2022 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
 using Adapt.Models;
 using Adapt.View;
+using Adapt.ViewModels.Common;
 using Gemstone.Data;
 using Gemstone.Data.Model;
 using Gemstone.IO;
+using Gemstone.StringExtensions;
+using GemstoneCommon;
 using GemstoneWPF;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Threading;
+using System.Windows;
 using System.Windows.Input;
-using System.Windows.Threading;
 
 namespace Adapt.ViewModels
 {
     /// <summary>
-    /// ViewModel for Template List Window
+    /// ViewModel for New DataSource Window
     /// </summary>
-    public class TemplateListVM : ViewModelBase
+    public class NewTemplateWindowVM: ViewModelBase
     {
         #region [ Members ]
 
-        private List<Template> m_templates;
-        private int m_selectedIndex;
+        private Template m_template;
+        private RelayCommand m_saveCommand;
+
         #endregion
 
         #region[ Properties ]
 
-        public List<Template> Templates
+        public Template Template
         {
-            get { return m_templates; }
+            get { return m_template; }  
+        }
+
+        public string Name
+        {
+            get => m_template?.Name ?? "";
             set
             {
-                m_templates = value;
+                m_template.Name = value;
                 OnPropertyChanged();
             }
         }
 
-        public int SelectedID => (m_selectedIndex > -1? m_templates[m_selectedIndex].Id : -1);
-        
-        public int SelectedIndex
-        {
-            get => m_selectedIndex;
-            set
-            {
-                if (m_selectedIndex == value)
-                    return;
-                m_selectedIndex = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(SelectedID));
-            }
-        }
 
-        public ICommand AddNewCommand { get; set; }
+
+        /// <summary>
+        /// Event that get's raised when a new Template has been saved
+        /// </summary>
+        public event EventHandler<TemplateAddedArgs> AddedTemplate;
+
+        public ICommand SaveCommand => m_saveCommand;
+        public bool CanSave => ValidConfig();
 
         #endregion
 
         #region [ Constructor ]
-        public TemplateListVM()
+        
+        public NewTemplateWindowVM()
         {
-            AddNewCommand = new RelayCommand(AddNewTemplate, () => true);
-            m_selectedIndex = -1;
-            Load();
+            m_template = new Template() 
+            { 
+                Id=-1,
+                Name="",
+            };
+
+            m_saveCommand = new RelayCommand(Save, () => CanSave);
+         
         }
 
         #endregion
 
         #region [ Methods ]
-
-        public void Load(int Id=-1)
+        public void Save()
         {
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                m_templates = new TableOperations<Template>(connection).QueryRecords().ToList();
-
-            if (m_templates.Count > 0 && m_selectedIndex == -1 && Id == -1)
-                SelectedIndex = 0;
-            else if (Id != -1)
-                SelectedIndex = m_templates.FindIndex(ds => ds.Id == Id);
-            else
-                SelectedIndex = -1;
-
-            OnPropertyChanged(nameof(Templates));
-        }
-
-        public void AddNewTemplate()
-        {
-            NewTemplateWindow window = new NewTemplateWindow();
-            NewTemplateWindowVM vm = new NewTemplateWindowVM();
-            window.DataContext = vm;
-            vm.AddedTemplate += (object sender, TemplateAddedArgs arg) =>
+            Mouse.OverrideCursor = Cursors.Wait;
+            try
             {
-                Load(arg.ID);
-                window.Dispatcher.Invoke(DispatcherPriority.Normal, new ThreadStart(() =>
+                              int id = 0;
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 {
-                    window.Close();
-                }));
-            };
+                    new TableOperations<Template>(connection).AddNewRecord(m_template);
+                    id = connection.ExecuteScalar<int>("Select ID FROM Template WHERE Name = {0}", m_template.Name);
+                }
+                m_template.Id = id;
+                AddedTemplate?.Invoke(this, new TemplateAddedArgs(id, m_template));
 
-            window.Show();
+            }
+            catch (Exception ex)
+            {
+                if (ex.InnerException != null)
+                {
+                    Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Add DataSource Exception:", MessageBoxImage.Error);
+                }
+                else
+                {
+                    Popup(ex.Message, "Add DataSource Exception:", MessageBoxImage.Error);
+                }
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
         }
+
+
+        private bool ValidConfig()
+        {
+            if (m_template.Name == null || m_template.Name.Length == 0)
+                return false;
+
+            return true;
+        }
+
         #endregion
 
         #region [ Static ]
-
+        
         private static readonly string ConnectionString = $"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{Path.DirectorySeparatorChar}Adapt{Path.DirectorySeparatorChar}DataBase.db; Version=3; Foreign Keys=True; FailIfMissing=True";
         private static readonly string DataProviderString = "AssemblyName={System.Data.SQLite, Version=1.0.109.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139}; ConnectionType=System.Data.SQLite.SQLiteConnection; AdapterType=System.Data.SQLite.SQLiteDataAdapter";
         #endregion

@@ -1,7 +1,7 @@
 ﻿// ******************************************************************************************************
-//  DataSourceAddedArgs.tsx - Gbtc
+//  ModelAddedArgs.tsx - Gbtc
 //
-//  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
+//  Copyright © 2022, Grid Protection Alliance.  All Rights Reserved.
 //
 //  Licensed to the Grid Protection Alliance (GPA) under one or more contributor license agreements. See
 //  the NOTICE file distributed with this work for additional information regarding copyright ownership.
@@ -16,7 +16,7 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  05/11/2021 - C. Lackner
+//  03/23/2022 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
@@ -27,13 +27,40 @@ using System;
 namespace Adapt.Models
 {
     /// <summary>
-    /// Arguments for a DataSource Added Event
+    /// Arguments for a Model Added Event
     /// </summary>
-    public class DataSourceAddedArgs : ModelAddedArgs<DataSource> 
+    public abstract class ModelAddedArgs<T> : EventArgs
     {
-        public DataSourceAddedArgs(int Id) : base(Id) { }
+        /// <summary>
+        /// Gets the ID of the <see cref="T"/>.
+        /// </summary>
+        public int ID { get; }
 
-        public DataSourceAddedArgs(int Id, DataSource model) : base(Id, model) { }
+        /// <summary>
+        /// Gets the <see cref="T"/> that was added
+        /// </summary>
+        public T Model {get;}
+
+        /// <summary>
+        /// Creates a new <see cref="ModelAddedArgs"/>
+        /// </summary>
+        /// <param name="ID">The ID of the Model.</param>
+        public ModelAddedArgs(int Id)
+        {
+            this.ID = Id;
+            Model = default(T);
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="ModelAddedArgs"/>
+        /// </summary>
+        /// <param name="Id">The ID of the Model.</param>
+        /// <param name="model">The Model added.</param>
+        public ModelAddedArgs(int Id, T model)
+        {
+            this.ID = Id;
+            this.Model = model;
+        }
+
     }
-   
 }

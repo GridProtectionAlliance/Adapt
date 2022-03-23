@@ -1,7 +1,7 @@
 ﻿// ******************************************************************************************************
-//  DataSourceAddedArgs.tsx - Gbtc
+//  TemplateAddedArgs.tsx - Gbtc
 //
-//  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
+//  Copyright © 2022, Grid Protection Alliance.  All Rights Reserved.
 //
 //  Licensed to the Grid Protection Alliance (GPA) under one or more contributor license agreements. See
 //  the NOTICE file distributed with this work for additional information regarding copyright ownership.
@@ -16,7 +16,7 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  05/11/2021 - C. Lackner
+//  03/20/2021 - C. Lackner
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
@@ -27,13 +27,14 @@ using System;
 namespace Adapt.Models
 {
     /// <summary>
-    /// Arguments for a DataSource Added Event
+    /// Arguments for a Template Added Event
     /// </summary>
-    public class DataSourceAddedArgs : ModelAddedArgs<DataSource> 
+    public class TemplateAddedArgs : ModelAddedArgs<Template> 
     {
-        public DataSourceAddedArgs(int Id) : base(Id) { }
+        public TemplateAddedArgs(int Id) : base(Id) { }
 
-        public DataSourceAddedArgs(int Id, DataSource model) : base(Id, model) { }
+        public TemplateAddedArgs(int Id, Template model) : base(Id, model) { }
+        public TemplateAddedArgs(Template model) : base(model.Id, model) { }
     }
-   
+
 }
