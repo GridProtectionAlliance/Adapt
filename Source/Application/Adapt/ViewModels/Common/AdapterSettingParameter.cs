@@ -36,6 +36,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -305,6 +306,25 @@ namespace Adapt.ViewModels.Common
         }
 
         /// <summary>
+        /// Gets a value that indicates whether the type of this <see cref="AdapterSettingParameter"/> 
+        /// is a string and needs to be obfuscated as a password in the UI
+        /// </summary>
+        public bool IsPassword
+        {
+            get
+            {
+                try
+                {
+                    return !(m_info?.GetCustomAttribute<PasswordPropertyTextAttribute>() is null) && IsText;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets a value that indicates whether the value of this parameter can be configured via a
         /// custom control. This determines whether the hyper-link that links to the custom configuration
         /// pop-up is visible.
@@ -432,6 +452,7 @@ namespace Adapt.ViewModels.Common
                     Popup(message, "Custom Configuration Error", MessageBoxImage.Error);
             }
         }
+
         #endregion
 
         #region [ Static ]
