@@ -30,6 +30,7 @@ using GemstoneCommon;
 using GemstoneWPF;
 using OxyPlot;
 using OxyPlot.Axes;
+using OxyPlot.Legends;
 using OxyPlot.Series;
 using System;
 using System.Collections.Generic;
@@ -123,7 +124,8 @@ namespace Adapt.ViewModels.Visualization.Widgets
 
                 max.LineStyle = LineStyle.Dot;
                 min.LineStyle = LineStyle.Dot;
-                
+                avg.Title = reader.Signal.Name;
+
                 m_plotModel.Series.Add(max);
                 m_plotModel.Series.Add(min);
                 m_plotModel.Series.Add(avg);
@@ -134,6 +136,11 @@ namespace Adapt.ViewModels.Visualization.Widgets
               
             }
 
+            m_plotModel.Legends.Add(new Legend()
+            {
+                LegendTitle = "",
+                LegendPosition = LegendPosition.RightTop,
+            });
 
             OnPropertyChanged(nameof(PlotModel));
             OnPropertyChanged(nameof(PlotController));
