@@ -147,6 +147,11 @@ namespace AdaptLogic
             }
         }
 
+        public Task RunCleanup()
+        {
+            return m_instance.CompleteComputation();
+        }
+
         #endregion
 
         #region [ Static ]
