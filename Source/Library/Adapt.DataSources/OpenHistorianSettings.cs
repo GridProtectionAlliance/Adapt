@@ -58,10 +58,8 @@ namespace Adapt.DataSources
 
         [DefaultValue("localhost:8180\\")]
         public string Server { get; set; }
-        [DefaultValue("")]
         public string User { get; set; }
 
-        [DefaultValue("")]
         [PasswordPropertyText]
         public string Password { get; set; }
 
