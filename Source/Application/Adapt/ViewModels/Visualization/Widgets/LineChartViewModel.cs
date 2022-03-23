@@ -27,6 +27,7 @@ using GemstoneCommon;
 using GemstoneWPF;
 using OxyPlot;
 using OxyPlot.Axes;
+using OxyPlot.Legends;
 using OxyPlot.Series;
 using System;
 using System.Collections.Generic;
@@ -108,9 +109,15 @@ namespace Adapt.ViewModels.Visualization.Widgets
                 LineSeries series = new LineSeries();
                 List<ITimeSeriesValue> lst = reader.GetTrend(m_start, m_end, 100).ToList();
                 series.Points.AddRange(lst.Select(item => new DataPoint(DateTimeAxis.ToDouble(item.Timestamp), item.Value)));
+                series.Title = reader.Signal.Name;
                 m_plotModel.Series.Add(series);
             }
 
+            m_plotModel.Legends.Add(new Legend()
+            {
+                LegendTitle = "Series",
+                LegendPosition = LegendPosition.RightTop,
+            });
 
             OnPropertyChanged(nameof(PlotModel));
             OnPropertyChanged(nameof(PlotController));
