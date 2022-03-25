@@ -99,6 +99,7 @@ namespace Adapt.ViewModels
                 else
                     m_SelectedTemplateIndex = 0;
                 MappingViewModel = new MappingVM(Templates[m_SelectedTemplateIndex]);
+                OnPropertyChanged(nameof(MappingViewModel));
                 ValidateDataSource();
                 
                 OnPropertyChanged();
