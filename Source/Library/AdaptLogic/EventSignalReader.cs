@@ -101,9 +101,49 @@ namespace AdaptLogic
 
         public IEnumerable<AdaptEvent> GetEvents(DateTime start, DateTime end)
         {
-            return GetPoints(m_rootFolder, start, end);
+            return ReadAllPoints(m_rootFolder, 0, start, end);
         }
 
+        private List<AdaptEvent> ReadAllPoints(string root, int currentLevel, DateTime start, DateTime end)
+        {
+            List<AdaptEvent> results = new List<AdaptEvent>();
+
+            if (currentLevel == NLevels)
+            {
+                foreach (string file in Directory.GetFiles(root, "*.bin").OrderBy(item => item))
+                {
+                    byte[] data = File.ReadAllBytes(file);
+                    EventSummary pt = new EventSummary(data);
+
+                    if (pt.Tmin > end)
+                        continue;
+                    if (pt.Tmax < start)
+                        continue;
+                    results.AddRange(GetPoints(file,start, end));
+                  
+                }
+                return results;
+            }
+
+            int nextLevel = currentLevel + 1;
+
+
+            foreach (string folder in Directory.GetDirectories(root).OrderBy(item => item))
+            {
+                byte[] data = File.ReadAllBytes(folder + Path.DirectorySeparatorChar + "summary.node");
+                EventSummary pt = new EventSummary(data);
+
+                if (pt.Tmin > end)
+                    continue;
+                if (pt.Tmax < start)
+                    continue;
+
+                results.AddRange(ReadAllPoints(folder, nextLevel, start, end));
+            }
+
+            return results;
+
+        }
         private List<EventSummary> GetSummaryPoints(string root, int depth, int currentLevel, DateTime start, DateTime end)
         {
             List<EventSummary> results = new List<EventSummary>();
