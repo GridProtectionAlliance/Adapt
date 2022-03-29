@@ -46,14 +46,13 @@ namespace AdaptLogic
         #region [ Members ]
 
         private string m_rootFolder;
-       
 
-        private const int NLevels = 5;
+        private bool m_isEvent;
 
-        /// <summary>
-        /// The minimum number of Points to pull.
-        /// </summary>
-        private const int NPoints = 100;
+        private DataSignalReader m_dataReader;
+
+        private EventSignalReader m_eventReader;
+
         #endregion
 
         #region [ Constructor ]
@@ -78,6 +77,8 @@ namespace AdaptLogic
         public AdaptSignal Signal { get; private set; }
 
         public string SignalGuid { get; private set; }
+
+        public List<string> EventParameters { get; private set; }
         #endregion
 
         #region [ Methods ]
@@ -85,7 +86,11 @@ namespace AdaptLogic
         private void ReadSignal(string guid)
         {
             SignalGuid = guid;
+            EventParameters = new List<string>();
             m_rootFolder = $"{DataPath}{guid}";
+
+            m_isEvent = false;
+
             string name = "";
             string deviceID = "";
             string signalID = guid;
@@ -95,12 +100,22 @@ namespace AdaptLogic
             int framesPerSecond = 30;
 
             string line;
-            // Read .config file that just contain some of the Signal Information
+
+            // Read .config file that just contain some of the Signal Information;
+            // Note that this may contain Event Information too.
 
             using (StreamReader reader = new StreamReader($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config"))
             {
                 if ((line = reader.ReadLine()) != null)
+                {
+                    if (line == "Event Data Format")
+                    {
+                        m_isEvent = true;
+                        line = reader.ReadLine();
+                    }
                     name = line;
+                }
+                    
                 if ((line = reader.ReadLine()) != null)
                     deviceID = line;
                 if ((line = reader.ReadLine()) != null)
@@ -113,12 +128,37 @@ namespace AdaptLogic
                     Enum.TryParse<MeasurementType>(line, out type);
                 if ((line = reader.ReadLine()) != null)
                     framesPerSecond = Convert.ToInt32(line);
+
+                if (m_isEvent && (line = reader.ReadLine()) != null)
+                {
+                    while ((line = reader.ReadLine()) != null)
+                        EventParameters.Add(line);
+                }
             }
 
             Signal = new AdaptSignal(signalID, name, deviceID, framesPerSecond);
             Signal.Description = description;
             Signal.Phase = phase;
             Signal.Type = type;
+
+            if (!m_isEvent)
+                m_dataReader = new DataSignalReader(m_rootFolder, SignalGuid, framesPerSecond);
+            else
+                m_eventReader = new EventSignalReader(m_rootFolder, SignalGuid);
+        }
+
+        /// <summary>
+        /// Gets an avg Trend Series of up to 400 points
+        /// </summary>
+        /// <param name="start">the start Time of the Series.</param>
+        /// <param name="end">The end time of the Series.</param>
+        /// <returns></returns>
+        public IEnumerable<ITimeSeriesValue> GetTrend(DateTime start, DateTime end)
+        {
+            if (m_isEvent)
+                return new List<ITimeSeriesValue>();
+            else
+                return m_dataReader.GetTrend(start, end);
         }
 
         /// <summary>
@@ -128,9 +168,26 @@ namespace AdaptLogic
         /// <param name="end">The end time of the Series.</param>
         /// <param name="points"> The minimum number of points requested.</param>
         /// <returns></returns>
-        public IEnumerable<ITimeSeriesValue> GetTrend(DateTime start, DateTime end, int points=NPoints)
+        public IEnumerable<ITimeSeriesValue> GetTrend(DateTime start, DateTime end, int points)
         {
-            return GetRangeTrend(start, end, points).Select(item => new AdaptValue(Signal.ID, item.Avg, item.Tmin.Add(item.Tmax - item.Tmin)));
+            if (m_isEvent)
+                return new List<ITimeSeriesValue>();
+            else
+                return m_dataReader.GetTrend(start, end, points);
+        }
+
+        /// <summary>
+        /// Gets an avg Trend Series of up to 400 points
+        /// </summary>
+        /// <param name="start">the start Time of the Series.</param>
+        /// <param name="end">The end time of the Series.</param>
+        /// <returns></returns>
+        public IEnumerable<GraphPoint> GetRangeTrend(DateTime start, DateTime end)
+        {
+            if (m_isEvent)
+                return new List<GraphPoint>();
+            else
+                return m_dataReader.GetRangeTrend(start, end);
         }
 
         /// <summary>
@@ -140,49 +197,12 @@ namespace AdaptLogic
         /// <param name="end">The end time of the Series.</param>
         /// <param name="points"> The minimum number of points requested.</param>
         /// <returns></returns>
-        public IEnumerable<GraphPoint> GetRangeTrend(DateTime start, DateTime end, int points = NPoints)
+        public IEnumerable<GraphPoint> GetRangeTrend(DateTime start, DateTime end, int points)
         {
-            // Estimate how many levels we need to go down to get as many points as required
-            double seconds = (end - start).TotalSeconds;
-            int nPoints = (int)Math.Floor(seconds * Signal.FramesPerSecond);
-            int pointsPerLevel = (int)Signal.FramesPerSecond;
-            if (pointsPerLevel == 0)
-                pointsPerLevel = 30;
-            int requiredLevels = NLevels + 1;
-
-            if (nPoints > (pointsPerLevel * points))
-                requiredLevels--;
-
-            nPoints = (int)Math.Floor(seconds);
-            pointsPerLevel = 60;
-            if (nPoints > (pointsPerLevel * points))
-                requiredLevels--;
-
-            nPoints = (int)Math.Floor((end - start).TotalMinutes);
-            pointsPerLevel = 60;
-            if (nPoints > (pointsPerLevel * points))
-                requiredLevels--;
-
-            nPoints = (int)Math.Floor((end - start).TotalHours);
-            pointsPerLevel = 24;
-            if (nPoints > (pointsPerLevel * points))
-                requiredLevels--;
-
-            nPoints = (int)Math.Floor((end - start).TotalDays);
-            pointsPerLevel = 30;
-            if (nPoints > (pointsPerLevel * points))
-                requiredLevels--;
-
-            nPoints = (int)Math.Floor((end - start).TotalDays / 30.0);
-            pointsPerLevel = 12;
-            if (nPoints > (pointsPerLevel * points))
-                requiredLevels--;
-
-            if (points == 0)
-                requiredLevels = NLevels + 1;
-
-            return GetPoints(m_rootFolder, requiredLevels, 0, start, end);
-
+            if (m_isEvent)
+                return new List<GraphPoint>();
+            else
+                return m_dataReader.GetRangeTrend(start, end, points);
         }
 
         /// <summary>
@@ -193,120 +213,31 @@ namespace AdaptLogic
         /// <returns>An <see cref="AdaptPoint"/> specifying Min, Max and Avg</returns>
         public AdaptPoint GetStatistics(DateTime start, DateTime end)
         {
-            List<GraphPoint> point = GetPoints(m_rootFolder, 0, 0, start, end);
-            if (point.Count == 0)
-                return new AdaptPoint(Signal.ID, double.NaN, start.Add(end - start), double.NaN, double.NaN, Signal.FramesPerSecond);
-
-            return new AdaptPoint(Signal.ID, point.Sum(p => p.Sum), point.Sum(p => p.SquaredSum), point.Sum(p => p.N), start, end, point.Min(p => p.Min), point.Max(p => p.Max), Signal.FramesPerSecond);
+            if (m_isEvent)
+                return new AdaptPoint(SignalGuid);
+            else
+                return m_dataReader.GetStatistics(start, end);
         }
 
-        private List<GraphPoint> GetPoints(string root, int depth, int currentLevel, DateTime start, DateTime end)
+        public EventSummary GetEventSummary(DateTime start, DateTime end)
         {
-            List< GraphPoint> results = new List<GraphPoint>();
-
-            // If we grab Summary points from .bin files (1 second of Data)
-            if (currentLevel == NLevels)
-            {
-                foreach (string file in Directory.GetFiles(root, "*.bin").OrderBy(item => item))
-                {
-                    byte[] data = File.ReadAllBytes(file);
-                    GraphPoint pt = new GraphPoint(data);
-
-                    if (pt.Tmin > end)
-                        continue;
-                    if (pt.Tmax < start)
-                        continue;
-
-                    if ((pt.Tmin >= start && pt.Tmax <= end) && depth == NLevels)
-                        results.Add(pt);
-                    else if (depth == NLevels)
-                        results.Add(Aggregate(GetPoints(file, NLevels +1, NLevels + 1, start, end)));
-                    else
-                        results.AddRange(GetPoints(file, depth, currentLevel + 1, start, end));
-                }
-                return results;
-            }
-            //If we grab actual points from .bin File
-            if (currentLevel > NLevels)
-            {
-                
-                byte[] data = File.ReadAllBytes(root);
-                GraphPoint pt = new GraphPoint(data);
-
-                if (pt.Tmin > end)
-                    return new List<GraphPoint>();
-                if (pt.Tmax < start)
-                    return new List<GraphPoint>();
-
-                int index = GraphPoint.NSize;
-
-                
-                while (index < data.Length )
-                {
-                    long ts = BitConverter.ToInt64(data, index);
-                    double value = BitConverter.ToDouble(data, index + 8);
-                    Gemstone.Ticks ticks = new Gemstone.Ticks(ts);
-
-                    index = index + 8 + 8;
-
-                    if (ticks.Value < start.Ticks || ticks.Value > end.Ticks)
-                        continue;
-                    
-                    GraphPoint point = new GraphPoint();
-                    point.N = 1;
-                    point.Max = value;
-                    point.Min = value;
-                    point.Sum = value;
-                    point.SquaredSum = value * value;
-                    point.Tmax = ticks;
-                    point.Tmin = ticks;
-
-                    results.Add(point);
-                }
-
-                return results;
-            }
-
-            // if we grab summary points from .summary files
-            int nextLevel = currentLevel + 1;
-
-            foreach (string folder in Directory.GetDirectories(root).OrderBy(item => item))
-            {
-                byte[] data = File.ReadAllBytes(folder + Path.DirectorySeparatorChar + "summary.node");
-                GraphPoint pt = new GraphPoint(data);
-
-                if (pt.Tmin > end)
-                    continue;
-                if (pt.Tmax < start)
-                    continue;
-
-                if ((pt.Tmin >= start && pt.Tmax <= end)  && currentLevel == depth)
-                    results.Add(pt);
-                else if (currentLevel >= depth)
-                    results.Add( Aggregate(GetPoints(folder, NLevels+1, nextLevel, start, end)));
-                else 
-                    results.AddRange(GetPoints(folder, depth, nextLevel, start, end));
-            }
-
-            return results;
+            if (m_isEvent)
+                return new EventSummary();
+            else
+                return m_eventReader.GetEventSummary(start, end);
         }
 
-        private GraphPoint Aggregate( IEnumerable<GraphPoint> points)
+        public IEnumerable<AdaptEvent> GetEvents(DateTime start, DateTime end)
         {
-            GraphPoint pt = new GraphPoint();
-            pt.N = points.Sum(item => item.N);
-            pt.Min = points.Min(item => item.Min);
-            pt.Max = points.Max(item => item.Max);
-            pt.Sum = points.Sum(item => item.Sum);
-            pt.SquaredSum = points.Sum(item => item.SquaredSum);
-            pt.Tmax = points.Max(item => item.Tmax);
-            pt.Tmin = points.Min(item => item.Tmin);
-
-            return pt;
+            if (m_isEvent)
+                return new List<AdaptEvent>();
+            else
+                return m_eventReader.GetEvents(start, end);
         }
+
         #endregion
 
-        #region [ Static ]
+            #region [ Static ]
 
         private static readonly string DataPath = $"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{Path.DirectorySeparatorChar}ADAPT{Path.DirectorySeparatorChar}dataTree{Path.DirectorySeparatorChar}";
 
@@ -319,6 +250,8 @@ namespace AdaptLogic
             }
             return readers;
         }
+
+       
         #endregion
     }
 }

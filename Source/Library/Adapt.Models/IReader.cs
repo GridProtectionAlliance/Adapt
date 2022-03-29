@@ -41,7 +41,15 @@ namespace Adapt.Models
         /// <returns></returns>
         public IEnumerable<ITimeSeriesValue> GetTrend(DateTime start, DateTime end, int points);
 
-        // <summary>
+        /// <summary>
+        /// Gets an avg Trend Series to specified resolution.
+        /// </summary>
+        /// <param name="start">the start Time of the Series.</param>
+        /// <param name="end">The end time of the Series.</param>
+        /// <returns></returns>
+        public IEnumerable<ITimeSeriesValue> GetTrend(DateTime start, DateTime end);
+
+        /// <summary>
         /// Gets the Summary of this Signal for a specified Time range.
         /// </summary>
         /// <param name="start">The startTime.</param>
@@ -60,7 +68,37 @@ namespace Adapt.Models
         /// </summary>
         public AdaptSignal Signal { get; }
 
+        /// <summary>
+        /// Gets a Trend Series including min, max, avg.
+        /// </summary>
+        /// <param name="start">the start Time of the Series.</param>
+        /// <param name="end">The end time of the Series.</param>
+        /// <param name="points"> The minimum number of points requested.</param>
+        /// <returns></returns>
         public IEnumerable<GraphPoint> GetRangeTrend(DateTime start, DateTime end, int points);
 
+        /// <summary>
+        /// Gets a Trend Series including min, max, avg.
+        /// </summary>
+        /// <param name="start">the start Time of the Series.</param>
+        /// <param name="end">The end time of the Series.</param>
+        /// <returns></returns>
+        public IEnumerable<GraphPoint> GetRangeTrend(DateTime start, DateTime end);
+
+        /// <summary>
+        /// Gets A summary of Events with the total Time and Number
+        /// </summary>
+        /// <param name="start"></param>
+        /// <param name="end"></param>
+        /// <returns></returns>
+        public EventSummary GetEventSummary(DateTime start, DateTime end);
+
+        /// <summary>
+        /// Gets all 
+        /// </summary>
+        /// <param name="start"></param>
+        /// <param name="end"></param>
+        /// <returns></returns>
+        public IEnumerable<AdaptEvent> GetEvents(DateTime start, DateTime end);
     }
 }
