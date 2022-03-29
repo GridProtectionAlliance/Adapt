@@ -96,21 +96,35 @@ namespace Adapt.ViewModels.Visualization.Widgets
             m_data.Clear();
             m_data.Columns.Add("Event");
             m_data.Columns.Add("Date");
-            m_data.Columns.Add("Time");
+            m_data.Columns.Add("Start Time");
+            m_data.Columns.Add("Length (s)");
+
+            Dictionary<string,List<AdaptEvent>> events = new Dictionary<string, List<AdaptEvent>>();
+            List<string> parameters = new List<string>();
 
             foreach (IReader reader in m_readers)
             {
-                IEnumerable<ITimeSeriesValue> AdaptPoints = reader.GetTrend(m_start, m_end, 0);
-                AdaptPoints.ToList().ForEach(pt =>
+                IEnumerable<AdaptEvent> evt = reader.GetEvents(m_start, m_end);
+                events.Add(reader.Signal.Name,evt.ToList());
+                if (evt.Count() > 0)
+                    parameters.AddRange(evt.First().ParameterNames);
+            }
+
+            parameters = parameters.Distinct().ToList();
+            parameters.ForEach(p => m_data.Columns.Add(p));
+
+            foreach (string signal in events.Keys)
+            {
+                events[signal].ForEach((item) =>
                 {
-                    if (pt.Value > 0)
-                    {
-                        DataRow r = m_data.NewRow();
-                        r["Event"] = reader.Signal.Name;
-                        r["Date"] = pt.Timestamp.ToString("MM/dd/yyy");
-                        r["Time"] = pt.Timestamp.ToString("HH:mm:ss.fff");
-                        m_data.Rows.Add(r);
-                    }
+                    DataRow r = m_data.NewRow();
+                    r["Event"] = signal;
+                    r["Date"] = item.Timestamp.ToString("MM/dd/yyy");
+                    r["Start Time"] = item.Timestamp.ToString("HH:mm:ss.fff");
+                    r["Length (s)"] = item.LenghtSeconds;
+
+                    item.ParameterNames.ForEach(p => r[p] = item[p]);
+                    m_data.Rows.Add(r);
                 });
             }
 
