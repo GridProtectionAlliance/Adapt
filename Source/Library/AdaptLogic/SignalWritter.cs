@@ -50,7 +50,6 @@ namespace AdaptLogic
         private long m_currentSecond;
         private string m_rootFolder;
 
-        private int m_sec = 0;
         private List<ITimeSeriesValue> m_data;
         private List<ITimeSeriesValue> m_BadTSData;
         private Channel<ITimeSeriesValue> m_queue;
@@ -111,6 +110,25 @@ namespace AdaptLogic
             }
         }
 
+        private void WriteGeneralEventFile()
+        {
+            // Write .config file that just contains a bunch of Signal Information
+            using (StreamWriter writer = new StreamWriter($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config"))
+            {
+                writer.WriteLine("Event Data Format");
+                writer.WriteLine(m_signal.Name);
+                writer.WriteLine(m_signal.Device);
+                writer.WriteLine(m_signal.ID);
+                writer.WriteLine(m_signal.Description);
+                writer.WriteLine(m_signal.Phase);
+                writer.WriteLine(m_signal.Type);
+                writer.WriteLine(m_signal.FramesPerSecond);
+                writer.WriteLine("Characteristics");
+                foreach (string p in m_eventParameters)
+                    writer.WriteLine(p);
+            }
+        }
+
         private void CleanupEvent(ITimeSeriesValue Value) 
         {
             m_isEvent = false;
@@ -140,7 +158,6 @@ namespace AdaptLogic
         /// <param name="Value">The <see cref="ITimeSeriesValue"/> to be written to the Files</param>
         public async void AddPoint(ITimeSeriesValue Value)
         {
-            m_sec++;
             await m_queue.Writer.WriteAsync(Value);
         }
 
@@ -176,6 +193,8 @@ namespace AdaptLogic
                         {
                             CleanupEvent(point);
                             processFirst = false;
+                            if (m_isEvent)
+                                writer = new EventSignalWritter(m_rootFolder, m_eventParameters);
                         }    
 
                         if (double.IsNaN(point.Value))
@@ -186,7 +205,7 @@ namespace AdaptLogic
 
                         if (second > m_currentSecond)
                         {
-                            writer.WriteSecond(m_data, true);
+                            writer.WriteSecond(m_data, false);
                             m_data = new List<ITimeSeriesValue>();
                         }
 
@@ -200,13 +219,14 @@ namespace AdaptLogic
                         m_currentSecond = second;
                     }
 
-                    writer.WriteSecond(m_data,true);
-
+                    writer.WriteSecond(m_data,true);                    
                 }
                 catch (Exception ex)
                 {
                     int T = 1;
                 }
+                if (m_isEvent)
+                    WriteGeneralEventFile();
             }, cancellationToken);
 
         }
