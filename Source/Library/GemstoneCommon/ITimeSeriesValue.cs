@@ -71,7 +71,6 @@ namespace GemstoneCommon
         /// Indicates if a ITimeSeriesValue is an event and needs to be saved with additional Parameters
         /// </summary>
         bool IsEvent { get; }
-        
 
     }
 }

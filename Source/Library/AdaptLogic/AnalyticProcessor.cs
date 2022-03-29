@@ -142,7 +142,7 @@ namespace AdaptLogic
                 if (i < 0)
                     continue;
                 frame.Measurements.AddOrUpdate(m_analytic.Outputs[i].Name, 
-                    (key) => new AdaptValue(key, val.Value, val.Timestamp),
+                    (key) => AdjustSignal(val,key),
                     (key, old) => val);
             }
         }
@@ -152,6 +152,27 @@ namespace AdaptLogic
             return m_instance.CompleteComputation();
         }
 
+        private ITimeSeriesValue AdjustSignal (ITimeSeriesValue original, string key)
+        {
+            if (original.IsEvent)
+            {
+                try 
+                {
+                    AdaptEvent originalEvt = (AdaptEvent)original;
+                    return new AdaptEvent(key, original.Timestamp, originalEvt.Value,
+                        originalEvt.ParameterNames
+                        .Select(item => new KeyValuePair<string, double>(item, originalEvt[item])).ToArray()
+                        );
+
+                }
+                catch
+                {
+                    return new AdaptValue(key, original.Value, original.Timestamp);
+                }
+               
+            }
+            return new AdaptValue(key, original.Value, original.Timestamp);
+        }
         #endregion
 
         #region [ Static ]

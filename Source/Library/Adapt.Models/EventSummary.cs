@@ -60,7 +60,7 @@ namespace Adapt.Models
         /// <param name="data"></param>
         public EventSummary(byte[] data)
         {
-            if (data[0] != 0x11)
+            if (data[0] != 0x02)
                 throw new Exception("Invalid Summary File Format");
 
             Continuation = BitConverter.ToBoolean(data, 1);
@@ -70,7 +70,7 @@ namespace Adapt.Models
             Max = BitConverter.ToDouble(data, 22);
 
             Tmin = DateTime.FromBinary(BitConverter.ToInt64(data, 22 + 8));
-            Tmax = DateTime.FromBinary(BitConverter.ToInt64(data, 22 + 8 + 8));
+            Tmax = DateTime.FromBinary(BitConverter.ToInt64(data, 30 + 8));
         }
 
         #endregion
@@ -79,16 +79,16 @@ namespace Adapt.Models
 
         public byte[] ToByte()
         {
-            // Version 1 => Continuation (1b) => N, Sum, Min, Max
+            // Version 2 => Continuation (1b) => N, Sum, Min, Max
             byte[] data = new byte[NSize];
-            data[0] = 0x11;
+            data[0] = 0x02;
             BitConverter.GetBytes(Continuation).CopyTo(data, 1);
             BitConverter.GetBytes(Count).CopyTo(data, 2);
             BitConverter.GetBytes(Sum).CopyTo(data, 2 + 4);
             BitConverter.GetBytes(Min).CopyTo(data, 6 + 8);
             BitConverter.GetBytes(Max).CopyTo(data, 14 + 8);
-            BitConverter.GetBytes(Tmin.ToBinary()).CopyTo(data, 21 + 8 + 8);
-            BitConverter.GetBytes(Tmax.ToBinary()).CopyTo(data, 21 + 8 + 8 + 8);
+            BitConverter.GetBytes(Tmin.ToBinary()).CopyTo(data, 22 + 8);
+            BitConverter.GetBytes(Tmax.ToBinary()).CopyTo(data, 30 + 8);
 
             return data;
         }

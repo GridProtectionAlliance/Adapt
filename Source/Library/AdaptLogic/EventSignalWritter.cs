@@ -184,7 +184,7 @@ namespace AdaptLogic
                 BitConverter.GetBytes(data[i].Value).CopyTo(rawData, j + 8);
                 for (int k = 0; k < m_parameters.Count(); k++)
                 {
-                    BitConverter.GetBytes(evtData[i].Parameters[j]).CopyTo(rawData, j + 16+k*8);
+                    BitConverter.GetBytes(evtData[i][m_parameters[k]]).CopyTo(rawData, j + 16 + k*8);
                 }
                 j = j + 16 + m_parameters.Count*8;
             }
@@ -210,10 +210,7 @@ namespace AdaptLogic
             }
             catch (Exception ex)
             {
-                return new AdaptEvent(val.ID, val.Timestamp, val.Value, m_parameters) 
-                { 
-                    Parameters  = m_parameters.Select(item => double.NaN).ToArray()
-                };
+                return new AdaptEvent(val.ID, val.Timestamp, val.Value);
             }
 
         }
