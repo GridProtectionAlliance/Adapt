@@ -37,17 +37,27 @@ namespace Adapt.Models
         private double m_Value = 1;
         private string m_Guid;
         private Ticks m_Time;
-        private List<string> m_parameterNames;
+        private Dictionary<string, double> m_parameters;
 
         public double Value
         {
             get => m_Value;
+            set => m_Value = Value;
+        }
+
+        public double this[string key]
+        {
+            get
+            {
+                if (m_parameters.ContainsKey(key))
+                    return m_parameters[key];
+                return double.NaN;
+            }
             set
             {
-                if (double.IsNaN(value) || value >= 0)
-                    m_Value = double.NaN;
-                else
-                    m_Value = 1;
+                if(m_parameters.ContainsKey(key))
+                    m_parameters[key] = value;
+                m_parameters.Add(key, value);
             }
         }
 
@@ -56,18 +66,17 @@ namespace Adapt.Models
 
         public Ticks Timestamp { get => m_Time; set => m_Time = value; }
 
-        public double LenghtSeconds { get; set; }
+        public double LenghtSeconds => m_Value / Gemstone.Ticks.PerSecond;
 
         public double[] Parameters { get; set; }
 
-        public List<string> ParameterNames => m_parameterNames;
+        public List<string> ParameterNames => new List<string>(m_parameters.Keys);
 
         public bool IsEvent => true;
         public AdaptEvent(string guid)
         {
             m_Guid = guid;
             m_Value = 1;
-            LenghtSeconds = 0;
         }
 
         public AdaptEvent(string guid, Ticks Time)
@@ -75,24 +84,23 @@ namespace Adapt.Models
             m_Guid = guid;
             m_Time = Time;
             m_Value = 1;
-            LenghtSeconds = 0;
+            m_parameters = new Dictionary<string, double>();
         }
 
+        public AdaptEvent(string guid, Ticks Time, double Length, params KeyValuePair<string,double>[] parameters)
+        {
+            m_Guid = guid;
+            m_Time = Time;
+            m_Value = Length;
+            m_parameters = new Dictionary<string, double>(parameters);
+        }
         public AdaptEvent(string guid, Ticks Time, double Length)
         {
             m_Guid = guid;
             m_Time = Time;
-            m_Value = 1;
-            LenghtSeconds = Length;
+            m_Value = Length;
+            m_parameters = new Dictionary<string, double>();
         }
 
-        public AdaptEvent(string guid, Ticks Time, double Length, List<string> ParameterNames)
-        {
-            m_Guid = guid;
-            m_Time = Time;
-            m_Value = 1;
-            LenghtSeconds = Length;
-            m_parameterNames = ParameterNames;
-        }
     }
 }

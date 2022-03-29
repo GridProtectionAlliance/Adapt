@@ -144,7 +144,7 @@ namespace AdaptLogic
             if (!m_isEvent)
                 m_dataReader = new DataSignalReader(m_rootFolder, SignalGuid, framesPerSecond);
             else
-                m_eventReader = new EventSignalReader(m_rootFolder, SignalGuid);
+                m_eventReader = new EventSignalReader(m_rootFolder, SignalGuid, EventParameters);
         }
 
         /// <summary>
@@ -221,7 +221,7 @@ namespace AdaptLogic
 
         public EventSummary GetEventSummary(DateTime start, DateTime end)
         {
-            if (m_isEvent)
+            if (!m_isEvent)
                 return new EventSummary();
             else
                 return m_eventReader.GetEventSummary(start, end);
@@ -229,7 +229,7 @@ namespace AdaptLogic
 
         public IEnumerable<AdaptEvent> GetEvents(DateTime start, DateTime end)
         {
-            if (m_isEvent)
+            if (!m_isEvent)
                 return new List<AdaptEvent>();
             else
                 return m_eventReader.GetEvents(start, end);

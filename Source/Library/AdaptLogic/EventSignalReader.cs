@@ -62,10 +62,11 @@ namespace AdaptLogic
         /// </summary>
         /// <param name="RootFolder">The root Folder with all the Data.</param>
         /// <param name="SignalGuid">The Guid of the associated Signal</param>
-        public EventSignalReader(string RootFolder, string SignalGuid)
+        public EventSignalReader(string RootFolder, string SignalGuid, List<string> Parameters)
         {
             m_rootFolder = RootFolder;
             m_guid = SignalGuid;
+            m_parameters = Parameters;
         }
 
         #endregion
@@ -201,7 +202,7 @@ namespace AdaptLogic
                 if (ticks.Value < start.Ticks || ticks.Value > end.Ticks)
                     continue;
 
-                AdaptEvent point = new AdaptEvent(m_guid,ticks,value,m_parameters);
+                AdaptEvent point = new AdaptEvent(m_guid,ticks,value,m_parameters.Select((key,i) => new KeyValuePair<string,double>(key,parameters[i])).ToArray());
                 point.Parameters = parameters;
 
                 results.Add(point);
