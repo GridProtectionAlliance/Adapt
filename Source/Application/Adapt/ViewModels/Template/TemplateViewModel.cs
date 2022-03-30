@@ -22,14 +22,9 @@
 // ******************************************************************************************************
 using Adapt.Models;
 using Adapt.View.Template;
-using Adapt.ViewModels.Common;
 using Gemstone.Data;
 using Gemstone.Data.Model;
-using Gemstone.IO;
-using Gemstone.StringExtensions;
-using GemstoneCommon;
 using GemstoneWPF;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -38,7 +33,6 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Transactions;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
