@@ -52,6 +52,12 @@ namespace Adapt.Models
         public EventSummary()
         {
             Continuation = false;
+            Tmin = DateTime.MaxValue;
+            Tmax = DateTime.MinValue;
+            Count = 0;
+            Min = double.NaN;
+            Max = double.NaN;
+            Sum = double.NaN;
         }
 
         /// <summary>

@@ -38,7 +38,7 @@ using System.Windows;
 
 namespace Adapt.ViewModels.Visualization.Widgets
 {
-    [Description("Event Occurance Chart")]
+    [Description("Event Occurrence Chart")]
     public class EventCollumnVM: WidgetBaseVM
     {
         #region [ Member ]
@@ -85,7 +85,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
             UpdateChart();
         }
 
-        // #ToDO Improove Performance by pulling all Points at once and combining as neccesarry
+        // #ToDO Improve Performance by pulling all Points at once and combining as necessary
         private void UpdateChart()
         {
             m_plotModel = new PlotModel();
@@ -104,21 +104,23 @@ namespace Adapt.ViewModels.Visualization.Widgets
 
             foreach (IReader reader in m_readers)
             {
-
                 LinearBarSeries series = new LinearBarSeries();
                 TimeSpan bucket = (m_end - m_start)/15.0;
-                List<AdaptPoint> lst = new List<AdaptPoint>();
+                List<EventSummary> lst = new List<EventSummary>();
 
                 for (int i= 0; i < 15; i++)
                 {
-                    AdaptPoint pt = reader.GetStatistics(m_start+i*bucket, m_start + (i+1) * bucket);
+                    EventSummary pt = reader.GetEventSummary(m_start+i*bucket, m_start + (i+1) * bucket);
                     lst.Add(pt);
                 }
-                series.Points.AddRange(lst.Select(item => new DataPoint(DateTimeAxis.ToDouble(item.Timestamp), item.Count)));
-                series.BarWidth = 10;
+                series.Points.AddRange(lst.Select(item => new DataPoint(
+                    DateTimeAxis.ToDouble(item.Tmin + 0.5*(item.Tmax - item.Tmin)),
+                    item.Count
+                    )));
+
+                series.BarWidth = 15;
                 m_plotModel.Series.Add(series);
             }
-
 
             OnPropertyChanged(nameof(PlotModel));
             OnPropertyChanged(nameof(PlotController));

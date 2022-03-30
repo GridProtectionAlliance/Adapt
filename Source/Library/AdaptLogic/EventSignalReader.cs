@@ -96,6 +96,8 @@ namespace AdaptLogic
                 Continuation = false,
                 Min = point.Min(p => p.Min),
                 Max = point.Max(p => p.Max),
+                Tmax = point.Max(p => p.Tmax),
+                Tmin = point.Min(p => p.Tmin)
             };
         }
 
