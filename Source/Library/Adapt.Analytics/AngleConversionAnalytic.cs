@@ -43,13 +43,12 @@ namespace Adapt.DataSources
     /// Convert between radians and degrees
     /// </summary>
 
-    [AnalyticSection(AnalyticSection.DataCleanup)]
+    [AnalyticSection(AnalyticSection.DataFiltering)]
 
     [Description("Angle Conversion: Convert between radians and degrees")]
-    public class AngleConversion : IAnalytic
+    public class AngleConversion : BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
 
         public class Setting
         {
@@ -59,12 +58,6 @@ namespace Adapt.DataSources
         }
 
         public Type SettingType => typeof(Setting);
-
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -78,17 +71,8 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame));
-        }
 
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] prev, IFrame[] future) 
         {
             ITimeSeriesValue original = frame.Measurements["Original"];
             if (m_settings.Unit == AngleUnit.Degrees)
@@ -103,9 +87,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond) 
-        {
-            m_fps = inputFramesPerSecond.FirstOrDefault();
-        }
     }
 }

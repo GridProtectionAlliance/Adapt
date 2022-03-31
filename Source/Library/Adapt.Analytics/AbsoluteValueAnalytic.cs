@@ -39,22 +39,15 @@ namespace Adapt.DataSources
     /// Gets the absolute value of the signal
     /// </summary>
 
-    [AnalyticSection(AnalyticSection.SignalProcessing)]
+    [AnalyticSection(AnalyticSection.DataFiltering)]
 
     [Description("Absolute Value: Return the absolute value of the signal")]
-    public class AbsoluteValueAnalytic : IAnalytic
+    public class AbsoluteValueAnalytic : BaseAnalytic, IAnalytic
     {
-        private int m_fps;
         private Setting m_settings;
-
         public class Setting {}
         public Type SettingType => typeof(Setting);
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
-
+     
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
             return new List<AnalyticOutputDescriptor>() { 
@@ -67,17 +60,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame));
-        }
-
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] prev, IFrame[] future) 
         {
             ITimeSeriesValue original = frame.Measurements["Original"];
             return new AdaptValue[] { new AdaptValue("Absolute Value", Math.Abs(original.Value), frame.Timestamp) };
@@ -87,11 +70,6 @@ namespace Adapt.DataSources
         {
             m_settings = new Setting();
             config.Bind(m_settings);
-        }
-
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
-        {
-            m_fps = inputFramesPerSeconds.FirstOrDefault();
         }
 
     }

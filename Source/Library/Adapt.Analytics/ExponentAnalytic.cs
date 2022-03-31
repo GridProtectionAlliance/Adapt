@@ -39,26 +39,20 @@ namespace Adapt.DataSources
     /// analytic to the power of a user entered number
     /// </summary>
     
-    [AnalyticSection(AnalyticSection.SignalProcessing)]
+    [AnalyticSection(AnalyticSection.DataFiltering)]
 
     [Description("Exponential: Exponentially multiply a signal")]
-    public class Exponent: IAnalytic
+    public class Exponent: BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
-        public Type SettingType => typeof(Setting);
 
-        public int FramesPerSecond => m_fps;
+        public Type SettingType => typeof(Setting);
 
         public class Setting
         {
-            [DefaultValue(2)]
+            [DefaultValue(1.0)]
             public double Exponent { get; set; }
         }
-
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -72,17 +66,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame));
-        }
-
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] prev, IFrame[] future) 
         {
             ITimeSeriesValue original = frame.Measurements["Original"];
             return new AdaptValue[] { new AdaptValue("Exponential", Math.Pow(original.Value, m_settings.Exponent), frame.Timestamp) };
@@ -94,9 +78,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
-        {
-            m_fps = inputFramesPerSeconds.FirstOrDefault();
-        }
     }
 }

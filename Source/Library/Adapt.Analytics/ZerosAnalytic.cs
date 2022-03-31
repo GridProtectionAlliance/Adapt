@@ -41,24 +41,18 @@ namespace Adapt.DataSources
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
     [Description("Zeros: Removes zeros from the signal.")]
-    public class Zeros: IAnalytic
+    public class Zeros: BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
         public class Setting { }
 
         public Type SettingType => typeof(Setting);
 
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
             return new List<AnalyticOutputDescriptor>() { 
-                new AnalyticOutputDescriptor() { Name = "Zeros", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other } 
+                new AnalyticOutputDescriptor() { Name = "Filtered", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other } 
             };
         }
 
@@ -67,34 +61,19 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame));
-        }
-
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] prev, IFrame[] future) 
         {
             ITimeSeriesValue zeros = frame.Measurements["Original"];
             if (zeros.Value == 0)
-                return new AdaptValue[] { new AdaptValue("Zeros", double.NaN, frame.Timestamp) };
+                return new AdaptValue[] { new AdaptValue("Filtered", double.NaN, frame.Timestamp) };
             else
-                return new AdaptValue[] { new AdaptValue("Zeros", zeros.Value, frame.Timestamp) };
+                return new AdaptValue[] { new AdaptValue("Filtered", zeros.Value, frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)
         {
             m_settings = new Setting();
             config.Bind(m_settings);
-        }
-
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
-        {
-            m_fps = inputFramesPerSecond.FirstOrDefault();
         }
     }
 }

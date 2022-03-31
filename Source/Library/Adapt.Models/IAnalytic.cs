@@ -62,7 +62,8 @@ namespace Adapt.Models
         /// <summary>
         /// Clean up after last computation
         /// </summary>
-        public Task CompleteComputation();
+        /// <returns> A <see cref="Task{ITimeSeriesValue[]}"/> containing andy last points that have not been processed</returns>
+        public Task<ITimeSeriesValue[]> CompleteComputation();
 
         /// <summary>
         /// Gets the Current FrameRate of this Adapter

@@ -42,25 +42,23 @@ namespace Adapt.DataSources
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Linear Interpolation: Calculate unknown points according to previous and future points.")]
-    public class LinearInterpolation: IAnalytic
+    [Description("Linear Interpolation: interpolate missing Data points.")]
+    public class LinearInterpolation: BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
 
         public class Setting
         {
             [DefaultValue(1)]
+            [SettingName("Maximum Number of Consecutive Missing Points")]
             public int Limit { get; set; }
         }
 
         public Type SettingType => typeof(Setting);
 
-        public int FramesPerSecond => m_fps;
+        public override int PrevFrames => m_settings?.Limit ?? 1;
 
-        public int PrevFrames => m_settings.Limit;
-
-        public int FutureFrames => m_settings.Limit;
+        public override int FutureFrames => m_settings?.Limit ?? 1;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -74,17 +72,7 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame, previousFrames, futureFrames));
-        }
-
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames) 
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames) 
         {
             double original = frame.Measurements.First().Value.Value; ;
             double prev = previousFrames.FirstOrDefault()?.Measurements.First().Value.Value ?? double.NaN;
@@ -135,9 +123,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
-        {
-            m_fps = inputFramesPerSecond.FirstOrDefault();
-        }
     }
 }
