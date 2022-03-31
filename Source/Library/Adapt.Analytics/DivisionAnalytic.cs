@@ -41,23 +41,17 @@ namespace Adapt.DataSources
     /// Divides two different signals
     /// </summary>
 
-    [AnalyticSection(AnalyticSection.SignalProcessing)]
+    [AnalyticSection(AnalyticSection.DataFiltering)]
 
     [Description("Division: Dividing two signals")]
-    public class Division : IAnalytic
+    public class Division : MultiSignalBaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
 
         public Type SettingType => typeof(Setting);
 
-        public int FramesPerSecond => m_fps;
-
+       
         public class Setting  {}
-
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -71,17 +65,9 @@ namespace Adapt.DataSources
             return new List<string>() { "Numerator", "Denominator"};
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame));
-        }
+       
 
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] prev, IFrame[] future) 
         {
             ITimeSeriesValue numerator = frame.Measurements["Numerator"];
             ITimeSeriesValue denominator = frame.Measurements["Denominator"];
@@ -93,24 +79,6 @@ namespace Adapt.DataSources
             m_settings = new Setting();
             config.Bind(m_settings);
         }
-
-        public int GetGCD(int a, int b) 
-        {
-            int remainder;
-
-            while (b != 0) 
-            {
-                remainder = a % b;
-                a = b;
-                b = remainder;
-            }
-
-            return a;
-        }
-
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
-        {
-            m_fps = inputFramesPerSeconds.Aggregate((S, val) => S * val / GetGCD(S, val));
-        }
+       
     }
 }

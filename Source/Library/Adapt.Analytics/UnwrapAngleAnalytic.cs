@@ -49,11 +49,11 @@ namespace Adapt.DataSources
     [AnalyticSection(AnalyticSection.DataCleanup)]
 
     [Description("Unwrap Angle: Unwraps an angle.")]
-    public class UnwrapAngle : IAnalytic
+    public class UnwrapAngle : BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
 
+        public override int PrevFrames => 1;
         public class Setting
         {
             [SettingName("Angle Unit")]
@@ -62,12 +62,6 @@ namespace Adapt.DataSources
         }
 
         public Type SettingType => typeof(Setting);
-
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => 1;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -81,20 +75,10 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] future) 
         {
-            return Task.Run(() => Compute(frame, previousFrames));
-        }
-
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames) 
-        {
-            double current = frame.Measurements.First().Value.Value;
-            double prevValue = previousFrames.FirstOrDefault()?.Measurements.First().Value.Value ?? double.NaN;
+            double current = frame.Measurements["Original"].Value;
+            double prevValue = previousFrames.FirstOrDefault()?.Measurements["Original"].Value ?? double.NaN;
 
             if (m_settings.InputUnit == AngleUnit.Radians) 
             {
@@ -134,23 +118,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public int GetGCD(int a, int b)
-        {
-            int remainder;
-
-            while (b != 0)
-            {
-                remainder = a % b;
-                a = b;
-                b = remainder;
-            }
-
-            return a;
-        }
-
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond) 
-        {
-            m_fps = inputFramesPerSecond.Aggregate((S, val) => S * val / GetGCD(S, val));
-        }
     }
 }

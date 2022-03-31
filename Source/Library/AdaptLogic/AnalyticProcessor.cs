@@ -147,7 +147,7 @@ namespace AdaptLogic
             }
         }
 
-        public Task RunCleanup()
+        public Task<ITimeSeriesValue[]> RunCleanup()
         {
             return m_instance.CompleteComputation();
         }

@@ -39,27 +39,22 @@ namespace Adapt.DataSources
     /// Returns a running average of the data
     /// </summary>
     
-    [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Running Average: Returns the running average of the last specified number of values.")]
-    public class RunningAverage: IAnalytic
+    [AnalyticSection(AnalyticSection.DataFiltering)]
+    [Description("Running Average: Returns the running average of the last N values.")]
+    public class RunningAverage: BaseAnalytic,  IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
 
         public class Setting
         {
             [DefaultValue(5)]
-            [SettingName("Average of last")]
+            [SettingName("N")]
             public int AverageOfLast { get; set; }
         }
 
         public Type SettingType => typeof(Setting);
 
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => m_settings.AverageOfLast - 1;
-
-        public int FutureFrames => 0;
+        public override int PrevFrames => m_settings.AverageOfLast;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -73,25 +68,15 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame, previousFrames));
-        }
 
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames) 
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] future) 
         {
             double original = frame.Measurements.First().Value.Value;
-            double values = 0;
-            foreach (IFrame x in previousFrames)
-                values += x.Measurements.First().Value.Value;
-            values += original;
-
-            return new AdaptValue[] { new AdaptValue("Average", values / (previousFrames.Length + 1), frame.Timestamp) };
+            double sum = previousFrames.Select(item => item.Measurements["Original"].Value).Sum(v => double.IsNaN(v)? 0 : v);
+            double N = previousFrames.Select(item => item.Measurements["Original"].Value).Sum(v => double.IsNaN(v) ? 0 : 1);
+            if (N == m_settings.AverageOfLast)
+                return new AdaptValue[] { new AdaptValue("Average", sum / N, frame.Timestamp) };
+            return new AdaptValue[] { new AdaptValue("Average", double.NaN, frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)
@@ -99,11 +84,6 @@ namespace Adapt.DataSources
             m_settings = new Setting();
             config.Bind(m_settings);
         }
-
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
-        {
-            m_fps = inputFramesPerSecond.FirstOrDefault();
-
-        }
+        
     }
 }

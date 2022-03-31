@@ -166,6 +166,22 @@ namespace AdaptLogic
                     Task[] analyticCleanups = m_analyticProcesors.Select(p => p.RunCleanup()).ToArray();
                     await Task.WhenAll(analyticCleanups).ConfigureAwait(false);
 
+                    int j = 0;
+                    IFrame cleanupFrame = new Frame() {
+                        Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(),
+                        Published = false,
+                        Timestamp = Ticks.MaxValue
+
+                    };
+
+                    foreach (Task<ITimeSeriesValue[]> analyticResult in analyticCleanups)
+                    {
+                        m_analyticProcesors[j].RouteOutput(cleanupFrame, analyticResult.Result);
+                        j++;
+                    }
+
+                    m_queueOutput.Writer.TryWrite(cleanupFrame);
+
                     Complete();
                 }
                 catch (Exception ex)

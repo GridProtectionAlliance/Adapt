@@ -40,20 +40,16 @@ namespace Adapt.DataSources
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Stale Data: Will return NaN if current input is the same as the previous input")]
-    public class StaleData: IAnalytic
+    [Description("Stale Data: Will remove any stale Datapoints")]
+    public class StaleData: BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
         public class Setting { }
 
         public Type SettingType => typeof(Setting);
 
-        public int FramesPerSecond => m_fps;
+        public override int PrevFrames => 1;
 
-        public int PrevFrames => 1;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -67,20 +63,10 @@ namespace Adapt.DataSources
             return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] future) 
         {
-            return Task.FromResult<ITimeSeriesValue[]>(Compute(frame, previousFrames));
-        }
-
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames) 
-        {
-            double original = frame.Measurements.First().Value.Value;
-            double prevValue = previousFrames.FirstOrDefault()?.Measurements.First().Value.Value ?? double.NaN;
+            double original = frame.Measurements["Original"].Value;
+            double prevValue = previousFrames.FirstOrDefault()?.Measurements["Original"].Value ?? double.NaN;
 
             if (original == prevValue)
                 return new AdaptValue[] { new AdaptValue("Stale", double.NaN, frame.Timestamp) };
@@ -93,9 +79,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
-        {
-            m_fps = inputFramesPerSecond.FirstOrDefault();
-        }
     }
 }
