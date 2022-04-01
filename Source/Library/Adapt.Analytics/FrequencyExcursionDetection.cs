@@ -26,11 +26,9 @@ using Adapt.Models;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Runtime;
 using System.Threading.Tasks;
 
 namespace Adapt.DataSources
@@ -41,19 +39,19 @@ namespace Adapt.DataSources
 
     [AnalyticSection(AnalyticSection.EventDetection)]
 
-    [Description("Frequency Excursion: Detects Frequency excursions")]
-    public class FrequencyExcursion : IAnalytic
+    [Description("Excursion Detection: Detects excursions in Frequency or Voltage.")]
+    public class FrequencyExcursion : BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
+        private Gemstone.Ticks m_lastCrossing;
+        private Gemstone.Ticks m_lastPoint;
+        private double m_differenceLower;
+        private double m_differenceUpper;
+        private ExcursionType m_currentExcursion;
 
         public Type SettingType => typeof(Setting);
 
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => 1;
-
-        public int FutureFrames => 0;
+        public override int PrevFrames => 1;
 
         public class Setting 
         {
@@ -82,40 +80,89 @@ namespace Adapt.DataSources
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
             return new List<AnalyticOutputDescriptor>() { 
-                new AnalyticOutputDescriptor() { Name = "Upper Limit", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.EventFlag }, 
-                new AnalyticOutputDescriptor() { Name = "Lower Limit", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.EventFlag }
+                new AnalyticOutputDescriptor() { Name = "Excursion Detected", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.EventFlag }, 
             };
         }
 
         public IEnumerable<string> InputNames()
         {
-            return new List<string>() { "Frequency" };
+            
+            return new List<string>() { "Signal" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+       
+        public override Task<ITimeSeriesValue[]> CompleteComputation() 
         {
-            return Task.Run(() => Compute(frame, previousFrames) );
+            return Task.Run(() => CheckLastPoint());
         }
 
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames) 
+        private ITimeSeriesValue[] CheckLastPoint()
         {
             List<AdaptEvent> result = new List<AdaptEvent>();
+            if (m_currentExcursion == ExcursionType.UpperAndLower)
+                return result.ToArray();
 
-            double value = frame.Measurements.First().Value.Value;
-            double prevValue = previousFrames.FirstOrDefault()?.Measurements.First().Value.Value ?? double.NaN;
+            double length = m_lastPoint - m_lastCrossing;
+            if (m_currentExcursion == ExcursionType.Upper)
+                result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.upper + m_differenceUpper)));
+            if (m_currentExcursion == ExcursionType.Upper)
+                result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.lower - m_differenceLower)));
+
+            return result.ToArray();
+
+        }
+
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] future) 
+        {
+            m_lastPoint = frame.Timestamp;
+            List<AdaptEvent> result = new List<AdaptEvent>();
+
+            double value = frame.Measurements["Signal"].Value;
+            double prevValue = previousFrames.FirstOrDefault()?.Measurements["Signal"].Value ?? double.NaN;
+
+            if (double.IsNaN(value))
+                return result.ToArray();
 
             if (m_settings.excursionType == ExcursionType.Lower || m_settings.excursionType == ExcursionType.UpperAndLower)
-                if (value < m_settings.lower && (prevValue > m_settings.lower || double.IsNaN(prevValue)))
-                    result.Add(new AdaptEvent("Lower Limit", frame.Timestamp));
+            {
+                // On switch from Ok to in Alarm
+                if (value < m_settings.lower && (prevValue >= m_settings.lower || double.IsNaN(prevValue)))
+                {
+                    m_lastCrossing = frame.Timestamp;
+                    m_differenceLower = m_settings.lower - value;
+                    m_currentExcursion = ExcursionType.Lower;
+                }
+                // On switch from in Alarm to OK
+                else if (value > m_settings.lower && (prevValue <= m_settings.lower))
+                {
+                    double length = frame.Timestamp - m_lastCrossing;
+                    result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length,new KeyValuePair<string, double>("Deviation", m_settings.lower - m_differenceLower)));
+                    m_currentExcursion = ExcursionType.UpperAndLower;
+                }
 
+                if ((m_settings.lower - value) > m_differenceLower)
+                    m_differenceLower = (m_settings.lower - value);
+            }
             if (m_settings.excursionType == ExcursionType.Upper || m_settings.excursionType == ExcursionType.UpperAndLower)
-                if (value > m_settings.upper && (prevValue < m_settings.upper || double.IsNaN(prevValue)))
-                    result.Add(new AdaptEvent("Upper Limit", frame.Timestamp));
+            {
+                // On switch from Ok to in Alarm
+                if (value > m_settings.upper && (prevValue <= m_settings.upper || double.IsNaN(prevValue)))
+                {
+                    m_lastCrossing = frame.Timestamp;
+                    m_differenceUpper = value - m_settings.upper;
+                    m_currentExcursion = ExcursionType.Upper;
+                }
+                // On switch from in Alarm to OK
+                else if (value < m_settings.upper && (prevValue >= m_settings.upper))
+                {
+                    double length = frame.Timestamp - m_lastCrossing;
+                    result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.upper + m_differenceUpper)));
+                    m_currentExcursion = ExcursionType.UpperAndLower;
+                }
+
+                if ((value - m_settings.upper) > m_differenceUpper)
+                    m_differenceUpper = (value - m_settings.upper);
+            }
 
             return result.ToArray();
         }
@@ -126,10 +173,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-       
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
-        {
-            m_fps = inputFramesPerSeconds.FirstOrDefault();
-        }
     }
 }
