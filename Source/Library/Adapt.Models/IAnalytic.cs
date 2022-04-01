@@ -63,7 +63,7 @@ namespace Adapt.Models
         /// Clean up after last computation
         /// </summary>
         /// <returns> A <see cref="Task{ITimeSeriesValue[]}"/> containing andy last points that have not been processed</returns>
-        public Task<ITimeSeriesValue[]> CompleteComputation();
+        public Task<ITimeSeriesValue[]> CompleteComputation(Gemstone.Ticks ticks);
 
         /// <summary>
         /// Gets the Current FrameRate of this Adapter

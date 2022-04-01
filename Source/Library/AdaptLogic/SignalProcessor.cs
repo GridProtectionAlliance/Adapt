@@ -107,6 +107,7 @@ namespace AdaptLogic
                     IFrame point;
                     m_futureFrameBuffer = new Queue<IFrame>(m_futureFrameBufferSize + 1);
                     int nPoints = 0;
+                    Gemstone.Ticks lastProcessed = Ticks.MinValue;
 
                     while (await m_queueInput.Reader.WaitToReadAsync(cancellationToken))
                     {
@@ -132,7 +133,7 @@ namespace AdaptLogic
                                 Published = point.Published,
                                 Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>()
                             };
-
+                            lastProcessed = frame.Timestamp;
                             nPoints++;
                             m_futureFrameBuffer.Enqueue(frame);
                             if (nPoints <= m_futureFrameBufferSize)
@@ -144,6 +145,7 @@ namespace AdaptLogic
                         }
 
                         nPoints++;
+                        lastProcessed = point.Timestamp;
                         m_futureFrameBuffer.Enqueue(point);
                         if (nPoints <= m_futureFrameBufferSize)
                             continue;
@@ -159,11 +161,12 @@ namespace AdaptLogic
                     while (i < m_futureFrameBuffer.Count)
                     {
                         point = m_futureFrameBuffer.Dequeue();
+                        lastProcessed = point.Timestamp;
                         await ProcessPoint(point);
                         i++;
                     }
 
-                    Task[] analyticCleanups = m_analyticProcesors.Select(p => p.RunCleanup()).ToArray();
+                    Task[] analyticCleanups = m_analyticProcesors.Select(p => p.RunCleanup(lastProcessed)).ToArray();
                     await Task.WhenAll(analyticCleanups).ConfigureAwait(false);
 
                     int j = 0;

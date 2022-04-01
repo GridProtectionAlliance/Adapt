@@ -44,7 +44,7 @@ namespace Adapt.DataSources
             return Task.Run(() => Compute(frame, previousFrames, futureFrames));
         }
 
-        public virtual Task<ITimeSeriesValue[]> CompleteComputation() 
+        public virtual Task<ITimeSeriesValue[]> CompleteComputation(Gemstone.Ticks ticks) 
         {
             return Task.FromResult(new ITimeSeriesValue[0]);
         }
