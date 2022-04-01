@@ -44,7 +44,6 @@ namespace Adapt.DataSources
     {
         private Setting m_settings;
         private Gemstone.Ticks m_lastCrossing;
-        private Gemstone.Ticks m_lastPoint;
         private double m_differenceLower;
         private double m_differenceUpper;
         private ExcursionType m_currentExcursion;
@@ -91,18 +90,18 @@ namespace Adapt.DataSources
         }
 
        
-        public override Task<ITimeSeriesValue[]> CompleteComputation() 
+        public override Task<ITimeSeriesValue[]> CompleteComputation(Gemstone.Ticks ticks) 
         {
-            return Task.Run(() => CheckLastPoint());
+            return Task.Run(() => CheckLastPoint(ticks));
         }
 
-        private ITimeSeriesValue[] CheckLastPoint()
+        private ITimeSeriesValue[] CheckLastPoint(Gemstone.Ticks ticks)
         {
             List<AdaptEvent> result = new List<AdaptEvent>();
             if (m_currentExcursion == ExcursionType.UpperAndLower)
                 return result.ToArray();
 
-            double length = m_lastPoint - m_lastCrossing;
+            double length = ticks - m_lastCrossing;
             if (m_currentExcursion == ExcursionType.Upper)
                 result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.upper + m_differenceUpper)));
             if (m_currentExcursion == ExcursionType.Upper)
@@ -114,7 +113,6 @@ namespace Adapt.DataSources
 
         public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] future) 
         {
-            m_lastPoint = frame.Timestamp;
             List<AdaptEvent> result = new List<AdaptEvent>();
 
             double value = frame.Measurements["Signal"].Value;

@@ -147,9 +147,9 @@ namespace AdaptLogic
             }
         }
 
-        public Task<ITimeSeriesValue[]> RunCleanup()
+        public Task<ITimeSeriesValue[]> RunCleanup(Gemstone.Ticks ticks)
         {
-            return m_instance.CompleteComputation();
+            return m_instance.CompleteComputation(ticks);
         }
 
         private ITimeSeriesValue AdjustSignal (ITimeSeriesValue original, string key)
