@@ -94,6 +94,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         {
             m_data = new DataTable();
             m_data.Clear();
+            m_data.Columns.Add("PMU");
             m_data.Columns.Add("Event");
             m_data.Columns.Add("Number of Occurrences");
             m_data.Columns.Add("Total Active Time (s)");
@@ -105,6 +106,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
                 EventSummary evtSummary = reader.GetEventSummary(m_start, m_end);
                 
                 DataRow r = m_data.NewRow();
+                r["Event"] = reader.Signal.Device;
                 r["Event"] = reader.Signal.Name;
                 r["Number of Occurrences"] = evtSummary.Count;
                 r["Total Active Time (s)"] = evtSummary.Sum / Gemstone.Ticks.PerSecond;

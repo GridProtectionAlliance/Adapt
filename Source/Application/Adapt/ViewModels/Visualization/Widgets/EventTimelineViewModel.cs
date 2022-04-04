@@ -109,7 +109,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
             {
                 IEnumerable<AdaptEvent> evt = reader.GetEvents(m_start, m_end);
 
-                categoryAxis.Labels.Add(reader.Signal.Name);
+                categoryAxis.Labels.Add(reader.Signal.Device + " - " + reader.Signal.Name);
 
                 IntervalBarSeries s1 = new IntervalBarSeries();
                 s1.Items.AddRange(evt.Select(e => new IntervalBarItem {
