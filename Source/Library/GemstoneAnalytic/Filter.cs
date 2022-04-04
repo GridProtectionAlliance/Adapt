@@ -37,20 +37,13 @@ namespace GemstoneAnalytic
     {
         #region[ Properties ]
 
-        private Complex[] m_Poles;
-        private Complex[] m_Zeros;
-        private double m_Gain;
+        private double m_gain;
+        private Complex[] m_zeros;
+        private Complex[] m_poles;
 
         #endregion[ Properties ]
 
-        #region [ internal Classes ]
-        private class DiscreteFilter
-        {
-            public double Gain { get; set; }
-            public Complex[] Poles { get; set; }
-            public Complex[] Zeros { get; set; }
-        }
-        #endregion [ internal Classes ]
+
         #region[ Methods ]
 
         /// <summary>
@@ -59,11 +52,12 @@ namespace GemstoneAnalytic
         /// <param name="poles">The Continous Poles</param>
         /// <param name="zeros"> The Continous Zeros</param>
         /// <param name="Gain">The Continous Gain </param>
-        public Filter(IEnumerable<Complex> poles, IEnumerable<Complex> zeros, double Gain)
+        public Filter(Complex[] poles, Complex[] zeros, double Gain)
         {
-            m_Poles = poles.ToArray();
-            m_Zeros = zeros.ToArray();
-            m_Gain = Gain;
+            m_gain = Gain;
+            m_poles = poles;
+            m_zeros = zeros;
+
         }
 
         /// <summary>
@@ -73,17 +67,14 @@ namespace GemstoneAnalytic
         /// </summary>
         /// <param name="fs"> Sampling Frequency </param>
         /// <param name="fp"> pre-warp frequency</param>
-        private DiscreteFilter ContinousToDiscrete(double fs, double fp = 0)
+        public DigitalFilter ContinousToDiscrete(double fs, double fp = 0)
         {
-            DiscreteFilter result = new DiscreteFilter()
-            {
-                Gain = 1.0,
-                Poles = new Complex[m_Poles.Length - 1],
-                Zeros = new Complex[m_Zeros.Length - 1]
-            };
+            double DiscreteGain = 1.0;
+            Complex[] DiscretePoles = new Complex[m_poles.Count() - 1];
+            Complex[] DiscreteZeros = new Complex[m_zeros.Count() - 1];
 
-            if (m_Zeros.Count() < m_Poles.Count())
-                result.Zeros = new Complex[m_Poles.Length-1];
+            if (m_zeros.Count() < m_poles.Count())
+                DiscreteZeros = new Complex[m_poles.Count()-1];
             
            
             // prewarp
@@ -99,31 +90,33 @@ namespace GemstoneAnalytic
             Complex poleProd = 1.0D;
             Complex zeroProd = 1.0D;
 
-            for (int i=0; i < m_Poles.Length; i++)
+            for (int i=0; i < m_poles.Count(); i++)
             {
-                Complex p = m_Poles[i];
-                result.Poles[i] = (1.0D + p / ws) / (1.0D - p / ws);
+                Complex p = m_poles[i];
+                DiscretePoles[i] = (1.0D + p / ws) / (1.0D - p / ws);
                 poleProd = poleProd * (ws - p);
             }
-            for (int i = 0; i < m_Zeros.Length; i++)
+            for (int i = 0; i < m_zeros.Length; i++)
             {
-                Complex z = m_Zeros[i];
-                result.Zeros[i] = (1.0D + z / ws) / (1.0D - z / ws);
+                Complex z = m_zeros[i];
+                DiscreteZeros[i] = (1.0D + z / ws) / (1.0D - z / ws);
                 zeroProd = zeroProd * (ws - z);
             }
 
 
-            result.Gain = (m_Gain * zeroProd / poleProd).Real;
+            DiscreteGain = (m_gain * zeroProd / poleProd).Real;
 
-            if (m_Zeros.Count() < m_Poles.Count())
+            if (m_zeros.Count() < m_poles.Count())
             {
-                for (int i = m_Zeros.Length; i < m_Poles.Length; i++)
+                for (int i = m_zeros.Length; i < m_poles.Length; i++)
                 {
-                    result.Zeros[i] = -1.0D;
+                    DiscreteZeros[i] = -1.0D;
                 }
             }
 
-            return result;
+            double[] A = PolesToPolynomial(DiscreteZeros);
+            double[] B = PolesToPolynomial(DiscretePoles);
+            return new DigitalFilter(B,A,DiscreteGain);
         }
 
         /// <summary>
@@ -134,15 +127,16 @@ namespace GemstoneAnalytic
         {
             double wc = 2 * Math.PI * fc;
 
-            m_Poles = m_Poles.Select(p => p * wc).ToArray();
-            m_Zeros = m_Zeros.Select(p => p * wc).ToArray();
+            m_poles = m_poles.Select(p => p * wc).ToArray();
+            m_zeros = m_zeros.Select(p => p * wc).ToArray();
 
-            if (m_Zeros.Length < m_Poles.Length)
+            if (m_zeros.Length < m_poles.Length)
             {
-                int n = m_Poles.Length - m_Zeros.Length;
-                m_Gain = Math.Pow(wc, (double)n) * m_Gain;
+                int n = m_poles.Length - m_zeros.Length;
+                m_gain = Math.Pow(wc, (double)n) * m_gain;
             }
         }
+
 
         /*
         public void LP2HP()
@@ -203,120 +197,101 @@ namespace GemstoneAnalytic
         }
 
         /// <summary>
-        /// Runs an evenly sampled signal through the Filter
+        /// Turns an existing LPFG into an HPF
         /// </summary>
-        /// <param name="signal"> f(t) for the signal </param>
-        /// <param name="fs">The sampling frequency </param>
-        /// <returns></returns>
-        public double[] Filt(double[] signal, double fs)
+        private void LP2HP()
         {
-            int n = signal.Count();
-            double[] output = new double[n];
-
-            DiscreteFilter filter = ContinousToDiscrete(fs);
-           
-            double[] a = this.PolesToPolynomial(filter.Poles);
-            double[] b = this.PolesToPolynomial(filter.Zeros);
-            b = b.Select(z => z * filter.Gain).ToArray();
-
-            int order = a.Count() - 1;
-           
-            //Forward Filtering
-            for (int i = order; i < n; i++)
+            Complex k = 1;
+            List<Complex> hPFPoles = new List<Complex>();
+            List<Complex> hPFZeros = new List<Complex>();
+            foreach (Complex p in m_poles)
             {
-                output[i] = signal[i] * b[0];
-                for (int j = 1; j < (order + 1); j++)
-                {
-                    output[i] += signal[i - j] * b[j] - output[i - j] * a[j];
-                }
-                output[i] = output[i] / a[0];
+                k = k * (-1.0D / p);
+                hPFPoles.Add(1.0D / p);
             }
-            return output;
+
+            foreach (Complex p in m_zeros)
+            {
+                k = k * (-p);
+                hPFZeros.Add(1.0D / p);
+            }
+
+            if (m_zeros.Count() < m_poles.Count())
+            {
+                int n = m_poles.Count() - m_zeros.Count();
+                for (int i = 0; i < n; i++)
+                {
+                    hPFZeros.Add(0.0D);
+                }
+            }
+
+            m_poles = hPFPoles.ToArray();
+            m_zeros = hPFZeros.ToArray();
+
+        }
+
+        #endregion [ methods ]
+
+        #region [ static ]
+
+        /// <summary>
+        /// Generates a normal Butterworth Filter of Nth order
+        /// </summary>
+        /// <param name="order"> order of the Filter</param>
+        /// <returns></returns>
+        private static Filter NormalButter(int order)
+        {
+            List<Complex> zeros = new List<Complex>();
+            List<Complex> poles = new List<Complex>();
+
+            //Generate poles
+            for (int i = 1; i < (order + 1); i++)
+            {
+                double theta = Math.PI * (2 * i - 1.0D) / (2.0D * (double)order) + Math.PI / 2.0D;
+                double re = Math.Cos(theta);
+                double im = Math.Sin(theta);
+
+                poles.Add(new Complex(re, im));
+            }
+
+
+            Complex Gain = -poles[0];
+            for (int i = 1; i < order; i++)
+            {
+                Gain = Gain * -poles[i];
+            }
+
+            return new Filter(poles.ToArray(), zeros.ToArray(), Gain.Real);
         }
 
         /// <summary>
-        /// Runs a single sample through a Filter with initialState
+        /// Generates a High Pass Butterworth Filter
         /// </summary>
-        /// <param name="value"> The input value</param>
-        /// <param name="fs">The sampling frequency</param>
-        /// <param name="initialState">The initial state of the filter </param>
-        /// <param name="finalState"> The final State of the Filter</param>
-        /// <returns> the value of the filtered signal</returns>
-        public double Filt(double value, double fs, FilterState initialState, out FilterState finalState)
+        /// <param name="fc"> corner frequency in Hz</param>
+        /// <param name="order"> Order of the Filter </param>
+        /// <returns></returns>
+        public static Filter HPButterworth(double fc, int order)
         {
-            DiscreteFilter filter = ContinousToDiscrete(fs);
-
-            double[] a = this.PolesToPolynomial(filter.Poles);
-            double[] b = this.PolesToPolynomial(filter.Zeros);
-            b = b.Select(z => z * filter.Gain).ToArray();
-
-            double[] s = initialState.StateValue;
-
-            if (s.Length < (a.Length + b.Length - 2))
-            {
-                s = new double[s.Length - (a.Length + b.Length -2)];
-                Array.Fill(s, 0.0D);
-                s = initialState.StateValue.Concat(s).ToArray();
-            }
-                
-            double fx = value * b[0] + b.Select((z,i) => (i > 0? z*s[i] : 0.0D)).Sum() ;
-            fx += a.Select((z, i) => (i > 0 ? z * s[i+ b.Length] : 0.0D)).Sum();
-            fx = fx / a[0];
-
-            finalState = new FilterState()
-            {
-                StateValue = new double[] { value }
-                    .Concat(initialState.StateValue.Take(b.Length - 1).ToArray())
-                    .Concat(new double[] { fx })
-                    .Concat(initialState.StateValue.Skip(b.Length).Take(a.Length - 1).ToArray())
-                    .ToArray()
-            };
-
-            return fx;
-
+            Filter result = NormalButter(order);
+            result.LP2HP();
+            result.Scale(fc);
+            return result;
         }
 
-        /*
-        private double[] reverserFilt(double[] signal)
+        /// <summary>
+        /// Generates a High Pass Butterworth Filter
+        /// </summary>
+        /// <param name="fc"> corner frequency in Hz</param>
+        /// <param name="order"> Order of the Filter </param>
+        /// <returns></returns>
+        public static Filter LPButterworth(double fc, int order)
         {
-            int n = signal.Count();
-            double[] output = new double[n];
+            Filter result = NormalButter(order);
+            result.Scale(fc);
 
-            signal.Reverse();
-
-
-            double[] a = this.PolesToPolynomial(this.DiscretePoles.ToArray());
-            double[] b = this.PolesToPolynomial(this.DiscreteZeros.ToArray());
-            b = b.Select(z => z * this.DiscreteGain).ToArray();
-
-            int order = a.Count() - 1;
-            //setup first few points for computation
-            //for (int i = 0; i < order; i++)
-            //{
-            //    output[i] = signal[i];
-            //}
-
-            //Forward Filtering
-            for (int i = order; i < n; i++)
-            {
-                output[i] = signal[i] * b[0];
-                for (int j = 1; j < (order + 1); j++)
-                {
-                    output[i] += signal[i - j] * b[j] - output[i - j] * a[j];
-                }
-                output[i] = output[i] / a[0];
-            }
-
-            output.Reverse();
-            return output;
+            return result;
         }
 
-        public double[] filtfilt(double[] signal, double fs)
-        {
-            double[] forward = filt(signal, fs);
-            return reverserFilt(forward);
-        }
-        */
-        #endregion[methods]
+        #endregion
     }
 }
