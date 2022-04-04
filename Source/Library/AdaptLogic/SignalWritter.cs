@@ -62,14 +62,19 @@ namespace AdaptLogic
 
         #region [ Constructor ]
 
-        public SignalWritter(AdaptSignal Signal)
+        public SignalWritter(AdaptSignal Signal): this(Signal, new Dictionary<string, Tuple<string, string>[]>())  {  }
+
+        public SignalWritter(AdaptSignal Signal, Dictionary<string,Tuple<string,string>[]> Variables )
         {
             m_signal = Signal;
             m_queue = Channel.CreateUnbounded<ITimeSeriesValue>();
 
+            if (Variables.ContainsKey(m_signal.Device))
+                m_signal.ReplaceVars(Variables[m_signal.Device]);
+
             GenerateRoot();
             WriteGeneralFile();
-           
+
             m_data = new List<ITimeSeriesValue>();
             m_BadTSData = new List<ITimeSeriesValue>();
 

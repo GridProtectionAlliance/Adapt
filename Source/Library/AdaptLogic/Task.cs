@@ -48,17 +48,15 @@ namespace AdaptLogic
 
         #region [ Properties ]
         public DataSource DataSource { get; set; }
-        public List<string> InputSignalIds {get; set;}
+        public List<string> InputSignalIds { get; set; }
 
         public List<AdaptSignal> OutputSignals { get; set; }
 
-        /// <summary>
-        /// This will be removed eventually it is only necessary until we can defined OutputSignals Properly in the UI
-        /// </summary>
-        public List<string> TempSignalIds { get; set; }
         public DateTime Start { get; set; }
         public DateTime End { get; set; }
         public List<TaskSection> Sections { get; set; }
+
+        public Dictionary<string, Tuple<string, string>[]> VariableReplacements { get; set; }
         #endregion
 
         #region [ Constructor ]
