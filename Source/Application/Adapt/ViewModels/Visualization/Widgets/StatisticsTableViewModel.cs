@@ -95,6 +95,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         {
             m_data = new DataTable();
             m_data.Clear();
+            m_data.Columns.Add("PMU");
             m_data.Columns.Add("Signal");
             m_data.Columns.Add("Minimum");
             m_data.Columns.Add("Average");
@@ -106,6 +107,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
             {
                 AdaptPoint pt = reader.GetStatistics(m_start, m_end);
                 DataRow r = m_data.NewRow();
+                r["PMU"] = reader.Signal.Device;
                 r["Signal"] = reader.Signal.Name;
                 r["Minimum"] = pt.Min;
                 r["Average"] = pt.Value;
