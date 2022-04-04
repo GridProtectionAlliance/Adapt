@@ -107,7 +107,7 @@ namespace Adapt.DataSources
             double length = ticks - m_lastCrossing;
             if (m_currentExcursion == ExcursionType.Upper && length > m_settings.minDur * Gemstone.Ticks.PerSecond)
                 result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.upper + m_differenceUpper)));
-            if (m_currentExcursion == ExcursionType.Upper && length > m_settings.minDur * Gemstone.Ticks.PerSecond)
+            if (m_currentExcursion == ExcursionType.Lower && length > m_settings.minDur * Gemstone.Ticks.PerSecond)
                 result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.lower - m_differenceLower)));
 
             return result.ToArray();
