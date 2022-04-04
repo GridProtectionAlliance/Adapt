@@ -121,7 +121,7 @@ namespace AdaptLogic
             }).ToList();
 
             task.OutputSignals.ForEach(s => s.FramesPerSecond = framesPerSecond[s.ID]);
-            m_writers = new ConcurrentDictionary<string, SignalWritter>(task.OutputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
+            m_writers = new ConcurrentDictionary<string, SignalWritter>(task.OutputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal, task.VariableReplacements)));
 
             m_commonFrameRate = TimeAlignment.Combine(m_processors.Select(item => item.FramesPerSecond).Where(fps => fps > 0).ToArray());
         }

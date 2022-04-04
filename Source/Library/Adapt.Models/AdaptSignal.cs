@@ -84,6 +84,20 @@ namespace Adapt.Models
 
         }
 
+        public void ReplaceVars(Tuple<string, string>[] vars)
+        {
+            string subs = m_DeviceKey;
+
+            // Full Name replacement for ""
+            if (vars.Length > 0 && vars[0].Item1.Length == 0)
+                subs = vars[0].Item2;
+
+            foreach (Tuple<string, string> var in vars)
+                subs = subs.Replace("{" + var.Item1 + "}", var.Item2);
+
+            m_DeviceKey = subs;
+        }
+
         #endregion
 
         #region [ Constructors ]
