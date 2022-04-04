@@ -556,6 +556,12 @@ namespace Adapt.ViewModels.Common
                 parameter.DefaultValue = defaultValue;
             }
 
+            //Fix Parameter Settings when it's an Enum
+            if (parameter.IsEnum)
+            {
+                int i = parameter.EnumValues.FindIndex(item => item.Value.ToString() == parameter.Value.ToString());
+                parameter.EnumIndex = (i < 0? 0 : i);
+            }
            
             return parameter;
         }
