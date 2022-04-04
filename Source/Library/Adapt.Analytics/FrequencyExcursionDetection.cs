@@ -66,6 +66,9 @@ namespace Adapt.DataSources
             [DefaultValue(ExcursionType.UpperAndLower)]
             public ExcursionType excursionType { get; set; }
 
+            [DisplayName("Minimum Duration (s)")]
+            [DefaultValue(0.5)]
+            public double minDur { get; set; }
         }
 
         public enum ExcursionType
@@ -102,9 +105,9 @@ namespace Adapt.DataSources
                 return result.ToArray();
 
             double length = ticks - m_lastCrossing;
-            if (m_currentExcursion == ExcursionType.Upper)
+            if (m_currentExcursion == ExcursionType.Upper && length > m_settings.minDur * Gemstone.Ticks.PerSecond)
                 result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.upper + m_differenceUpper)));
-            if (m_currentExcursion == ExcursionType.Upper)
+            if (m_currentExcursion == ExcursionType.Upper && length > m_settings.minDur * Gemstone.Ticks.PerSecond)
                 result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.lower - m_differenceLower)));
 
             return result.ToArray();
@@ -134,7 +137,8 @@ namespace Adapt.DataSources
                 else if (value > m_settings.lower && (prevValue <= m_settings.lower))
                 {
                     double length = frame.Timestamp - m_lastCrossing;
-                    result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length,new KeyValuePair<string, double>("Deviation", m_settings.lower - m_differenceLower)));
+                    if (length > m_settings.minDur*Gemstone.Ticks.PerSecond)
+                        result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length,new KeyValuePair<string, double>("Deviation", m_settings.lower - m_differenceLower)));
                     m_currentExcursion = ExcursionType.UpperAndLower;
                 }
 
@@ -154,7 +158,8 @@ namespace Adapt.DataSources
                 else if (value < m_settings.upper && (prevValue >= m_settings.upper))
                 {
                     double length = frame.Timestamp - m_lastCrossing;
-                    result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.upper + m_differenceUpper)));
+                    if (length > m_settings.minDur * Gemstone.Ticks.PerSecond)
+                        result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.upper + m_differenceUpper)));
                     m_currentExcursion = ExcursionType.UpperAndLower;
                 }
 
