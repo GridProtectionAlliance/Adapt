@@ -70,13 +70,15 @@ namespace GemstoneAnalytic
         public DigitalFilter ContinousToDiscrete(double fs, double fp = 0)
         {
             double DiscreteGain = 1.0;
-            Complex[] DiscretePoles = new Complex[m_poles.Count() - 1];
-            Complex[] DiscreteZeros = new Complex[m_zeros.Count() - 1];
+            Complex[] DiscretePoles = new Complex[m_poles.Count()];
+            Complex[] DiscreteZeros;
+            if (m_zeros.Count() > 1)
+                DiscreteZeros = new Complex[m_zeros.Count()];
+            else if (m_zeros.Count() < m_poles.Count())
+                DiscreteZeros = new Complex[m_poles.Count()];
+            else
+                DiscreteZeros = new Complex[0];
 
-            if (m_zeros.Count() < m_poles.Count())
-                DiscreteZeros = new Complex[m_poles.Count()-1];
-            
-           
             // prewarp
             double ws = 2 * fs;
 
