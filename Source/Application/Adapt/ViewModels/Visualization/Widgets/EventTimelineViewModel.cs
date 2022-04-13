@@ -1,7 +1,7 @@
 ﻿// ******************************************************************************************************
-//  EventCollumnView.tsx - Gbtc
+//  EventTimeLineViewModel.tsx - Gbtc
 //
-//  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
+//  Copyright © 2022, Grid Protection Alliance.  All Rights Reserved.
 //
 //  Licensed to the Grid Protection Alliance (GPA) under one or more contributor license agreements. See
 //  the NOTICE file distributed with this work for additional information regarding copyright ownership.
@@ -38,8 +38,8 @@ using System.Windows;
 
 namespace Adapt.ViewModels.Visualization.Widgets
 {
-    [Description("Event Occurrence Chart")]
-    public class EventCollumnVM: WidgetBaseVM
+    [Description("Event Timeline Chart")]
+    public class EventTimeLineVM : WidgetBaseVM
     {
         #region [ Member ]
         private PlotModel m_plotModel;
@@ -64,12 +64,12 @@ namespace Adapt.ViewModels.Visualization.Widgets
         #endregion
 
         #region [ Constructor ]
-        public EventCollumnVM(): base()
+        public EventTimeLineVM(): base()
         {
             m_xamlClass = new LineChart();
             m_plotModel = new PlotModel();
             m_plotController = new PlotController();
-            m_plotModel.Title = "Event Occurrences";
+            m_plotModel.Title = "Event Time Line";
             OnPropertyChanged(nameof(PlotModel));
             OnPropertyChanged(nameof(PlotController));
 
@@ -91,36 +91,40 @@ namespace Adapt.ViewModels.Visualization.Widgets
             m_plotModel = new PlotModel();
             m_plotController = new PlotController();
 
-            m_plotModel.Title = "Event Occurrences";
+            m_plotModel.Title = "Event Time Line";
+
             DateTimeAxis tAxis = new DateTimeAxis()
             {
                 Minimum = DateTimeAxis.ToDouble(m_start),
                 Maximum = DateTimeAxis.ToDouble(m_end)
             };
 
-            m_plotModel.Axes.Add(tAxis);
-
             tAxis.AxisChanged += AxisChanged;
+
+            CategoryAxis categoryAxis = new CategoryAxis { Position = AxisPosition.Left };
+
+            int i = 0;
 
             foreach (IReader reader in m_readers)
             {
-                LinearBarSeries series = new LinearBarSeries();
-                TimeSpan bucket = (m_end - m_start)/15.0;
-                List<EventSummary> lst = new List<EventSummary>();
+                IEnumerable<AdaptEvent> evt = reader.GetEvents(m_start, m_end);
 
-                for (int i= 0; i < 15; i++)
-                {
-                    EventSummary pt = reader.GetEventSummary(m_start+i*bucket, m_start + (i+1) * bucket);
-                    lst.Add(pt);
-                }
-                series.Points.AddRange(lst.Select(item => new DataPoint(
-                    DateTimeAxis.ToDouble(item.Tmin + 0.5*(item.Tmax - item.Tmin)),
-                    item.Count
-                    )));
+                categoryAxis.Labels.Add(reader.Signal.Device + " - " + reader.Signal.Name);
 
-                series.BarWidth = 15;
-                m_plotModel.Series.Add(series);
+                IntervalBarSeries s1 = new IntervalBarSeries();
+                s1.Items.AddRange(evt.Select(e => new IntervalBarItem {
+                    Start = DateTimeAxis.ToDouble(e.Timestamp),
+                    End = DateTimeAxis.ToDouble(e.Timestamp + (long)e.Value),
+                    CategoryIndex = i
+                }));
+
+                m_plotModel.Series.Add(s1);
+
+                i++;
             }
+
+            m_plotModel.Axes.Add(categoryAxis);
+            m_plotModel.Axes.Add(tAxis);
 
             OnPropertyChanged(nameof(PlotModel));
             OnPropertyChanged(nameof(PlotController));

@@ -40,17 +40,16 @@ using System.Windows;
 namespace Adapt.DataSources
 {
     /// <summary>
-    /// Caculates the angle given magnitude and phase
+    /// Calculates the angle given magnitude and phase
     /// </summary>
 
-    [AnalyticSection(AnalyticSection.SignalProcessing)]
+    [AnalyticSection(AnalyticSection.DataFiltering)]
 
     [Description("Angle Calculation: Calculate the angle given magnitude and phase")]
-    public class AngleCalculation : IAnalytic
+    public class AngleCalculation : MultiSignalBaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
-        
+
         public class Setting
         {
             [SettingName("Angle Unit")]
@@ -59,12 +58,6 @@ namespace Adapt.DataSources
         }
 
         public Type SettingType => typeof(Setting);
-
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -78,17 +71,8 @@ namespace Adapt.DataSources
             return new List<string>() { "Magnitude", "Phase"};
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame));
-        }
 
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] prev, IFrame[] future) 
         {
             ITimeSeriesValue magnitude = frame.Measurements["Magnitude"];
             ITimeSeriesValue phase = frame.Measurements["Phase"];
@@ -104,23 +88,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public int GetGCD(int a, int b)
-        {
-            int remainder;
-
-            while (b != 0)
-            {
-                remainder = a % b;
-                a = b;
-                b = remainder;
-            }
-
-            return a;
-        }
-
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond) 
-        {
-            m_fps = inputFramesPerSecond.Aggregate((S, val) => S * val / GetGCD(S, val));
-        }
     }
 }

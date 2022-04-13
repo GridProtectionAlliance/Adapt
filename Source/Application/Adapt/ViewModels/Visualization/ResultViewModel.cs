@@ -130,12 +130,24 @@ namespace Adapt.ViewModels
 
             inputSignals = viewModel.MappingViewModel.DeviceMappings.SelectMany(m => m.ChannelMappings).ToDictionary(x=>x.Key, x=> x.Value);
 
+
+            
+
             Template template = viewModel.Templates[viewModel.SelectedTemplateIndex];
 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
                 List<TemplateInputDevice> devices = new TableOperations<TemplateInputDevice>(connection)
                     .QueryRecordsWhere("TemplateID={0}", template.Id).ToList();
+
+                // Update Output Signal Naming Convention
+                result.VariableReplacements = viewModel.MappingViewModel.DeviceMappings.ToDictionary(
+                    item => item.TargetDeviceName,
+                    item => new Tuple<string, string>[] {
+                    new Tuple<string, string>("", item.TargetDeviceName),
+                    new Tuple<string, string>("NAME", item.SourceDeviceName)
+                        });
+
 
                 List<TemplateSection> sections = new TableOperations<TemplateSection>(connection)
                     .QueryRecordsWhere("TemplateID={0}", template.Id).OrderBy(item => item.Order).ToList();
@@ -155,12 +167,13 @@ namespace Adapt.ViewModels
                         IAnalytic instance = (IAnalytic)Activator.CreateInstance(type);
                         instance.Configure(config);
                         List<AnalyticOutputDescriptor> outputDescriptions = instance.Outputs().ToList();
-
+                         
                         // Check Output Signals and add them to temp Signals
                         List<int> analyticOutputs = new TableOperations<AnalyticOutputSignal>(connection).QueryRecordsWhere("AnalyticID={0}",analytic.ID)
                             .OrderBy(s => s.OutputIndex)
                             .Select(i => i.ID).ToList();
 
+                      
                         int i = 0;
                         while (i < analyticOutputs.Count())
                         {
@@ -207,10 +220,11 @@ namespace Adapt.ViewModels
                         deviceID = connection.ExecuteScalar<int>("SELECT DeviceID FROM AnalyticOutputSignal WHERE ID = {0}", s.SignalID);
                     TemplateInputDevice dev = devices.Find(item => item.ID == deviceID);
 
+                    result.VariableReplacements[dev.Name][0] = new Tuple<string, string>("", dev.OutputName);
                     if (s.IsInputSignal)
-                        return new AdaptSignal(inputSignals[s.SignalID], s.Name, dev.OutputName,0);
+                        return new AdaptSignal(inputSignals[s.SignalID], s.Name, dev.Name,0);
                     else
-                        return new AdaptSignal(tempSignals[s.SignalID].Name, s.Name, dev.OutputName, 0)
+                        return new AdaptSignal(tempSignals[s.SignalID].Name, s.Name, dev.Name, 0)
                         {
                             Type = tempSignals[s.SignalID].Type,
                             Phase = tempSignals[s.SignalID].Phase
@@ -222,8 +236,8 @@ namespace Adapt.ViewModels
 
             result.OutputSignals = result.OutputSignals.GroupBy(c => c.ID, (key, c) => c.FirstOrDefault()).ToList();
             result.InputSignalIds = inputSignals.Select(item => item.Value).Distinct().ToList();
-            result.TempSignalIds = tempSignals.Select(item => item.Value.Name).ToList();
 
+            
             return result;
         }
 

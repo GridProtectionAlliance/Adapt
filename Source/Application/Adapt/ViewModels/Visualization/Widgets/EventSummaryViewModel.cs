@@ -94,17 +94,25 @@ namespace Adapt.ViewModels.Visualization.Widgets
         {
             m_data = new DataTable();
             m_data.Clear();
+            m_data.Columns.Add("PMU");
             m_data.Columns.Add("Event");
             m_data.Columns.Add("Number of Occurrences");
+            m_data.Columns.Add("Total Active Time (s)");
+            m_data.Columns.Add("Shortest Time (s)");
+            m_data.Columns.Add("Longest Time (s)");
 
             foreach (IReader reader in m_readers)
             {
-                AdaptPoint AdaptPoint = reader.GetStatistics(m_start, m_end);
+                EventSummary evtSummary = reader.GetEventSummary(m_start, m_end);
                 
                 DataRow r = m_data.NewRow();
+                r["Event"] = reader.Signal.Device;
                 r["Event"] = reader.Signal.Name;
-                r["Number of Occurrences"] = AdaptPoint.Count;
-                
+                r["Number of Occurrences"] = evtSummary.Count;
+                r["Total Active Time (s)"] = evtSummary.Sum / Gemstone.Ticks.PerSecond;
+                r["Shortest Time (s)"] = evtSummary.Min / Gemstone.Ticks.PerSecond;
+                r["Longest Time (s)"] = evtSummary.Max / Gemstone.Ticks.PerSecond;
+
                 m_data.Rows.Add(r);
                  
             }

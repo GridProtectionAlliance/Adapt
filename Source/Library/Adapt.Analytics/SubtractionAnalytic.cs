@@ -41,22 +41,17 @@ namespace Adapt.DataSources
     /// Subtracts two signals from each other
     /// </summary>
 
-    [AnalyticSection(AnalyticSection.DataCleanup)]
+    [AnalyticSection(AnalyticSection.DataFiltering)]
 
     [Description("Subtraction: Subtracting Signal 2 from Signal 1")]
-    public class Subtraction : IAnalytic
+    public class Subtraction : MultiSignalBaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
 
         public Type SettingType => typeof(Setting);
 
-        public int FramesPerSecond => m_fps;
         public class Setting {}
 
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -70,17 +65,8 @@ namespace Adapt.DataSources
             return new List<string>() { "Signal 1", "Signal 2" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame));
-        }
-
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+ 
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] prev, IFrame[] future) 
         {
             ITimeSeriesValue signal1 = frame.Measurements["Signal 1"];
             ITimeSeriesValue signal2 = frame.Measurements["Signal 2"];
@@ -93,23 +79,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public int GetGCD(int a, int b)
-        {
-            int remainder;
-
-            while (b != 0)
-            {
-                remainder = a % b;
-                a = b;
-                b = remainder;
-            }
-
-            return a;
-        }
-
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
-        {
-            m_fps = inputFramesPerSecond.Aggregate((S, val) => S * val / GetGCD(S, val));
-        }
     }
 }

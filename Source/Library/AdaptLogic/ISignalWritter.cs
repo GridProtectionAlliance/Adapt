@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  Task.tsx - Gbtc
+//  SignalWritter.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -22,15 +22,12 @@
 // ******************************************************************************************************
 
 using Adapt.Models;
-using Gemstone;
 using GemstoneCommon;
-using Microsoft.Extensions.Configuration;
 using System;
-using System.Collections.Concurrent;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.Loader;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -38,49 +35,16 @@ using System.Threading.Tasks;
 namespace AdaptLogic
 {
     /// <summary>
-    /// A Task to be Processed 
+    /// Interface for generic SignalWriter that can be used to write Event or Data Channels
     /// </summary>
-    public class AdaptTask
+    public interface ISignalWritter
     {
-        #region [ Members ]
-
-        #endregion
-
-        #region [ Properties ]
-        public DataSource DataSource { get; set; }
-        public List<string> InputSignalIds { get; set; }
-
-        public List<AdaptSignal> OutputSignals { get; set; }
-
-        public DateTime Start { get; set; }
-        public DateTime End { get; set; }
-        public List<TaskSection> Sections { get; set; }
-
-        public Dictionary<string, Tuple<string, string>[]> VariableReplacements { get; set; }
-        #endregion
-
-        #region [ Constructor ]
-
-        #endregion
 
         #region [ Methods ]
 
+        public void WriteSecond(List<ITimeSeriesValue> data, bool forceIndexGen);
 
         #endregion
-    }
 
-    public class TaskSection
-    {
-        public List<Analytic> Analytics { get; set; }
     }
-
-    public class Analytic
-    {
-        public Type AdapterType { get; set; }
-        public List<string> Inputs { get; set; }
-        public List<AnalyticOutputDescriptor> Outputs { get; set; }
-        public IConfiguration Configuration { get; set; }
-        public int FramesPerSecond { get; set; }
-    }
-
 }

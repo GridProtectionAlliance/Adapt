@@ -40,31 +40,22 @@ namespace Adapt.DataSources
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Frequency Limits: Returns frequency if frequency / Nominal Frequency is between max and min.")]
-    public class NominalFrequency: IAnalytic
+    [Description("Limits: Returns value if it is between max and min. Otherwhise the limit is returned.")]
+    public class NominalFrequency: BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
         public class Setting
         {
-            [DefaultValue(1)]
-            [SettingName("Nominal Frequency")]
-            public double NominalFrequency { get; set; }
-
             [DefaultValue(2)]
+            [SettingName("Upper Limit")]
             public double Max { get; set; }
 
             [DefaultValue(1)]
+            [SettingName("Lower Limit")]
             public double Min { get; set; }
         }
 
         public Type SettingType => typeof(Setting);
-
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -75,26 +66,20 @@ namespace Adapt.DataSources
 
         public IEnumerable<string> InputNames()
         {
-            return new List<string>() { "Frequency" };
+            return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame));
-        }
 
-        public Task CompleteComputation() 
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] prev, IFrame[] future) 
         {
-            return Task.Run(() => { });
-        }
+            ITimeSeriesValue frequency = frame.Measurements["Original"];
+            double v = frequency.Value;
+            if (v > m_settings.Max)
+                v = m_settings.Max;
+            if (v < m_settings.Min)
+                v = m_settings.Min;
 
-        public ITimeSeriesValue[] Compute(IFrame frame) 
-        {
-            ITimeSeriesValue frequency = frame.Measurements["Frequency"];
-            if ((frequency.Value / m_settings.NominalFrequency) < m_settings.Max && (frequency.Value / m_settings.NominalFrequency) > m_settings.Min)
-                return new AdaptValue[] { new AdaptValue("Filtered", frequency.Value, frame.Timestamp) };
-            else
-                return new AdaptValue[] { new AdaptValue("Filtered", double.NaN, frame.Timestamp) };
+            return new AdaptValue[] { new AdaptValue("Filtered", v, frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)
@@ -103,14 +88,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
-        {
-            m_fps = inputFramesPerSecond.FirstOrDefault();
-            foreach (int i in inputFramesPerSecond)
-            {
-                if (i > m_fps)
-                    m_fps = i;
-            }
-        }
     }
 }

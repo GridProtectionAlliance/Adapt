@@ -22,14 +22,9 @@
 // ******************************************************************************************************
 using Adapt.Models;
 using Adapt.View.Template;
-using Adapt.ViewModels.Common;
 using Gemstone.Data;
 using Gemstone.Data.Model;
-using Gemstone.IO;
-using Gemstone.StringExtensions;
-using GemstoneCommon;
 using GemstoneWPF;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -38,7 +33,6 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Transactions;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -181,6 +175,24 @@ namespace Adapt.ViewModels
             Mouse.OverrideCursor = Cursors.Wait;
             try
             {
+                if (!m_Devices.Any())
+                {
+                    AddSaveErrorMessage("At least 1 Device has to be added.");
+                    throw new OperationCanceledException("Save was canceled.");
+                }
+
+                if (!m_Devices.Where(item => item.SelectedOutput).Any())
+                {
+                    AddSaveErrorMessage("At least 1 Device has to designated as output.");
+                    throw new OperationCanceledException("Save was canceled.");
+                }
+
+                if (!m_Devices.SelectMany(item => item.Signals).Any())
+                {
+                    AddSaveErrorMessage("At least 1 Input Signal has to be set up.");
+                    throw new OperationCanceledException("Save was canceled.");
+                }
+
                 if (OnBeforeSaveCanceled())
                     throw new OperationCanceledException("Save was canceled.");
 
@@ -296,8 +308,12 @@ namespace Adapt.ViewModels
                 if (OnBeforeLoadCanceled())
                     throw new OperationCanceledException("Load was canceled.");
 
+                // Remove all old subscriptions to onSave event to make sure all old VMs get disposed and can't raise errors
+                BeforeSave = null;
+
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     Template = new TableOperations<Template>(connection).QueryRecordWhere("Id = {0}", ID);
+
 
                 LoadDevices();
                 LoadSections();
@@ -316,7 +332,11 @@ namespace Adapt.ViewModels
             }
             finally
             {
+                m_changed = false;
+                m_saveErrors = new List<string>();
                 Mouse.OverrideCursor = null;
+                OnPropertyChanged(nameof(CanSave));
+                OnPropertyChanged(nameof(Changed));
             }
         }
 

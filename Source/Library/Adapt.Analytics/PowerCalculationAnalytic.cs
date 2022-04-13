@@ -42,13 +42,13 @@ namespace Adapt.DataSources
     /// <summary>
     /// Returns the apparent, active and reactive powers
     /// </summary>
-    [AnalyticSection(AnalyticSection.DataCleanup)]
+    [AnalyticSection(AnalyticSection.DataFiltering)]
 
     [Description("Power Calculation: Return the apparent, active and reactive powers")]
-    public class PowerCalculation : IAnalytic
+    public class PowerCalculation : MultiSignalBaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
+
         public class Setting
         {
             [SettingName("Angle Unit")]
@@ -57,12 +57,6 @@ namespace Adapt.DataSources
         }
 
         public Type SettingType => typeof(Setting);
-
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -78,19 +72,16 @@ namespace Adapt.DataSources
             return new List<string>() { "Voltage Magnitude", "Voltage Phase", "Current Magnitude", "Current Phase" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public override Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
-            AdaptValue apparent = new AdaptValue("Apparent Power", GetComplex(frame).Magnitude, frame.Timestamp);
-            AdaptValue active = new AdaptValue("Active Power", GetComplex(frame).Real, frame.Timestamp);
-            AdaptValue reactive = new AdaptValue("Reactive Power", GetComplex(frame).Imaginary, frame.Timestamp);
+            Complex S = GetComplex(frame);
+            AdaptValue apparent = new AdaptValue("Apparent Power", S.Magnitude, frame.Timestamp);
+            AdaptValue active = new AdaptValue("Active Power", S.Real, frame.Timestamp);
+            AdaptValue reactive = new AdaptValue("Reactive Power", S.Imaginary, frame.Timestamp);
             return Task.FromResult<ITimeSeriesValue[]>(new AdaptValue[] { apparent, active, reactive });
         }
 
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
+     
         public Complex GetComplex(IFrame frame)
         {
             ITimeSeriesValue voltage_mag = frame.Measurements["Voltage Magnitude"];
@@ -116,23 +107,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public int GetGCD(int a, int b)
-        {
-            int remainder;
-
-            while (b != 0)
-            {
-                remainder = a % b;
-                a = b;
-                b = remainder;
-            }
-
-            return a;
-        }
-
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
-        {
-            m_fps = inputFramesPerSecond.Aggregate((S, val) => S * val / GetGCD(S, val));
-        }
     }
 }

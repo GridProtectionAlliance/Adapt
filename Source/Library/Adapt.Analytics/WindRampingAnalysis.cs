@@ -51,23 +51,17 @@ namespace Adapt.DataSources
     [AnalyticSection(AnalyticSection.EventDetection)]
 
     [Description("Wind Ramping Analysis: Detects Ramping of Wind Power")]
-    public class WindRampingAnalysis : IAnalytic
+    public class WindRampingAnalysis : BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
         private List<DigitalFilter> m_filters;
         private List<FilterState> m_filterStates;
 
         private double m_trendValue;
         private Ticks m_trendTicks;
         private double m_trendIncrease;
+        private double m_prevFiltered;
         public Type SettingType => typeof(Setting);
-
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public class Setting 
         {
@@ -107,12 +101,8 @@ namespace Adapt.DataSources
             return new List<string>() { "Power"};
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame, previousFrames) );
-        }
 
-        public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames)
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] future)
         {
             double filtered = frame.Measurements["Power"].Value;
 
@@ -125,7 +115,10 @@ namespace Adapt.DataSources
                 m_filterStates[i] = updated;
             }
 
-            List<ITimeSeriesValue> result = new List<ITimeSeriesValue>() { new AdaptValue("Filtered Power", filtered, frame.Timestamp) };
+            m_prevFiltered = filtered;
+            List<ITimeSeriesValue> result = new List<ITimeSeriesValue>() {
+                new AdaptValue("Filtered Power", filtered, frame.Timestamp) 
+            };
 
             bool isExtrema = false;
 
@@ -157,7 +150,10 @@ namespace Adapt.DataSources
 
 
                 if (isEvent)
-                    result.Add(new AdaptEvent("Ramping Occurred", m_trendTicks, TrendTime));
+                    result.Add(new AdaptEvent("Ramping Occurred", m_trendTicks, TrendTime, 
+                        new KeyValuePair<string, double>("Power Change", TrendAmount),
+                        new KeyValuePair<string, double>("Avg Rate", TrendAmount/TrendTime)
+                        ));
            
                 m_trendTicks = frame.Timestamp;
                 m_trendIncrease = -m_trendIncrease;
@@ -203,25 +199,52 @@ namespace Adapt.DataSources
 
             if (m_settings.Scale == TimeScale.Medium)
             {
-
+                m_filters = new List<DigitalFilter>() {
+                    new DigitalFilter(new double[]{ 1,2,1 }, new double[] { 1,-1.99989571659313, 0.999895771445361 }, 1.37130588365364e-08),
+                    new DigitalFilter(new double[]{ 1,2,1 }, new double[] { 1,-1.99970793065464, 0.999707985501722 }, 1.37117712095858e-08),
+                    new DigitalFilter(new double[]{ 1,2,1 }, new double[] { 1,-1.99957799939819, 0.999578054241707}, 1.37108802856493e-08),
+                    new DigitalFilter(new double[]{ 1,1,0 }, new double[] { 1,-0.999765815778955,0 }, 0.000117092110522488),
+                };
             }
 
             if (m_settings.Scale == TimeScale.Long)
             {
-
+                m_filters = new List<DigitalFilter>() {
+                    new DigitalFilter(new double[]{ 1,2,1 }, new double[] { 1,-1.99999314315241,0.999993143327873 }, 4.38647653873391e-11),
+                    new DigitalFilter(new double[]{ 1,2,1 }, new double[] { 1,- 1.99998126715915,0.999981267334612 }, 4.38645049176171e-11),
+                    new DigitalFilter(new double[]{ 1,2,1 }, new double[] { 1, - 1.99997441061547,0.999974410790928}, 4.38643545367615e-11),
+                };
             }
             m_filterStates = new List<FilterState>();
         }
 
-       
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSeconds)
+
+        public override Task<ITimeSeriesValue[]> CompleteComputation(Gemstone.Ticks ticks)
         {
-            m_fps = inputFramesPerSeconds.FirstOrDefault();
+            return Task.Run(() => ProcessLastEvent(ticks));
         }
 
-        public Task CompleteComputation()
+        private ITimeSeriesValue[] ProcessLastEvent(Gemstone.Ticks ticks)
         {
-            return Task.Run(() => { });
+
+            double TrendTime = ticks - m_trendTicks;
+            double TrendAmount = m_prevFiltered - m_trendValue;
+
+            double DetSlope = (m_settings.MaxChange - m_settings.MinChange) / ((m_settings.MaxDuration - m_settings.MinChange) * Ticks.PerSecond);
+            double DetYint = m_settings.MaxChange - DetSlope * m_settings.MaxDuration * Ticks.PerSecond;
+            bool isEvent = Math.Abs(TrendAmount) > m_settings.MinChange &&
+                (TrendTime < m_settings.MinDuration * Ticks.PerSecond) &&
+                Math.Abs(TrendAmount) > (DetSlope * TrendTime + DetYint);
+
+
+
+            if (isEvent)
+                return new ITimeSeriesValue[] { new AdaptEvent("Ramping Occurred", m_trendTicks, TrendTime,
+                    new KeyValuePair<string, double>("Power Change", TrendAmount),
+                    new KeyValuePair<string, double>("Avg Rate", TrendAmount / TrendTime)
+                    ) };
+
+            return new ITimeSeriesValue[0];
         }
     }
 }

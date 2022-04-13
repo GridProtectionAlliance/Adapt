@@ -43,13 +43,12 @@ namespace Adapt.DataSources
     /// Finds the imaginary component of the complex number given magnitude and phase
     /// </summary>
 
-    [AnalyticSection(AnalyticSection.DataCleanup)]
+    [AnalyticSection(AnalyticSection.DataFiltering)]
 
     [Description("Imaginary Component: Find imaginary component from magnitude and phase")]
-    public class ImaginaryComponent : IAnalytic
+    public class ImaginaryComponent : MultiSignalBaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
         public class Setting
         {
             [SettingName("Angle Unit")]
@@ -59,16 +58,10 @@ namespace Adapt.DataSources
 
         public Type SettingType => typeof(Setting);
 
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
-
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
             return new List<AnalyticOutputDescriptor>() { 
-                new AnalyticOutputDescriptor() { Name = "Imaginary Component", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other } 
+                new AnalyticOutputDescriptor() { Name = "Imaginary", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other } 
             };
         }
 
@@ -77,26 +70,18 @@ namespace Adapt.DataSources
             return new List<string>() { "Magnitude", "Phase"};
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame));
-        }
+      
 
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-
-        public ITimeSeriesValue[] Compute(IFrame frame) 
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] prev, IFrame[] future) 
         {
             ITimeSeriesValue magnitude = frame.Measurements["Magnitude"];
             ITimeSeriesValue phase = frame.Measurements["Phase"];
             if (m_settings.Unit == AngleUnit.Degrees)
             {
-                return new AdaptValue[] { new AdaptValue("Imaginary Component", magnitude.Value * Math.Sin(phase.Value), frame.Timestamp) };
+                return new AdaptValue[] { new AdaptValue("Imaginary", magnitude.Value * Math.Sin(phase.Value), frame.Timestamp) };
             }
             else
-                return new AdaptValue[] { new AdaptValue("Imaginary Component", magnitude.Value * Math.Sin((180 / Math.PI) * phase.Value), frame.Timestamp) };
+                return new AdaptValue[] { new AdaptValue("Imaginary", magnitude.Value * Math.Sin((180 / Math.PI) * phase.Value), frame.Timestamp) };
         }
 
         public void Configure(IConfiguration config)
@@ -105,23 +90,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public int GetGCD(int a, int b)
-        {
-            int remainder;
-
-            while (b != 0)
-            {
-                remainder = a % b;
-                a = b;
-                b = remainder;
-            }
-
-            return a;
-        }
-
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
-        {
-            m_fps = inputFramesPerSecond.Aggregate((S, val) => S * val / GetGCD(S, val));
-        }
     }
 }

@@ -398,6 +398,7 @@ namespace Adapt.ViewModels
             settingErrors.ForEach(e => SectionViewModel.TemplateViewModel.AddSaveErrorMessage(e));
         }
         #endregion
+
         #region [ Static ]
 
         private static readonly string ConnectionString = $"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{Path.DirectorySeparatorChar}Adapt{Path.DirectorySeparatorChar}DataBase.db; Version=3; Foreign Keys=True; FailIfMissing=True";

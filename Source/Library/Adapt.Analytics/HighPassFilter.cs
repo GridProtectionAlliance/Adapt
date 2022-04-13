@@ -1,7 +1,7 @@
 ﻿// ******************************************************************************************************
-//  NominalVoltageAnalytic.tsx - Gbtc
+//  HighPassFilter.tsx - Gbtc
 //
-//  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
+//  Copyright © 2022, Grid Protection Alliance.  All Rights Reserved.
 //
 //  Licensed to the Grid Protection Alliance (GPA) under one or more contributor license agreements. See
 //  the NOTICE file distributed with this work for additional information regarding copyright ownership.
@@ -16,15 +16,14 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  08/02/2021 - C. Lackner
+//  04/01/2022 - C. Lackner
 //       Generated original version of source code.
-//  12/16/2021 - A. Hagemeyer
-//       Changed to a Nominal Voltage Analytic
 //
 // ******************************************************************************************************
 
 
 using Adapt.Models;
+using GemstoneAnalytic;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -36,35 +35,29 @@ using System.Threading.Tasks;
 namespace Adapt.DataSources
 {
     /// <summary>
-    /// Returns the voltage value if it is between the max and min after being divided by base voltage
+    /// If value = 0 return NaN. Otherwise return the data
     /// </summary>
     
-    [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Voltage Limits: Return voltage  if voltage / base voltage is between max and min.")]
-    public class NominalVoltage: IAnalytic
+    [AnalyticSection(AnalyticSection.SignalProcessing)]
+    [Description("High Pass: Applies an nth order Butterworth High Pass Filter.")]
+    public class HighPassFilter : BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        public int m_fps;
-        public class Setting
-        {
-            [DefaultValue(60)]
-            [SettingName("Base Voltage")]
-            public double BaseVoltage { get; set; }
-
+        public class Setting 
+        { 
+            [DisplayName("Order of the Filter")]
             [DefaultValue(2)]
-            public double Max { get; set; }
+            public int N { get; set; }
 
-            [DefaultValue(1)]
-            public double Min { get; set; }
+            [DisplayName("Corner Frequency")]
+            [DefaultValue(120)]
+            public double Fc { get; set; }
         }
 
+        private DigitalFilter m_filter;
+        private FilterState m_state;
         public Type SettingType => typeof(Setting);
 
-        public int FramesPerSecond => m_fps;
-
-        public int PrevFrames => 0;
-
-        public int FutureFrames => 0;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
@@ -75,42 +68,46 @@ namespace Adapt.DataSources
 
         public IEnumerable<string> InputNames()
         {
-            return new List<string>() { "Voltage" };
+            return new List<string>() { "Original" };
         }
 
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] prev, IFrame[] future) 
         {
-            return Task.Run(() => Compute(frame));
+            double value = frame.Measurements["Original"].Value;
+            if (double.IsNaN(value))
+                return new ITimeSeriesValue[0];
+
+            if (m_state == null)
+                m_state = CreateInitialConditions(m_filter, value);
+
+            FilterState updated;
+            double filtered = m_filter.Filt(value, m_state, out updated);
+            m_state = updated;
+
+            return new AdaptValue[] { new AdaptValue("Filtered", filtered, frame.Timestamp) };
+            
         }
 
-        public Task CompleteComputation() 
+        private FilterState CreateInitialConditions(DigitalFilter filter, double value)
         {
-            return Task.Run(() => { });
-        }
+            int ex = 100000;
+            FilterState updated = new FilterState() { StateValue = new double[] { } };
 
-        public ITimeSeriesValue[] Compute(IFrame frame) 
-        {
-            ITimeSeriesValue volt = frame.Measurements["Voltage"];
-            if ((volt.Value / m_settings.BaseVoltage) < m_settings.Max && (volt.Value / m_settings.BaseVoltage) > m_settings.Min)
-                return new AdaptValue[] { new AdaptValue("Filtered", volt.Value, frame.Timestamp) };
-            else
-                return new AdaptValue[] { new AdaptValue("Filtered", double.NaN, frame.Timestamp) };
+            double[] f = new double[ex];
+            for (int i = 0; i < ex; i++)
+            {
+                f[i] = filter.Filt(value, updated, out updated);
+            }
+            return updated;
+
         }
 
         public void Configure(IConfiguration config)
         {
             m_settings = new Setting();
             config.Bind(m_settings);
-        }
 
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
-        {
-            m_fps = inputFramesPerSecond.FirstOrDefault();
-            foreach (int i in inputFramesPerSecond)
-            {
-                if (i > m_fps)
-                    m_fps = i;
-            }
+            m_filter = Filter.HPButterworth(m_settings.Fc, m_settings.N).ContinousToDiscrete(m_fps);
         }
     }
 }

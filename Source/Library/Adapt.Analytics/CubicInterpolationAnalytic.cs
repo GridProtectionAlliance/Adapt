@@ -40,30 +40,28 @@ namespace Adapt.DataSources
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Cubic Interpolation: ")]
-    public class CubicInterpolation: IAnalytic
+    [Description("Cubic Interpolation: Cubic interpolation of missing datapoints.")]
+    public class CubicInterpolation: BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private int m_fps;
 
         public class Setting 
         {
             [DefaultValue(2)]
+            [SettingName("Maximum Number of Missing Points")]
             public int Limit { get; set; }
         }
 
         public Type SettingType => typeof(Setting);
 
-        public int FramesPerSecond => m_fps;
+        public override int PrevFrames => m_settings?.Limit ?? 2;
 
-        public int PrevFrames => m_settings.Limit;
-
-        public int FutureFrames => m_settings.Limit;
+        public override int FutureFrames => m_settings?.Limit ?? 2;
 
         public IEnumerable<AnalyticOutputDescriptor> Outputs()
         {
             return new List<AnalyticOutputDescriptor>() { 
-                new AnalyticOutputDescriptor() { Name = "Linear", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other } 
+                new AnalyticOutputDescriptor() { Name = "Interpolated", FramesPerSecond = 0, Phase = Phase.NONE, Type = MeasurementType.Other } 
             };
         }
 
@@ -71,24 +69,15 @@ namespace Adapt.DataSources
         {
             return new List<string>() { "Original" };
         }
-
-        public Task<ITimeSeriesValue[]> Run(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
-        {
-            return Task.Run(() => Compute(frame, previousFrames, futureFrames));
-        }
-
-        public Task CompleteComputation() 
-        {
-            return Task.Run(() => { });
-        }
-        public ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
+      
+        public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] futureFrames)
         {
             double original = frame.Measurements["Original"].Value;
             List<double> allX = new List<double>();
             List<double> allY = new List<double>();
 
             if (previousFrames.Length < 2 || futureFrames.Length < 2)
-                return new AdaptValue[] { new AdaptValue("Linear", original, frame.Timestamp) };
+                return new AdaptValue[] { new AdaptValue("Interpolated", original, frame.Timestamp) };
 
             allX.Add(previousFrames.FirstOrDefault().Timestamp);
             allY.Add(previousFrames.First().Measurements.First().Value.Value);
@@ -102,7 +91,7 @@ namespace Adapt.DataSources
 
             //if all values exist other than current, use interpolate function
             if (double.IsNaN(original) && allX.All(x => x != double.NaN) && allY.All(y => y != double.NaN))
-                return new AdaptValue[] { new AdaptValue("Linear", CubicInterpolate(allX, allY, frame.Timestamp), frame.Timestamp) };
+                return new AdaptValue[] { new AdaptValue("Interpolated", CubicInterpolate(allX, allY, frame.Timestamp), frame.Timestamp) };
             //if current doesn't exist and previous and current values also don't then find the values that do
             if (double.IsNaN(original) && (allX.Any(x => x == double.NaN || allY.Any(x => x == double.NaN)))) 
             {
@@ -158,10 +147,10 @@ namespace Adapt.DataSources
                 }
 
                 if (allX.Count < 4 || allY.Count < 4)
-                    return new AdaptValue[] { new AdaptValue("Linear", double.NaN, frame.Timestamp) };
-                return new AdaptValue[] { new AdaptValue("Linear", CubicInterpolate(allX, allY, frame.Timestamp), frame.Timestamp) };
+                    return new AdaptValue[] { new AdaptValue("Interpolated", double.NaN, frame.Timestamp) };
+                return new AdaptValue[] { new AdaptValue("Interpolated", CubicInterpolate(allX, allY, frame.Timestamp), frame.Timestamp) };
             }
-            return new AdaptValue[] { new AdaptValue("Linear", original, frame.Timestamp) };
+            return new AdaptValue[] { new AdaptValue("Interpolated", original, frame.Timestamp) };
 
         }
 
@@ -192,9 +181,5 @@ namespace Adapt.DataSources
             config.Bind(m_settings);
         }
 
-        public void SetInputFPS(IEnumerable<int> inputFramesPerSecond)
-        {
-            m_fps = inputFramesPerSecond.FirstOrDefault();
-        }
     }
 }

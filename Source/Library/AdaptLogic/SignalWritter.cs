@@ -46,37 +46,40 @@ namespace AdaptLogic
 
         #region [ Members ]
 
-        private string m_rootFolder;
-        private string[] m_activeFolder;
-        private GraphPoint[] m_activeSummary;
-        private long m_currentSecond;
 
-        private int m_sec = 0;
+        private long m_currentSecond;
+        private string m_rootFolder;
+
         private List<ITimeSeriesValue> m_data;
         private List<ITimeSeriesValue> m_BadTSData;
         private Channel<ITimeSeriesValue> m_queue;
 
         private AdaptSignal m_signal;
         private bool m_isEvent;
+        private List<string> m_eventParameters;
 
-        private const int NLevels = 5;
         #endregion
 
         #region [ Constructor ]
 
-        public SignalWritter(AdaptSignal Signal)
+        public SignalWritter(AdaptSignal Signal): this(Signal, new Dictionary<string, Tuple<string, string>[]>())  {  }
+
+        public SignalWritter(AdaptSignal Signal, Dictionary<string,Tuple<string,string>[]> Variables )
         {
-            GenerateRoot();
-            WriteGeneralFile(Signal);
-            m_queue = Channel.CreateUnbounded<ITimeSeriesValue>();
             m_signal = Signal;
+            m_queue = Channel.CreateUnbounded<ITimeSeriesValue>();
+
+            if (Variables.ContainsKey(m_signal.Device))
+                m_signal.ReplaceVars(Variables[m_signal.Device]);
+
+            GenerateRoot();
+            WriteGeneralFile();
 
             m_data = new List<ITimeSeriesValue>();
             m_BadTSData = new List<ITimeSeriesValue>();
 
-            m_activeFolder = new string[NLevels] { "", "", "", "", "" };
-            m_activeSummary = new GraphPoint[(NLevels + 1)] { new GraphPoint(), new GraphPoint(), new GraphPoint(), new GraphPoint(), new GraphPoint(), new GraphPoint() };
             m_currentSecond = 0;
+            m_eventParameters = new List<string>();
         }
 
         #endregion
@@ -97,38 +100,55 @@ namespace AdaptLogic
 
         }
 
-        private void WriteGeneralFile(AdaptSignal signal)
+        private void WriteGeneralFile()
         {
             // Write .config file that just contains a bunch of Signal Information
             using (StreamWriter writer = new StreamWriter($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config"))
             {
-                writer.WriteLine(signal.Name);
-                writer.WriteLine(signal.Device);
-                writer.WriteLine(signal.ID);
-                writer.WriteLine(signal.Description);
-                writer.WriteLine(signal.Phase);
-                writer.WriteLine(signal.Type);
-                writer.WriteLine(signal.FramesPerSecond);
+                writer.WriteLine(m_signal.Name);
+                writer.WriteLine(m_signal.Device);
+                writer.WriteLine(m_signal.ID);
+                writer.WriteLine(m_signal.Description);
+                writer.WriteLine(m_signal.Phase);
+                writer.WriteLine(m_signal.Type);
+                writer.WriteLine(m_signal.FramesPerSecond);
             }
         }
 
-        ///
-        /// 
-        private void UpdateGeneralEventFile(ITimeSeriesValue Value)
+        private void WriteGeneralEventFile()
+        {
+            // Write .config file that just contains a bunch of Signal Information
+            using (StreamWriter writer = new StreamWriter($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config"))
+            {
+                writer.WriteLine("Event Data Format");
+                writer.WriteLine(m_signal.Name);
+                writer.WriteLine(m_signal.Device);
+                writer.WriteLine(m_signal.ID);
+                writer.WriteLine(m_signal.Description);
+                writer.WriteLine(m_signal.Phase);
+                writer.WriteLine(m_signal.Type);
+                writer.WriteLine(m_signal.FramesPerSecond);
+                writer.WriteLine("Characteristics");
+                foreach (string p in m_eventParameters)
+                    writer.WriteLine(p);
+            }
+        }
+
+        private void CleanupEvent(ITimeSeriesValue Value) 
         {
             m_isEvent = false;
+            m_eventParameters = new List<string>();
             if (!Value.IsEvent)
                 return;
             try
             {
                 m_isEvent = true;
-                AdaptEvent evt = (AdaptEvent) Value;
-                using (StreamWriter writer = new StreamWriter($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config", true))
-                {
-                    writer.WriteLine("Event Parameters");
-                    foreach (string v in evt.ParameterNames)
-                        writer.WriteLine(v);  
-                }
+                AdaptEvent evt = (AdaptEvent)Value;
+                m_eventParameters = evt.ParameterNames;
+
+                if (File.Exists($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config"))
+                    File.Delete($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config");
+               
             }
             catch (Exception ex)
             {
@@ -136,13 +156,13 @@ namespace AdaptLogic
             }
 
         }
+
         /// <summary>
         /// Adds a <see cref="ITimeSeriesValue"/> to be processed by this <see cref="SignalWritter"/>
         /// </summary>
         /// <param name="Value">The <see cref="ITimeSeriesValue"/> to be written to the Files</param>
         public async void AddPoint(ITimeSeriesValue Value)
         {
-            m_sec++;
             await m_queue.Writer.WriteAsync(Value);
         }
 
@@ -166,6 +186,7 @@ namespace AdaptLogic
             {
                 try
                 {
+                    ISignalWritter writer = new DataSignalWritter(m_rootFolder);
                     ITimeSeriesValue point;
                     bool processFirst = true;
                     while (await m_queue.Reader.WaitToReadAsync(cancellationToken))
@@ -175,8 +196,10 @@ namespace AdaptLogic
 
                         if (processFirst)
                         {
-                            UpdateGeneralEventFile(point);
+                            CleanupEvent(point);
                             processFirst = false;
+                            if (m_isEvent)
+                                writer = new EventSignalWritter(m_rootFolder, m_eventParameters);
                         }    
 
                         if (double.IsNaN(point.Value))
@@ -186,7 +209,10 @@ namespace AdaptLogic
                         long second = (long)Math.Floor(point.Timestamp.ToSeconds());
 
                         if (second > m_currentSecond)
-                            WriteSecond();
+                        {
+                            writer.WriteSecond(m_data, false);
+                            m_data = new List<ITimeSeriesValue>();
+                        }
 
                         if (second < m_currentSecond)
                         {
@@ -198,173 +224,18 @@ namespace AdaptLogic
                         m_currentSecond = second;
                     }
 
-                    WriteSecond(true);
-
+                    writer.WriteSecond(m_data,true);                    
                 }
                 catch (Exception ex)
                 {
                     int T = 1;
                 }
+                if (m_isEvent)
+                    WriteGeneralEventFile();
             }, cancellationToken);
 
         }
 
-        private void WriteSecond(bool forceIndexGen=false)
-        {
-            if (m_data.Count == 0)
-                return;
-
-            string year = m_data.FirstOrDefault()?.Timestamp.ToString("yyyy");
-            string month = m_data.FirstOrDefault()?.Timestamp.ToString("MM");
-            string day = m_data.FirstOrDefault()?.Timestamp.ToString("dd");
-            string hour = m_data.FirstOrDefault()?.Timestamp.ToString("HH");
-            string minute = m_data.FirstOrDefault()?.Timestamp.ToString("mm");
-            string second = m_data.FirstOrDefault()?.Timestamp.ToString("ss");
-           
-            double min = m_data.Min(pt => pt.Value);
-            double max = m_data.Max(pt => pt.Value);
-            double avg = m_data.Average(pt => pt.Value);
-
-            m_activeSummary[NLevels].Max = max;
-            m_activeSummary[NLevels].Min = min;
-            m_activeSummary[NLevels].N =  m_data.Count;
-            m_activeSummary[NLevels].Sum = m_data.Sum(pt => pt.Value);
-            m_activeSummary[NLevels].SquaredSum = m_data.Sum(pt => pt.Value * pt.Value);
-            m_activeSummary[NLevels].Tmax = new DateTime(m_data.Max(item => item.Timestamp), DateTimeKind.Utc);
-            m_activeSummary[NLevels].Tmin = new DateTime(m_data.Min(item => item.Timestamp), DateTimeKind.Utc);
-
-            GenerateIndex(5);
-
-            if (string.IsNullOrEmpty(m_activeFolder[0]))
-                m_activeFolder[0] = year;
-
-            if (string.IsNullOrEmpty(m_activeFolder[1]))
-                m_activeFolder[1] = month;
-
-            if (string.IsNullOrEmpty(m_activeFolder[2]))
-                m_activeFolder[2] = day;
-
-            if (string.IsNullOrEmpty(m_activeFolder[3]))
-                m_activeFolder[3] = hour;
-
-            if (string.IsNullOrEmpty(m_activeFolder[4]))
-                m_activeFolder[4] = minute;
-
-            if (minute != m_activeFolder[4] || forceIndexGen)
-               GenerateIndex(4);
-            if (hour != m_activeFolder[3] || forceIndexGen)
-                GenerateIndex(3);
-            if (day != m_activeFolder[2] || forceIndexGen)
-                GenerateIndex(2);
-            if (month != m_activeFolder[1] || forceIndexGen)
-                GenerateIndex(1);
-            if (year != m_activeFolder[0] || forceIndexGen)
-                GenerateIndex(0);
-
-            m_activeFolder[0] = year;
-            m_activeFolder[1] = month;
-            m_activeFolder[2] = day;
-            m_activeFolder[3] = hour;
-            m_activeFolder[4] = minute;
-
-            int nSize = GraphPoint.NSize + (8 + 8) * m_data.Count;
-            byte[] data = new byte[nSize];
-
-            // File format version 1 is GraphPoint -> Data (Ticks -> Value)
-            GraphPoint fileSummary = new GraphPoint();
-            fileSummary.N = m_data.Count();
-            fileSummary.Sum = m_data.Sum(pt => pt.Value);
-            fileSummary.SquaredSum = m_data.Sum(pt => pt.Value* pt.Value);
-            fileSummary.Min = min;
-            fileSummary.Max = max;
-            fileSummary.Tmax = new DateTime(m_data.Max(item => item.Timestamp),DateTimeKind.Utc);
-            fileSummary.Tmin = new DateTime(m_data.Min(item => item.Timestamp), DateTimeKind.Utc);
-
-            fileSummary.ToByte().CopyTo(data, 0);
-
-
-            int j = GraphPoint.NSize;
-
-            for (int i = 0; i < m_data.Count; i++)
-            {
-                BitConverter.GetBytes(m_data[i].Timestamp.Value).CopyTo(data, j);
-                BitConverter.GetBytes(m_data[i].Value).CopyTo(data, j + 8);
-                j = j + 16;
-            }
-
-            //Generate Folder if required
-
-            string folder = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar,m_activeFolder)}";
-            Directory.CreateDirectory(folder);
-         
-            using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{folder}{Path.DirectorySeparatorChar}{second}.bin")))
-            {  // Writer raw data                
-                writer.Write(data);
-                writer.Flush();
-                writer.Close();
-            }
-         
-
-            m_data = new List<ITimeSeriesValue>();
-        }
-
-        private void GenerateIndex(int activeFolderIndex)
-        {
-
-            if (activeFolderIndex > 0)
-                updateIndexSummary(activeFolderIndex);
-
-            if (activeFolderIndex == NLevels)
-                return;
-
-            string path = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder.Take(activeFolderIndex + 1))}";
-
-            
-            if (m_activeSummary[activeFolderIndex].N > 0)
-            {
-                Directory.CreateDirectory(path);
-                //write to file
-                using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{path}{Path.DirectorySeparatorChar}summary.node")))
-                {
-                    writer.Write(m_activeSummary[activeFolderIndex].ToByte());
-                    writer.Flush();
-                    writer.Close();
-                }
-            }
-            
-
-            // reset lower level
-            m_activeSummary[activeFolderIndex] = new GraphPoint();
-
-        }
-
-        private void updateIndexSummary(int activeFolderIndex)
-        {
-            if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].Min) || m_activeSummary[activeFolderIndex].Min < m_activeSummary[activeFolderIndex - 1].Min)
-                m_activeSummary[activeFolderIndex - 1].Min = m_activeSummary[activeFolderIndex].Min;
-            if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].Max) || m_activeSummary[activeFolderIndex].Max > m_activeSummary[activeFolderIndex - 1].Max)
-                m_activeSummary[activeFolderIndex - 1].Max = m_activeSummary[activeFolderIndex].Max;
-
-            if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].Sum))
-                m_activeSummary[activeFolderIndex - 1].Sum = 0.0D;
-
-            if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].N))
-                m_activeSummary[activeFolderIndex - 1].N = 0;
-
-            if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].SquaredSum))
-                m_activeSummary[activeFolderIndex - 1].SquaredSum = 0;
-
-            m_activeSummary[activeFolderIndex - 1].N += m_activeSummary[activeFolderIndex].N;
-            m_activeSummary[activeFolderIndex - 1].Sum += m_activeSummary[activeFolderIndex].Sum;
-            m_activeSummary[activeFolderIndex - 1].SquaredSum += m_activeSummary[activeFolderIndex].SquaredSum;
-
-
-            if (m_activeSummary[activeFolderIndex].Tmin < m_activeSummary[activeFolderIndex - 1].Tmin)
-                m_activeSummary[activeFolderIndex - 1].Tmin = m_activeSummary[activeFolderIndex].Tmin;
-
-            if (m_activeSummary[activeFolderIndex].Tmax > m_activeSummary[activeFolderIndex - 1].Tmax)
-                m_activeSummary[activeFolderIndex - 1].Tmax = m_activeSummary[activeFolderIndex].Tmax;
-        }
         #endregion
 
         #region [ Static ]
