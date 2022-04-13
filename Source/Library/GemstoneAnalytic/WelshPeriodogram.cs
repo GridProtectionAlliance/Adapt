@@ -29,12 +29,6 @@ using System.Numerics;
 namespace GemstoneAnalytic
 {
 
-    public enum WindowFunction
-    {
-        rectwin,
-        hann
-    }
-
 
     /// <summary>
     /// A WelshPeriodoGramm that uses FFT
@@ -51,7 +45,7 @@ namespace GemstoneAnalytic
 
         #region[ Constructors ]
 
-        public WelshPeriodoGramm(double[] data, double[] windowFunction, int windowOverlap )
+        public WelshPeriodoGramm(double[] data, double[] windowFunction, int windowOverlap, int medianFilterOrder=0 )
         {
             int dataLength = data.Count(); // 
             int windowLength = windowFunction.Length;
@@ -66,33 +60,60 @@ namespace GemstoneAnalytic
                 FFT fft = new FFT(data.Skip(start).Take(windowLength).ToArray());
                 if (i == 0)
                     Frequency = fft.Frequency;
-                P = P.Select((item, index) => item + (1.0D / (windowSum * nWindows)) * fft.Magnitude[index] * fft.Magnitude[index]);
+                if (medianFilterOrder > 0)
+                {
+                    double Q = 0.0D;
+                    for (double j = (medianFilterOrder + 1) / 2; j <= medianFilterOrder; j += 1.0D)
+                        Q += 1.0D / j;
+                    double[] medFFT = ApplyMedianFilter(medianFilterOrder, fft.Magnitude);
+                    P = P.Select((item, index) => item + (1.0D / (windowSum * (double)nWindows)* Q) * medFFT[index] * medFFT[index]);
+                }
+                else
+                    P = P.Select((item, index) => item + (1.0D / (windowSum * nWindows)) * fft.Magnitude[index] * fft.Magnitude[index]);
             }
 
             Power = P.ToArray();
         }
 
-        public WelshPeriodoGramm(double[] data, WindowFunction fx, int windowLength, int windowOverlap) : this(data, GenerateWindow(fx, windowLength), windowOverlap)
+        public WelshPeriodoGramm(double[] data, WindowFunction fx, int windowLength, int windowOverlap,int medianFilterOrder= 0) : this(data, WindowingFunctions.Create(fx, windowLength), windowOverlap, medianFilterOrder)
         {}
 
 
         #endregion [ Constructors ]
 
         #region [ Static ]
-        private static double[] GenerateWindow(WindowFunction fx, int length)
+        private static double[] ApplyMedianFilter(int order, double[] data)
         {
-            double[] window = new double[length];
+            double[] result = new double[data.Count()];
+            int diffStart = order / 2;
+            int diffEnd = order / 2 - 1;
 
-            if (fx == WindowFunction.rectwin)
-                Array.Fill<double>(window, 1.0);
+            if (order % 2 == 1)
+            {
+                diffStart = (order-1) / 2;
+                diffEnd = (order-1) / 2;
+            }
 
-            if (fx == WindowFunction.hann)
-                for (int i =0; i < length; i++)
-                {
-                    window[i] = Math.Sin(Math.PI * i / length) * Math.Sin(Math.PI * i / length);
-                }
-            
-            return window;
+
+            for (int i= 0; i < data.Count(); i++)
+            {
+                int start = i - diffStart;
+                int end = i + diffEnd;
+
+                if (start < 0)
+                    start = 0;
+                if (end >= data.Count())
+                    end = data.Count() - 1;
+
+                double[] d = data.Skip(start).Take(end - start).OrderBy(v => v).ToArray();
+
+                if (d.Count() % 2 == 1)
+                    result[i] = (d[(d.Count() - 1) / 2] + d[(d.Count() + 1) / 2]) * 0.5;
+                else
+                    result[i] = d[d.Count() / 2];
+            }
+
+            return result;
         }
 
         #endregion [ Static ]
