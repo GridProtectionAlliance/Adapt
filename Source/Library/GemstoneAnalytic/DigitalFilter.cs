@@ -125,6 +125,23 @@ namespace GemstoneAnalytic
 
         }
 
+        /// <summary>
+        /// Returns a nice string representation of the Filter
+        /// </summary>
+        /// <returns>a <see cref="string"/> representation of the Filter </returns>
+        public override string ToString()
+        {
+            int order = m_B.Count() - 1;
+
+            if (order > 2)
+                return $"{order}th order Digital Filter";
+            if (order == 2)
+                return $"{order}nd order Digital Filter";
+            if (order == 1)
+                return $"{order}st order Digital Filter";
+            return "Digital Filter";
+        }
+
         #endregion[methods]
     }
 }
