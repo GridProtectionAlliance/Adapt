@@ -127,7 +127,7 @@ namespace Adapt.ViewModels
 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 DeviceMappings = new ObservableCollection<Mapping>(
-                    new TableOperations<TemplateInputDevice>(connection).QueryRecordsWhere("TemplateID = {0}", m_Template.Id)
+                    new TableOperations<TemplateInputDevice>(connection).QueryRecordsWhere("TemplateID = {0} AND IsInput = 1", m_Template.Id)
                     .Select(d=> new Mapping(d, this)).ToList()
                     );
 
