@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>C:\Users\wang690\Desktop\Projects\ArchiveWalker\ADAPT\Adapt\Build\Outputs\($Configuration)\Library\Adapt.Analytics\</OutputPath>
+    <OutputPath></OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -17,14 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\gemstone\common\src\Gemstone\Gemstone.Common.csproj" />
     <ProjectReference Include="..\Adapt.Models\Adapt.Models.csproj" />
     <ProjectReference Include="..\GemstoneAnalytic\GemstoneAnalytic.csproj" />
     <ProjectReference Include="..\GemstoneCommon\GemstoneCommon.csproj" />
     <ProjectReference Include="..\GemstonePhasorProtocolls\GemstonePhasorProtocolls.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
   </ItemGroup>
 
 </Project>

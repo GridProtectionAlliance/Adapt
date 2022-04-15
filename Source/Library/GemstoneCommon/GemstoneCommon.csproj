@@ -17,13 +17,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Gemstone.Common" Version="1.0.76" />
+    <PackageReference Include="Gemstone.Data" Version="1.0.76" />
+    <PackageReference Include="Gemstone.Numeric" Version="1.0.76" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0-preview.1.21102.12" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\gemstone\common\src\Gemstone\Gemstone.Common.csproj" />
-    <ProjectReference Include="..\..\..\..\gemstone\data\src\Gemstone.Data\Gemstone.Data.csproj" />
-    <ProjectReference Include="..\..\..\..\gemstone\numeric\src\Gemstone.Numeric\Gemstone.Numeric.csproj" />
   </ItemGroup>
 
   <ItemGroup>

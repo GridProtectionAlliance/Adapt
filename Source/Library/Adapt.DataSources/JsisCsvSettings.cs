@@ -13,7 +13,7 @@ namespace Adapt.DataSources
     /// </summary>
     public class JsisCsvSettings
     {
-        [DefaultValue("C:\\Users\\wang690\\Desktop\\Projects\\ArchiveWalker\\DataJSIS\\DataJSIS")]
+        [DefaultValue("")]
         [CustomConfigurationEditor("GemstoneWPF.dll", "GemstoneWPF.Editors.FolderBrowser", "showNewFolderButton=true; description=Select Root Folder")]
         public string RootFolder { get; set; }
     }

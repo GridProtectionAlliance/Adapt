@@ -35,16 +35,12 @@ namespace Adapt.DataSources
     /// </summary>
     public class PdatSettings
     {
-        [DefaultValue("C:\\Users\\wang690\\Desktop\\Projects\\ArchiveWalker\\ADAPT\\PdatData\\Adapt2")]//C:\Users\wang690\Desktop\Projects\ArchiveWalker\ADAPT\PdatData\Adapt
+        [DefaultValue("")]
         [CustomConfigurationEditor("GemstoneWPF.dll", "GemstoneWPF.Editors.FolderBrowser", "showNewFolderButton=true; description=Select Root Folder")]
         public string RootFolder { get; set; }
 
         [DefaultValue(30)]
         [Description("Maximum length of a single File in minutes")]
         public int MaxFileLength { get; set; }
-        //[DefaultValue(100)]
-        //[CustomConfigurationEditor("ADAPT.dll", "Adapt.View.Common.hengtest", "showNewFolderButton=true; description=test heng")]
-
-        //public int MyTestProperty { get; set; }
     }
 }
