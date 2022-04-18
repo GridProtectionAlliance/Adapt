@@ -51,14 +51,14 @@
                         <TextBlock Text="Template Inputs" Background="Gray"  FontWeight="bold" FontSize="24"/>
                     </Expander.Header>
                     <StackPanel Orientation="Vertical" Height="auto" Background="LightGray">
-                        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800">
+                        <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="1000">
                             <TreeView.ItemTemplate>
                                 <HierarchicalDataTemplate DataType="{x:Type localvm:InputDeviceVM}" ItemsSource="{Binding Signals}">
                                     <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding VisibleInput, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}" Width="750">
                                         <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
                                         <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
                                         <Button Width="80" Height="18" Margin="2, 5" Command="{Binding AddSignal}">Add Signal</Button>
-                                        <Button Width="80" Height="18" Margin="2, 5" Command="{Binding Remove}">Remove</Button>
+                                        <Button Width="100" Height="18" Margin="2, 5" Command="{Binding Remove}">Remove Device</Button>
                                         <WrapPanel Margin="100,0">
                                             <TextBlock Text="{Binding NSignals}" />
                                             <TextBlock Text=" Signals" />
@@ -67,13 +67,14 @@
 
                                     <HierarchicalDataTemplate.ItemTemplate>
                                         <DataTemplate>
-                                            <WrapPanel>
+                                            <WrapPanel  Visibility="{Binding Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}">
                                                 <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Signal Name: "/>
-                                                <TextBox Text="{Binding Path=Name}"  Height="20" Width="150"/>
+                                                <TextBox Text="{Binding Path=Name}"  Height="20" Width="200"/>
                                                 <Label Grid.Column="2"  Margin="10,2" Width="110" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Measurement Type:"/>
                                                 <ComboBox Grid.Column="3" Height="20" Margin="5,2,10,2" ItemsSource="{Binding Source={StaticResource MeasurementTypes}}" SelectedItem="{Binding Type }" Width="150"/>
                                                 <Label Grid.Column="4"  Margin="10,2" Width="50" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Phase:"/>
                                                 <ComboBox Grid.Column="5" Margin="5,2,10,2" Height="20" ItemsSource="{Binding Source={StaticResource Phases}}" SelectedItem="{Binding Phase }" Width="80"/>
+                                                <Button Width="100" Height="18" Margin="2, 5" Command="{Binding Remove}">Remove Signal</Button>
                                             </WrapPanel>
                                         </DataTemplate>
                                     </HierarchicalDataTemplate.ItemTemplate>

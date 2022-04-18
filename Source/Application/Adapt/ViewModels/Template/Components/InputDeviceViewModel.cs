@@ -290,8 +290,10 @@ namespace Adapt.ViewModels
         private void SignalChanged(object sender, PropertyChangedEventArgs arg)
         {
             if (arg.PropertyName == "Changed")
-                OnPropertyChanged("Changed");
-            
+                OnPropertyChanged(nameof(Changed));
+            if (arg.PropertyName == "Removed")
+                OnPropertyChanged(nameof(NSignals));
+
         }
 
         private void AddNewSignal()

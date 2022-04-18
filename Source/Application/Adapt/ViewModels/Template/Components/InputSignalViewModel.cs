@@ -30,6 +30,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Windows.Input;
 
 namespace Adapt.ViewModels
 {
@@ -94,6 +95,11 @@ namespace Adapt.ViewModels
         }
 
         /// <summary>
+        /// <see cref="ICommand"/> associated with the remove Button if applicable.
+        /// </summary>
+        public ICommand Remove { get; }
+
+        /// <summary>
         /// Flag indicating if this <see cref="TemplateInputSignal"/> has changed.
         /// This is also set if the Signal is removed
         /// </summary>
@@ -127,6 +133,7 @@ namespace Adapt.ViewModels
             m_changed = false;
             m_signal = signal;
             m_DeviceVM = deviceViewModel;
+            Remove = new RelayCommand(Delete, () => true);
             OnSignalChange();
         }
 
