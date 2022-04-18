@@ -35,6 +35,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Windows.Input;
 
 namespace Adapt.ViewModels
 {
@@ -130,6 +131,11 @@ namespace Adapt.ViewModels
             }
         }
 
+        /// <summary>
+        /// Command to Remove Analytic
+        /// </summary>
+        public ICommand DeleteAnalyticCommand { get; }
+
         #endregion
 
         #region [ Constructor ]
@@ -151,6 +157,7 @@ namespace Adapt.ViewModels
             m_analyticTypes = m_analyticTypes.Where(isAllowed).ToList();
             OnAdapterTypeSelectedIndexChanged();
             SectionViewModel.TemplateViewModel.BeforeSave += ValidateBeforeSave;
+            DeleteAnalyticCommand = new RelayCommand(Delete, () => true);
         }
 
         #endregion
@@ -247,9 +254,6 @@ namespace Adapt.ViewModels
             if (!Changed)
                 return;
 
-            IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
-            m_analytic.ConnectionString = AdapterSettingParameterVM.GetConnectionString(m_settings.ToList(), Instance);
-
             bool removed = m_removed || SectionViewModel.Removed;
 
             if (removed)
@@ -257,6 +261,13 @@ namespace Adapt.ViewModels
                 Outputs.ToList().ForEach(o => o.Save());
                 Inputs.ToList().ForEach(i => i.Save());
             }
+
+            if (!removed)
+            {
+                IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
+                m_analytic.ConnectionString = AdapterSettingParameterVM.GetConnectionString(m_settings.ToList(), Instance);
+            }
+
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
             {
                 TableOperations<Analytic> analyticTbl = new TableOperations<Analytic>(connection);
@@ -359,7 +370,9 @@ namespace Adapt.ViewModels
         /// </summary>
         private void Delete()
         {
-            m_analytic = null;
+            m_removed = true;
+            OnPropertyChanged(nameof(Removed));
+            OnPropertyChanged(nameof(Changed));
         }
 
         /// <summary>
