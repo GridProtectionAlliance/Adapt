@@ -219,7 +219,7 @@ namespace Adapt.ViewModels
         public bool FailedTest => m_isTested && !m_passedTest;
         
 
-        public bool CanDelete => false;
+        public bool CanDelete => true;
 
         public bool CanClear => m_hasChanged;
         
@@ -345,7 +345,38 @@ namespace Adapt.ViewModels
         }
 
         public void Delete() 
-        {}
+        {
+            if (!(MessageBox.Show("This will Delete the Data Source Permanently. Are you sure you want to continue?", $"Delete {Name}", MessageBoxButton.YesNo) == MessageBoxResult.Yes))
+                return;
+
+            Mouse.OverrideCursor = Cursors.Wait;
+            try
+            {
+                if (OnBeforeDeleteCanceled())
+                    throw new OperationCanceledException("Delete was canceled.");
+
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    new TableOperations<DataSource>(connection).DeleteRecord(m_dataSource);
+
+                OnDeleted();
+                
+            }
+            catch (Exception ex)
+            {
+                if (ex.InnerException != null)
+                {
+                    Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Delete DataSource Exception:", MessageBoxImage.Error);
+                }
+                else
+                {
+                    Popup(ex.Message, "Delete DataSource Exception:", MessageBoxImage.Error);
+                }
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
+        }
 
         public void Clear()
         {
@@ -407,6 +438,28 @@ namespace Adapt.ViewModels
         {
             if (Loaded != null)
                 Loaded(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Raises the <see cref="BeforeDelete"/> event.
+        /// </summary>
+        private bool OnBeforeDeleteCanceled()
+        {
+            CancelEventArgs cancelEventArgs = new CancelEventArgs();
+
+            if (BeforeDelete != null)
+                BeforeDelete(this, cancelEventArgs);
+
+            return cancelEventArgs.Cancel;
+        }
+
+        /// <summary>
+        /// Raises the <see cref="Deleted"/> event.
+        /// </summary>
+        private void OnDeleted()
+        {
+            if (Deleted != null)
+                Deleted(this, EventArgs.Empty);
         }
 
         /// <summary>

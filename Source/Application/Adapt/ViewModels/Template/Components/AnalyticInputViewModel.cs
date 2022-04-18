@@ -230,10 +230,9 @@ namespace Adapt.ViewModels
                 tbl.DeleteRecordWhere("AnalyticID = {0} AND InputIndex = {1}", analyticID,m_signal.InputIndex);
                 m_signal.AnalyticID = analyticID;
 
-                if (!removed)
+                if (!removed && m_signal.SignalID < 0)
                     tbl.AddNewRecord(m_signal);
-                
-               
+
             }
         }
 

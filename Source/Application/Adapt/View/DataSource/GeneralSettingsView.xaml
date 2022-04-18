@@ -15,7 +15,7 @@
             </TextBox>
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+        <StackPanel Orientation="Horizontal" Margin="0,0,50,0">
             <Label Margin="0,2,0,0" Width="120" VerticalAlignment="Center" HorizontalAlignment="Left" Content="DataSource Type:"/>
             <ComboBox Margin="0,2" Width="300" VerticalAlignment="Center" HorizontalAlignment="Center" ItemsSource="{Binding Source={StaticResource DataSourceTypes}}" SelectedIndex="{Binding Mode=TwoWay, Path=AdapterTypeSelectedIndex}">
                 <ComboBox.ItemTemplate>
@@ -31,6 +31,8 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
         </StackPanel>
-        
+        <StackPanel Orientation="Horizontal" Margin="5,5,5,5">
+            <Button Command="{Binding DeleteCommand}">Delete Data Source</Button>
+        </StackPanel>
     </WrapPanel>
 </UserControl>

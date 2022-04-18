@@ -136,6 +136,7 @@ namespace Adapt.ViewModels
 
             window.Show();
         }
+
         #endregion
 
         #region [ Static ]

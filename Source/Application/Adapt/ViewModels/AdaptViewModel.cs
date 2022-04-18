@@ -22,6 +22,7 @@
 // ******************************************************************************************************
 using Adapt.Models;
 using GemstoneWPF;
+using System;
 using System.ComponentModel;
 
 namespace Adapt.ViewModels
@@ -103,12 +104,14 @@ namespace Adapt.ViewModels
 
             m_dataSource = new DataSourceViewModel(m_dataSourceList.SelectedID);
             m_dataSourceList.PropertyChanged += DataSourceList_Changed;
-
+  
             m_task = new TaskVM(this);
 
             m_results = new ResultViewVM();
 
             m_dataSource.PropertyChanged += DataSource_Changed;
+            m_dataSource.Deleted += DataSource_Deleted;
+
             m_template.PropertyChanged += Template_Changed;
 
             m_currentView = m_dataSource;
@@ -159,6 +162,14 @@ namespace Adapt.ViewModels
             }
 
         }
+
+        public void DataSource_Deleted(object sender, EventArgs e)
+        {
+            m_dataSourceList.Load();
+            if (m_dataSourceList.DataSource.Count > 0)
+                m_dataSource.Load(m_dataSourceList.DataSource[0].ID);
+        }
+
 
         public void Template_Changed(object sender, PropertyChangedEventArgs e)
         {
