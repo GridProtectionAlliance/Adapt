@@ -122,7 +122,7 @@ namespace Adapt.ViewModels
 
         public bool CanSave => Changed;
 
-        public bool CanDelete => false;
+        public bool CanDelete => true;
 
         public bool CanClear => !Changed;
         
@@ -293,7 +293,71 @@ namespace Adapt.ViewModels
         }
 
         public void Delete() 
-        {}
+        {
+            if (!(MessageBox.Show("This will Delete the Template Permanently. Are you sure you want to continue?", $"Delete {Name}", MessageBoxButton.YesNo) == MessageBoxResult.Yes))
+                return;
+
+            Mouse.OverrideCursor = Cursors.Wait;
+            try
+            {
+                if (OnBeforeDeleteCanceled())
+                    throw new OperationCanceledException("Delete was canceled.");
+
+                // First we empty everything out - All Sections and Devices need to be deleted
+                foreach (SectionVM section in Sections)
+                    section.RemoveSection();
+                foreach (InputDeviceVM dev in Devices)
+                    dev.Delete();
+
+                // Then we save the Template
+                Save();
+
+                // Then we remove left over Model
+
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    new TableOperations<Template>(connection).DeleteRecord(m_template);
+
+                OnDeleted();
+
+            }
+            catch (Exception ex)
+            {
+                if (ex.InnerException != null)
+                {
+                    Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Delete Template Exception:", MessageBoxImage.Error);
+                }
+                else
+                {
+                    Popup(ex.Message, "Delete Template Exception:", MessageBoxImage.Error);
+                }
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
+        }
+
+        /// <summary>
+        /// Raises the <see cref="BeforeDelete"/> event.
+        /// </summary>
+        private bool OnBeforeDeleteCanceled()
+        {
+            CancelEventArgs cancelEventArgs = new CancelEventArgs();
+
+            if (BeforeDelete != null)
+                BeforeDelete(this, cancelEventArgs);
+
+            return cancelEventArgs.Cancel;
+        }
+
+        /// <summary>
+        /// Raises the <see cref="Deleted"/> event.
+        /// </summary>
+        private void OnDeleted()
+        {
+            if (Deleted != null)
+                Deleted(this, EventArgs.Empty);
+        }
 
         public void Clear()
         {}

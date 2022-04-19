@@ -40,11 +40,17 @@
                     <Expander.Header>
                         <TextBlock Text="General Settings" Background="Gray"  FontWeight="bold" FontSize="24"/>
                     </Expander.Header>
-                    <StackPanel Orientation="Horizontal" Height="50" Background="LightGray">
+                    <WrapPanel Background="LightGray" >
+                    <StackPanel Orientation="Horizontal" Margin="0,0,100,0">
                         <Label Margin="0,2" Width="60" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Name:"/>
                         <TextBox Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Name}">
                         </TextBox>
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="5,5,5,5">
+                        <Button Command="{Binding DeleteCommand}">Delete Template</Button>
+                    </StackPanel>
+                    </WrapPanel>
+
                 </Expander>
                 <Expander ExpandDirection="Down" Grid.Row="0" Background="Gray">
                     <Expander.Header>

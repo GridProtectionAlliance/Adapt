@@ -92,6 +92,8 @@ namespace Adapt.ViewModels
 
         public int OutputIndex => m_signal.OutputIndex;
         public int ID => m_signal.ID;
+
+        public int SignalID { get; private set; }
         #endregion
 
         #region [ Constructor ]
@@ -119,6 +121,7 @@ namespace Adapt.ViewModels
             m_analyticVM.SectionViewModel.TemplateViewModel.PropertyChanged += DevicesChanged;
             m_Devicenames = new ObservableCollection<string>(m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().Where(d => !d.Removed).Select(d => d.Name));
             m_Devicenames.Add("Add New Device");
+            SignalID = m_signal.ID;
         }
 
         #endregion
@@ -164,9 +167,12 @@ namespace Adapt.ViewModels
                 TableOperations<AnalyticOutputSignal> tbl = new TableOperations<AnalyticOutputSignal>(connection);
                 tbl.DeleteRecordWhere("AnalyticID = {0} AND OutputIndex = {1} AND ID <> {2}", analyticID, sig.OutputIndex, sig.ID);
 
-                
+
                 if (!removed)
+                {
                     tbl.AddNewOrUpdateRecord(sig);
+                    SignalID = tbl.QueryRecordWhere("AnalyticID = {0} AND OutputIndex = {1}",analyticID,sig.OutputIndex).ID;
+                }
                 if (removed)
                     tbl.DeleteRecord(sig);
             }

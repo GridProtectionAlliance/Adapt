@@ -49,6 +49,7 @@ namespace Adapt.ViewModels
         private bool m_changed;
         private AnalyticVM m_analyticVM;
         private AnalyticInput m_signal;
+
         private string m_name;
         private int m_inputIndex;
         #endregion
@@ -188,6 +189,7 @@ namespace Adapt.ViewModels
 
             OnPropertyChanged(nameof(Name));
         }
+
         /// <summary>
         /// Function to update Name if the Signal Name changes.
         /// </summary>
@@ -225,12 +227,27 @@ namespace Adapt.ViewModels
                 int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", m_analyticVM.SectionViewModel.TemplateViewModel.Name).Id;
                 int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("[Order] = {0} AND TemplateId = {1}", m_analyticVM.SectionViewModel.Order, templateId).ID;
                 int analyticID = new TableOperations<Analytic>(connection).QueryRecordWhere("Name = {0} AND TemplateID = {1} AND SectionID = {2}", m_analyticVM.Name, templateId, sectionId).ID;
+                int signalID = m_signal.ID;
 
+                if (m_signal.IsInputSignal)
+                {
+                    InputSignalVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.SelectMany(d => d.Signals).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
+                    signalID = signalVM.SignalID;
+                }
+                else
+                {
+                    AnalyticOutputVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Sections
+                        .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
+                    signalID = signalVM.SignalID;
+                }
+
+                
                 TableOperations<AnalyticInput> tbl = new TableOperations<AnalyticInput>(connection);
                 tbl.DeleteRecordWhere("AnalyticID = {0} AND InputIndex = {1}", analyticID,m_signal.InputIndex);
                 m_signal.AnalyticID = analyticID;
+                m_signal.SignalID = signalID;
 
-                if (!removed && m_signal.SignalID < 0)
+                if (!removed)
                     tbl.AddNewRecord(m_signal);
 
             }

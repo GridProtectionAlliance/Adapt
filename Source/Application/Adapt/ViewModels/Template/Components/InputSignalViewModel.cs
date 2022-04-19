@@ -116,6 +116,11 @@ namespace Adapt.ViewModels
         public int ID => m_signal.ID;
 
         /// <summary>
+        /// The ID saved to the DataBase.
+        /// </summary>
+        public int SignalID { get; private set;}
+
+        /// <summary>
         /// The ID of the Device this signal is associated with.
         /// </summary>
         public int DeviceID => m_signal.DeviceID;
@@ -134,6 +139,7 @@ namespace Adapt.ViewModels
             m_signal = signal;
             m_DeviceVM = deviceViewModel;
             Remove = new RelayCommand(Delete, () => true);
+            SignalID = m_signal.ID;
             OnSignalChange();
         }
 
@@ -158,10 +164,9 @@ namespace Adapt.ViewModels
                     else
                         new TableOperations<TemplateInputSignal>(connection).AddNewOrUpdateRecord(m_signal);
 
+                    SignalID = new TableOperations<TemplateInputSignal>(connection).QueryRecordWhere("DeviceID = {0} AND Name = {1}", m_signal.DeviceID, m_signal.Name).ID;
                 }
             
-
-
             else
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     new TableOperations<TemplateInputSignal>(connection).DeleteRecord(m_signal);

@@ -158,7 +158,7 @@ namespace Adapt.ViewModels
             OnPropertyChanged(nameof(Analytics));
         }
 
-        private void RemoveSection()
+        public void RemoveSection()
         {
             m_removed = true;
             OnPropertyChanged(nameof(Removed));
