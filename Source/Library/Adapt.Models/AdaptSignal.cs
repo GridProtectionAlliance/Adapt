@@ -161,8 +161,14 @@ namespace Adapt.Models
                 CustomSignalNames = SignalNameTbl.Select().ToDictionary(r => r["SignalID"].ToString(), r => r["Value"].ToString());
                
             }
+
+            List<string> s = result.Select(item => item.ID).ToList();
+            List<string> d = result.Select(item => item.Device).ToList();
+
+            int i = 0;
             foreach (AdaptSignal signal in result)
             {
+
                 if (CustomSignalTypes.ContainsKey(signal.ID))
                     signal.Type = CustomSignalTypes[signal.ID];
 
@@ -171,6 +177,7 @@ namespace Adapt.Models
 
                 if (CustomSignalNames.ContainsKey(signal.ID))
                     signal.Name = CustomSignalNames[signal.ID];
+                i++;
             }
 
             return result;

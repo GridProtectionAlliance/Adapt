@@ -209,6 +209,30 @@ namespace Adapt.ViewModels
                 }
                 OnPropertyChanged(nameof(Name));
             }
+            if (args.PropertyName == "Removed" && m_signal != null)
+            {
+                if (m_signal.IsInputSignal)
+                {
+                    InputSignalVM signalVM = (InputSignalVM)sender;
+                    if (signalVM.Removed)
+                    {
+                        m_name = "";
+                        Assigned = false;
+                    }
+                }
+                else
+                {
+                    AnalyticOutputVM signalVM = (AnalyticOutputVM)sender;
+                    if (signalVM.AnalyticVM.Removed)
+                    {
+                        m_name = "";
+                        Assigned = false;
+                    }
+                }
+
+                OnPropertyChanged(nameof(Name));
+                OnPropertyChanged(nameof(Assigned));
+            }    
             
         }
 
@@ -258,10 +282,34 @@ namespace Adapt.ViewModels
             if (m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed)
                 return;
 
+
             if (!Assigned)
             {
                 m_analyticVM.SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {m_analyticVM.Name} Input for {Label} needs to be assigned to a signal.");
                 args.Cancel = true;
+            }
+
+            if (Assigned)
+            {
+                if (m_signal.IsInputSignal)
+                {
+                    InputSignalVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.SelectMany(d => d.Signals).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
+                    if (signalVM.Removed)
+                    {
+                        m_analyticVM.SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {m_analyticVM.Name} Input for {Label} needs to be assigned to a signal.");
+                        args.Cancel = true;
+                    }
+                }
+                else
+                {
+                    AnalyticOutputVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Sections
+                        .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
+                    if (signalVM.AnalyticVM.Removed)
+                    {
+                        m_analyticVM.SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {m_analyticVM.Name} Input for {Label} needs to be assigned to a signal.");
+                        args.Cancel = true;
+                    }
+                }
             }
         }
 

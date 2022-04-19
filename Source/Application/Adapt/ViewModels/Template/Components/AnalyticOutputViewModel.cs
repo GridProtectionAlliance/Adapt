@@ -94,6 +94,10 @@ namespace Adapt.ViewModels
         public int ID => m_signal.ID;
 
         public int SignalID { get; private set; }
+
+        public AnalyticVM AnalyticVM => m_analyticVM;
+
+        public bool Removed => m_analyticVM.Removed;
         #endregion
 
         #region [ Constructor ]
@@ -119,6 +123,7 @@ namespace Adapt.ViewModels
             }
 
             m_analyticVM.SectionViewModel.TemplateViewModel.PropertyChanged += DevicesChanged;
+            m_analyticVM.PropertyChanged += AnalyticChanged;
             m_Devicenames = new ObservableCollection<string>(m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().Where(d => !d.Removed).Select(d => d.Name));
             m_Devicenames.Add("Add New Device");
             SignalID = m_signal.ID;
@@ -196,9 +201,15 @@ namespace Adapt.ViewModels
             m_analyticVM.SectionViewModel.TemplateViewModel.BeforeSave -= ValidateBeforeSave;
         }
 
+        private void AnalyticChanged(object sender, PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == "Removed")
+                OnPropertyChanged(nameof(Removed));
+        }
+
         #endregion
 
-        #region [ Static ]
+            #region [ Static ]
 
         private static readonly string ConnectionString = $"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{Path.DirectorySeparatorChar}Adapt{Path.DirectorySeparatorChar}DataBase.db; Version=3; Foreign Keys=True; FailIfMissing=True";
         private static readonly string DataProviderString = "AssemblyName={System.Data.SQLite, Version=1.0.109.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139}; ConnectionType=System.Data.SQLite.SQLiteConnection; AdapterType=System.Data.SQLite.SQLiteDataAdapter";
