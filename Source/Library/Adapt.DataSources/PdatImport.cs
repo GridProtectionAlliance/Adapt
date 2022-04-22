@@ -150,7 +150,7 @@ namespace Adapt.DataSources
                 }
 
                 IEnumerable<ITimeSeriesValue> magnitudes = frame.Cells.SelectMany(item => item.PhasorValues)
-                    .Select(item => new Tuple<int, IPhasorValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label + "-Mag"),item))
+                    .Select(item => new Tuple<int, IPhasorValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Parent.IDCode.ToString() + ":" +  item.Label + "-Mag"),item))
                     .Where(item => item.Item1 != -1)
                     .Select(item => new AdaptValue(signals[item.Item1].ID) { 
                         Value=item.Item2.Magnitude,
@@ -158,7 +158,7 @@ namespace Adapt.DataSources
                     });
 
                 IEnumerable<ITimeSeriesValue> phases = frame.Cells.SelectMany(item => item.PhasorValues)
-                    .Select(item => new Tuple<int, IPhasorValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label + "-Ph"), item))
+                    .Select(item => new Tuple<int, IPhasorValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Parent.IDCode.ToString() + ":" + item.Label + "-Ph"), item))
                     .Where(item => item.Item1 != -1)
                     .Select(item => new AdaptValue(signals[item.Item1].ID)
                     {
@@ -167,7 +167,7 @@ namespace Adapt.DataSources
                     });
 
                 IEnumerable<ITimeSeriesValue> analogs = frame.Cells.SelectMany(item => item.AnalogValues)
-                    .Select(item => new Tuple<int, IAnalogValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label), item))
+                    .Select(item => new Tuple<int, IAnalogValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Parent.IDCode.ToString() + ":" + item.Label), item))
                     .Where(item => item.Item1 != -1)
                     .Select(item => new AdaptValue(signals[item.Item1].ID)
                     {
@@ -185,7 +185,7 @@ namespace Adapt.DataSources
                     }); ;
 
                 IEnumerable<ITimeSeriesValue> digitals = frame.Cells.SelectMany(item => item.DigitalValues)
-                    .Select(item => new Tuple<int, IDigitalValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Label), item))
+                    .Select(item => new Tuple<int, IDigitalValue>(signals.FindIndex(s => s.Device == item.Parent.IDCode.ToString() && s.ID == item.Parent.IDCode.ToString() + ":" +  item.Label), item))
                     .Where(item => item.Item1 != -1)
                     .Select(item => new AdaptValue(signals[item.Item1].ID)
                     {
@@ -268,7 +268,7 @@ namespace Adapt.DataSources
                 return new List<AdaptSignal>();
 
             IEnumerable<AdaptSignal> analogs = configuration.Cells.SelectMany(cell => cell.AnalogDefinitions
-                .Select(aD => new AdaptSignal(aD.Label, aD.Label, cell.IDCode.ToString(), cell.FrameRate)
+                .Select(aD => new AdaptSignal(cell.IDCode.ToString() + ":" + aD.Label, aD.Label, cell.IDCode.ToString(), cell.FrameRate)
                     {
                         FramesPerSecond = cell.FrameRate,
                         Phase = Phase.NONE,
@@ -276,7 +276,7 @@ namespace Adapt.DataSources
                     }));
 
             IEnumerable<AdaptSignal> digitals = configuration.Cells.SelectMany(cell => cell.DigitalDefinitions
-                .Select(aD => new AdaptSignal(aD.Label, aD.Label, cell.IDCode.ToString(), cell.FrameRate)
+                .Select(aD => new AdaptSignal(cell.IDCode.ToString() + ":" + aD.Label, aD.Label, cell.IDCode.ToString(), cell.FrameRate)
                 {
                     FramesPerSecond = cell.FrameRate,
                     Phase = Phase.NONE,
@@ -284,14 +284,14 @@ namespace Adapt.DataSources
                 }));
 
             IEnumerable<AdaptSignal> phases = configuration.Cells.SelectMany(cell => cell.PhasorDefinitions
-                .Select(aD => new AdaptSignal(aD.Label + "-Ph", aD.Label + " Phase", cell.IDCode.ToString(), cell.FrameRate)
+                .Select(aD => new AdaptSignal(cell.IDCode.ToString() + ":" + aD.Label + "-Ph", aD.Label + " Phase", cell.IDCode.ToString(), cell.FrameRate)
                 {
                     FramesPerSecond = cell.FrameRate,
                     Phase = Phase.NONE,
                     Type = aD.PhasorType == Gemstone.Numeric.EE.PhasorType.Current? MeasurementType.CurrentPhase : MeasurementType.VoltagePhase
                 }));
             IEnumerable<AdaptSignal> magnitudes = configuration.Cells.SelectMany(cell => cell.PhasorDefinitions
-            .Select(aD => new AdaptSignal(aD.Label + "-Mag", aD.Label + " Magnitude", cell.IDCode.ToString(), cell.FrameRate) 
+            .Select(aD => new AdaptSignal(cell.IDCode.ToString() + ":" + aD.Label + "-Mag", aD.Label + " Magnitude", cell.IDCode.ToString(), cell.FrameRate) 
             {
                 FramesPerSecond = cell.FrameRate,
                 Phase = Phase.NONE,
