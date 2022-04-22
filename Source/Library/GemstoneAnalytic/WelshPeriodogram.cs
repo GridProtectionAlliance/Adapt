@@ -59,7 +59,10 @@ namespace GemstoneAnalytic
                 int start = i* (windowLength - windowOverlap);
                 FFT fft = new FFT(data.Skip(start).Take(windowLength).ToArray());
                 if (i == 0)
+                {
                     Frequency = fft.Frequency;
+                    P = fft.Magnitude.Select(p => 0.0D).ToList();
+                }
                 if (medianFilterOrder > 0)
                 {
                     double Q = 0.0D;
