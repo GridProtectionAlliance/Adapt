@@ -229,7 +229,7 @@ namespace Adapt.DataSources
                     parser.DefinedFrameRate = 10000000;
                     parser.DisconnectAtEOF = true;
                     parser.Start();
-                    WaitHandle.WaitAny(new WaitHandle[] { m_FileComplete, cancellationToken.WaitHandle });
+                    WaitHandle.WaitAny(new WaitHandle[] { m_FileComplete, cancellationToken.WaitHandle },10000);
                     parser.Stop();
                 }
 
