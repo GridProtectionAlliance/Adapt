@@ -3769,7 +3769,11 @@ namespace GemstonePhasorProtocolls
             if (!(m_dataChannel is FileClient fileClient))
                 return;
             if (m_fileBytesSkipped + m_bytesProcessed >= m_fileBytesTotal)
+            {
+                m_bytesProcessed = 0;
+                m_fileBytesSkipped = 0;
                 CompletedFileParsing?.Invoke(this, new EventArgs<int>(m_fileBytesTotal));
+            }
         }
         #endregion
 
