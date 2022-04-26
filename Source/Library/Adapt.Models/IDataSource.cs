@@ -65,12 +65,17 @@ namespace Adapt.Models
         /// <summary>
         /// Indicates if The DataSource reports Progress of the current Query
         /// </summary>
-        public bool SupportProgress();
+        public bool SupportProgress { get; }
 
         /// <summary>
         /// Gets the current Progress in Percent if <see cref="SupportProgress"/> returns <see cref="true"/>
         /// </summary>
         public double GetProgress();
+
+        /// <summary>
+        /// An Event that will pass a Message to the UI
+        /// </summary>
+        public event EventHandler<MessageArgs> MessageRecieved;
 
     }
 }

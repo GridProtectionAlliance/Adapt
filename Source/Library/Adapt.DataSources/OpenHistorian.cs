@@ -145,7 +145,14 @@ namespace Adapt.DataSources
 
         #endregion
 
+        public event EventHandler<MessageArgs> MessageRecieved;
         public Type SettingType => typeof(OpenHistorianSettings);
+
+        /// <summary>
+        /// The OH DataSource does not support Progress Reports.
+        /// </summary>
+        /// <returns>Returns False.</returns>
+        public bool SupportProgress => false;
 
         #region [ Constructor ]
 
@@ -262,14 +269,8 @@ namespace Adapt.DataSources
 
         }
 
-        /// <summary>
-        /// The OH DataSource does not support Progress Reports.
-        /// </summary>
-        /// <returns>Returns False.</returns>
-        public bool SupportProgress()
-        {
-            return false;
-        }
+       
+        
 
         /// <summary>
         /// The Test Function required by <see cref="IDataSource.Test"/>

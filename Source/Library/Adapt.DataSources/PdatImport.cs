@@ -61,6 +61,12 @@ namespace Adapt.DataSources
 
         public Type SettingType => typeof(PdatSettings);
 
+        public event EventHandler<MessageArgs> MessageRecieved;
+
+        public bool SupportProgress => true;
+
+
+
         #region [ Constructor ]
 
         public PdatImporter()
@@ -231,13 +237,16 @@ namespace Adapt.DataSources
                     parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
                     parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
                     parser.ConnectionString = $"file={m_Files[files[i]]}";
+                    LogInfo($"reading File: {m_Files[files[i]]}");
                     parser.CompletedFileParsing += CompletedFileParsing;
                     parser.ReceivedDataFrame += RecievedDataFrame;
                     parser.DefinedFrameRate = 10000000;
                     parser.DisconnectAtEOF = true;
+                    parser.ParsingException += ParsingException;
                     parser.Start();
                     WaitHandle.WaitAny(new WaitHandle[] { m_FileComplete, cancellationToken.WaitHandle },10000);
                     parser.Stop();
+                    LogInfo($"reading File {m_Files[files[i]]} complete");
                     n_filesProcessed++;
                 }
 
@@ -316,9 +325,7 @@ namespace Adapt.DataSources
             return magnitudes.Concat(phases).Concat(digitals).Concat(analogs).Concat(frequency);
         }
 
-        public bool SupportProgress() => true;
-
-
+   
         public bool Test()
         {
             if (!Directory.Exists(m_settings.RootFolder))
@@ -363,6 +370,21 @@ namespace Adapt.DataSources
         private void CompletedFileParsing(object sender, EventArgs conf)
         {
             m_FileComplete.Set();
+        }
+
+        private void ParsingException(object sender, EventArgs<Exception> conf)
+        {
+            LogError($"Unable to parse pdat File: {conf.Argument.Message}");
+        }
+
+        private void LogInfo(string message)
+        {
+            MessageRecieved?.Invoke(this, new MessageArgs(message, MessageArgs.MessageLevel.Info));
+        }
+
+        private void LogError(string message)
+        {
+            MessageRecieved?.Invoke(this, new MessageArgs(message, MessageArgs.MessageLevel.Error));
         }
         #endregion
 

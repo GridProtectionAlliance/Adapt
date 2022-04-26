@@ -282,6 +282,16 @@ namespace Adapt.ViewModels
                     progressVM.Update(arg); 
             };
 
+            taskProcessor.MessageRecieved += (object e, MessageArgs arg) =>
+            {
+                progress.Dispatcher.Invoke(DispatcherPriority.Normal, new ThreadStart(() =>
+                {
+                    progressVM.MessageRecieved(arg);
+                }));
+                
+            };
+
+
             taskProcessor.StartTask();
 
 

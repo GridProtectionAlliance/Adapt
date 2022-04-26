@@ -62,6 +62,8 @@ namespace Adapt.DataSources
         #endregion
 
         public Type SettingType => typeof(PIHistorianSettings);
+        public event EventHandler<MessageArgs> MessageRecieved;
+        public bool SupportProgress => true;
 
         #region [ Methods ]
 
@@ -201,15 +203,6 @@ namespace Adapt.DataSources
                 Phase = Phase.NONE,
                 Type = MeasurementType.Frequency
             }};
-        }
-
-        /// <summary>
-        /// The PI DataSource does not support Progress Reports.
-        /// </summary>
-        /// <returns>Returns True.</returns>
-        public bool SupportProgress()
-        {
-            return true;
         }
 
         /// <summary>

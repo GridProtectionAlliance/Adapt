@@ -70,6 +70,11 @@ namespace AdaptLogic
         /// </remarks>
         public event EventHandler<ProgressArgs> ReportProgress;
 
+        /// <summary>
+        /// Event that raises a Message from Processing this Task. 
+        /// </summary>
+        public event EventHandler<MessageArgs> MessageRecieved;
+
         #endregion
 
         #region [ Constructor ]
@@ -184,9 +189,11 @@ namespace AdaptLogic
         private async void GetData(CancellationToken cancelationToken)
         {
             try
-            {
+            { 
+                m_Source.MessageRecieved += ProcessMessage;
+            
                 int count = 0;
-                if (!m_Source.SupportProgress())
+                if (!m_Source.SupportProgress)
                 {
                     ProgressArgs args = new ProgressArgs("This DataSource does not support Progress updates.", false, (int)50);
                     ReportProgress?.Invoke(this, args);
@@ -197,12 +204,13 @@ namespace AdaptLogic
                     frame.Timestamp = Ticks.AlignToMicrosecondDistribution(frame.Timestamp, m_commonFrameRate);
                     await m_sourceQueue.Writer.WriteAsync(frame, cancelationToken);
                     count++;
-                    if (count % 1000 == 0 && m_Source.SupportProgress())
+                    if (count % 1000 == 0 && m_Source.SupportProgress)
                         ReportDatasourceProgress(m_Source.GetProgress());
                 }
             }
             finally
             {
+                MessageRecieved?.Invoke(this, new MessageArgs("Finished Loading Data from DataSource", MessageArgs.MessageLevel.Info));
                 m_sourceQueue.Writer.Complete();
             }
         }
@@ -230,7 +238,7 @@ namespace AdaptLogic
             }
             catch (Exception ex)
             {
-                int t = 1;
+                MessageRecieved?.Invoke(this, new MessageArgs("An error occurred writing data to the temporary files", MessageArgs.MessageLevel.Error));
             }
             finally
             {
@@ -265,6 +273,11 @@ namespace AdaptLogic
             ReportProgress?.Invoke(this, args);
         }
 
+        private void ProcessMessage(object sender, MessageArgs args)
+        {
+            MessageRecieved?.Invoke(sender, args);
+        }
+            
          #endregion
     }
 }

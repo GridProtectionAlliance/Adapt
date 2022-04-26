@@ -85,6 +85,15 @@ namespace Adapt.ViewModels.Common
             ViewModel.Update(arg);
         }
 
+        /// <summary>
+        /// Updates the Progress Window based on a <see cref="MessageArgs"/>
+        /// </summary>
+        /// <param name="arg"></param>
+        public void MessageRecieved(MessageArgs arg)
+        {
+            ViewModel.RecievedMessage(arg);
+        }
+
         #endregion
     }
 }

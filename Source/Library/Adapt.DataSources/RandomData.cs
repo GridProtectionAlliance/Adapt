@@ -43,6 +43,9 @@ namespace Adapt.DataSources
     public class RandomData : IDataSource
     {
         public Type SettingType => typeof(RandomDataSettings);
+        public event EventHandler<MessageArgs> MessageRecieved;
+        public bool SupportProgress => true;
+        
 
         private RandomDataSettings m_settings;
         private AdaptDevice m_pmu;
@@ -213,10 +216,7 @@ namespace Adapt.DataSources
             
         }
 
-        public bool SupportProgress()
-        {
-            return true;
-        }
+       
 
         public bool Test()
         {

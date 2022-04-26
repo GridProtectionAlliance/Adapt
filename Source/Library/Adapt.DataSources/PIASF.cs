@@ -64,6 +64,15 @@ namespace Adapt.DataSources
 
         public Type SettingType => typeof(PIAFSDKSettings);
 
+        public event EventHandler<MessageArgs> MessageRecieved;
+
+        /// <summary>
+        /// The PI DataSource does not support Progress Reports.
+        /// </summary>
+        /// <returns>Returns True.</returns>
+        public bool SupportProgress => true;
+        
+
         #region [ Methods ]
 
         public void Configure(IConfiguration config)
@@ -245,14 +254,7 @@ namespace Adapt.DataSources
 
         }
 
-        /// <summary>
-        /// The PI DataSource does not support Progress Reports.
-        /// </summary>
-        /// <returns>Returns True.</returns>
-        public bool SupportProgress()
-        {
-            return true;
-        }
+       
 
         /// <summary>
         /// The Test Function required by <see cref="IDataSource.Test"/>

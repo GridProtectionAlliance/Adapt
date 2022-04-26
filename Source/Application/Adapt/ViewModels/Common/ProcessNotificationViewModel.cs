@@ -30,6 +30,7 @@ using GemstoneCommon;
 using GemstoneWPF;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
@@ -47,6 +48,12 @@ namespace Adapt.ViewModels.Common
         #region [ Members ]
         private string m_message;
         private int m_Progress;
+        private ObservableQueue<MessageVM> m_messages;
+
+        public class MessageVM
+        {
+            public string Text { get; set; }
+        }
         #endregion
 
         #region [ Properties ]
@@ -62,16 +69,24 @@ namespace Adapt.ViewModels.Common
         /// </summary>
         public int Progress => m_Progress;
 
-          
-        
+        /// <summary>
+        /// The Messages Displayed in the Progress window
+        /// </summary>
+        public ObservableQueue<MessageVM> Messages => m_messages;
+        private readonly object m_lock = new object();
+
+
         #endregion
 
         #region [ Constructor ]
 
         public ProcessNotificationVM()
         {
+            m_messages = new ObservableQueue<MessageVM>(100);
+            System.Windows.Data.BindingOperations.EnableCollectionSynchronization(m_messages, m_lock);
             m_Progress = 0;
             m_message = "Loading TaskProcessor...";
+
         }
 
         #endregion
@@ -90,6 +105,11 @@ namespace Adapt.ViewModels.Common
             OnPropertyChanged(nameof(Message));
         }
 
+        public void RecievedMessage(MessageArgs arg)
+        {
+             m_messages.Enqueue(new MessageVM() { Text = arg.Message }); 
+            OnPropertyChanged(nameof(Messages));
+        }
         #endregion
     }
 }

@@ -112,6 +112,11 @@ namespace Adapt.ViewModels
                     m_progress.Update(arg);
             };
 
+            m_processor.MessageRecieved += (object e, MessageArgs arg) =>
+            {
+                m_progress.RecievedMessage(arg);
+            };
+
             OnPropertyChanged(nameof(ProgressVM));
             await m_processor.StartTask();
             m_viewer = new MainVisualizationVM(Task.TimeSelectionViewModel.Start, Task.TimeSelectionViewModel.End);
@@ -220,7 +225,9 @@ namespace Adapt.ViewModels
                         deviceID = connection.ExecuteScalar<int>("SELECT DeviceID FROM AnalyticOutputSignal WHERE ID = {0}", s.SignalID);
                     TemplateInputDevice dev = devices.Find(item => item.ID == deviceID);
 
-                    result.VariableReplacements[dev.Name][0] = new Tuple<string, string>("", dev.OutputName);
+                    if (result.VariableReplacements.ContainsKey(dev.Name))
+                        result.VariableReplacements[dev.Name][0] = new Tuple<string, string>("", dev.OutputName);
+
                     if (s.IsInputSignal)
                         return new AdaptSignal(inputSignals[s.SignalID], s.Name, dev.Name,0);
                     else
