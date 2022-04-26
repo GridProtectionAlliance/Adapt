@@ -121,11 +121,18 @@ namespace Adapt.DataSources
 
             List<AdaptEvent> result = new List<AdaptEvent>();
 
-            double[] signal = previousFrames.Select(item => item.Measurements["Signal"].Value).ToArray();
+            if (previousFrames.Count() < PrevFrames)
+                return result.ToArray();
+
+            double[] signal = previousFrames.Select(item => (double.IsNaN(item.Measurements["Signal"].Value)? 60.0D : item.Measurements["Signal"].Value)).ToArray();
+
+            
+            // set active counter to avoid re-running every window
+            m_activeCount = signal.Length;
 
             WelshPeriodoGramm signalWPG = new WelshPeriodoGramm(signal,m_settings.PeriodogramWindow, (int)m_settings.windowSize*m_fps, 0);
 
-            WelshPeriodoGramm ambientWPG = new WelshPeriodoGramm(signal, m_settings.PeriodogramWindow, (int)m_settings.FFTWindowSize * m_fps, (int)m_settings.windowSize*m_fps/2, 3);
+            WelshPeriodoGramm ambientWPG = new WelshPeriodoGramm(signal, m_settings.PeriodogramWindow, (int)m_settings.FFTWindowSize * m_fps, (int)m_settings.FFTWindowSize * m_fps/2, 3);
 
             // Reduce to only Frequencies of interest
             int NFreq = signalWPG.Frequency.Where(item => item*m_fps/(2*Math.PI) < m_settings.maxfreq && item * m_fps / (2 * Math.PI) < m_settings.minFreq).Count();
@@ -191,9 +198,7 @@ namespace Adapt.DataSources
                 }
                 
             }
-            // set active counter to avoid redetermination of same event
-            if (foundEvent)
-                m_activeCount = signal.Length;
+           
 
             return result.ToArray();
         }

@@ -110,7 +110,9 @@ namespace GemstoneAnalytic
 
                 double[] d = data.Skip(start).Take(end - start).OrderBy(v => v).ToArray();
 
-                if (d.Count() % 2 == 1)
+                if (d.Count() == 1)
+                    result[i] = d[0];
+                else if (d.Count() % 2 == 1)
                     result[i] = (d[(d.Count() - 1) / 2] + d[(d.Count() + 1) / 2]) * 0.5;
                 else
                     result[i] = d[d.Count() / 2];

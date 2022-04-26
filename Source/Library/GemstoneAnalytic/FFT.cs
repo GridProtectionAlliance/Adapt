@@ -50,31 +50,73 @@ namespace GemstoneAnalytic
 
         #region[ Constructor ]
 
+        /// <summary>
+        /// This creates a new <see cref="FFT"/> using the Input Signal provided
+        /// </summary>
+        /// <param name="data"> the input signal for the FFT</param>
+        /// <remarks> 
+        /// This uses the Cooley-Tukey Algorithm. Theoretically that is O(nlog(n))
+        /// https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm
+        /// </remarks>
         public FFT( double[] data)
         {
             int n = data.Length;
-            int m = n;
             ComplexMagnitude = new Complex[n];
             Frequency = new double[n];
 
-            double[] result = new double[m];
             double pi_div = 2.0 * Math.PI / n;
             FrequencyBinWidth = pi_div;
 
-            for (int w = 0; w < m; w++)
+            if (n == 1)
+            {
+                Frequency[0] = 0;
+                ComplexMagnitude[0] = new Complex(data[0], 0.0D);
+                return;
+            }
+
+            List<double> dTemp = data.ToList();
+            while (!IsPower2(n))
+            {
+                dTemp.Add(0.0D);
+                n = dTemp.Count();
+            }
+
+            ComplexMagnitude = new Complex[n];
+            Frequency = new double[n];
+
+            pi_div = 2.0 * Math.PI / n;
+            FrequencyBinWidth = pi_div;
+
+            double[] result = new double[n];
+
+            FFT fft_even = new FFT(dTemp.Where((item, index) => index % 2 == 0).ToArray());
+            FFT fft_odd = new FFT(dTemp.Where((item, index) => index % 2 == 1).ToArray());
+
+            for (int w = 0; w < (n/2); w++)
             {
                 double a = w * pi_div;
                 Frequency[w] = a;
-                for (int t = 0; t < n; t++)
-                {
-                    ComplexMagnitude[w] += data[t] * new Complex(Math.Cos(a * t), Math.Sin(a * t)) ;
-                }
+                Frequency[2*w] = a*2;
+
+                Complex p = fft_even.ComplexMagnitude[w];
+                Complex q = new Complex(Math.Cos(-a * w), Math.Sin(-a * w))*fft_odd.ComplexMagnitude[w];
+                ComplexMagnitude[w] = p+q;
+                ComplexMagnitude[w+n/2] = p-q;
             }
         }
 
 
 
         #endregion [ Constructor ]
+
+        #region [ Methods ]
+
+        private bool IsPower2(int value)
+        {
+            ulong v = (ulong)Math.Abs(value);
+            return ((v & (v - 1)) == 0);
+        }
+        #endregion [ Methods ]
 
     }
 }
