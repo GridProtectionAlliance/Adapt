@@ -54,6 +54,9 @@ namespace Adapt.DataSources
         private Channel<IDataFrame> m_dataQueue;
         private ManualResetEvent m_FileComplete;
         public TaskCompletionSource<IConfigurationFrame> m_ConfigFrameSource;
+        private int n_files;
+        private int n_filesProcessed;
+
         #endregion
 
         public Type SettingType => typeof(PdatSettings);
@@ -118,6 +121,8 @@ namespace Adapt.DataSources
 
         public async IAsyncEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
         {
+            n_filesProcessed = 0;
+            n_files = 0;
             //Create List of Relevant Files
             List<DateTime> files = m_Files.Keys.Where(k => k < end && k > start).ToList();
 
@@ -215,6 +220,8 @@ namespace Adapt.DataSources
                 if (m_FileComplete != null)
                     m_FileComplete.Set();
 
+                n_files = files.Count();
+
                 for (int i = 0; i < files.Count; i++)
                 {
                     if (cancellationToken.IsCancellationRequested)
@@ -231,6 +238,7 @@ namespace Adapt.DataSources
                     parser.Start();
                     WaitHandle.WaitAny(new WaitHandle[] { m_FileComplete, cancellationToken.WaitHandle },10000);
                     parser.Stop();
+                    n_filesProcessed++;
                 }
 
                 m_dataQueue.Writer.Complete();
@@ -252,7 +260,7 @@ namespace Adapt.DataSources
 
         public double GetProgress()
         {
-            throw new NotImplementedException();
+            return ((double)n_filesProcessed / (double)(n_files)*100.0D);
         }
 
         
@@ -308,10 +316,8 @@ namespace Adapt.DataSources
             return magnitudes.Concat(phases).Concat(digitals).Concat(analogs).Concat(frequency);
         }
 
-        public bool SupportProgress()
-        {
-            return false;
-        }
+        public bool SupportProgress() => true;
+
 
         public bool Test()
         {
