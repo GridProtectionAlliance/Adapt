@@ -23,16 +23,19 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 
 namespace GemstoneAnalytic
 {
 
- 
+
     /// <summary>
     /// Represents a Digital Time Domain Filter
     /// </summary>
+    [TypeConverter(typeof(StringFilterConverter))]
     public class DigitalFilter 
     {
         #region[ Properties ]
@@ -131,22 +134,63 @@ namespace GemstoneAnalytic
         }
 
         /// <summary>
-        /// Returns a nice string representation of the Filter
+        /// Returns a string representation of the Filter
         /// </summary>
         /// <returns>a <see cref="string"/> representation of the Filter </returns>
         public override string ToString()
         {
-            int order = m_B.Count() - 1;
+            string s = string.Join('+', m_B.Select((v, i) => v.ToString() + "y[" + i.ToString() + "]"));
+            s += "=";
+            s += string.Join('+', m_A.Select((v, i) => v.ToString() + "x[" + i.ToString() + "]"));
 
-            if (order > 2)
-                return $"{order}th order Digital Filter";
-            if (order == 2)
-                return $"{order}nd order Digital Filter";
-            if (order == 1)
-                return $"{order}st order Digital Filter";
-            return "Digital Filter";
+            return s;
         }
 
         #endregion[methods]
     }
+
+    public class StringFilterConverter : TypeConverter
+    {
+        public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+        {
+            if (sourceType == typeof(string))
+            {
+                return true;
+            }
+            return base.CanConvertFrom(context, sourceType);
+        }
+
+
+        public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
+        {
+            if (value is string)
+            {
+                string s = value.ToString();
+                if (!s.Contains("="))
+                    return null;
+
+                string[] inputString = s.Split('=')[1].Split('+');
+                string[] outputString = s.Split('=')[0].Split('+');
+
+
+                return new DigitalFilter(inputString.Select(s => GetCoefficent(s)).ToArray(), outputString.Select(s => GetCoefficent(s)).ToArray());
+            }
+            return base.ConvertFrom(context, culture, value);
+        }
+
+        private double GetCoefficent(string s)
+        {
+            string c = s;
+            if (s.Contains('y'))
+                c = s.Split('y')[0];
+            if (s.Contains('x'))
+                c = s.Split('x')[0];
+
+            double v;
+            if (!double.TryParse(c, out v))
+                v = 1.0D;
+            return v;
+        }
+    }
+
 }
