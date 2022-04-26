@@ -99,6 +99,7 @@ namespace Adapt.ViewModels
             }
         }
         #endregion
+
         #region [ Members ]
 
         private Action<AnalyticInput> m_onComplete;
@@ -149,8 +150,8 @@ namespace Adapt.ViewModels
             
             }
 
-            m_selectedSignalID = Devices.First().Signals.First().ID;
-            m_selectedInputSignal = Devices.First().Signals.First().IsInput;
+            m_selectedSignalID = Devices.FirstOrDefault().Signals.FirstOrDefault()?.ID ?? -1;
+            m_selectedInputSignal = Devices.FirstOrDefault().Signals.FirstOrDefault()?.IsInput ?? false;
         }
 
         #endregion

@@ -119,6 +119,17 @@ namespace Adapt.ViewModels
         /// </summary>
         private void SelectSignal()
         {
+            if (m_analyticVM.SectionViewModel.TemplateViewModel.Devices.Count() == 0)
+            {
+                Popup("There are no Devices Available. please add at least 1 Device", "No Devices Available", System.Windows.MessageBoxImage.Error);
+                return;
+            }
+            if (m_analyticVM.SectionViewModel.TemplateViewModel.Devices.Sum(d => d.NSignals) == 0)
+            {
+                Popup("There are no Signals Available. please add at least 1 Signal", "No Signals Available", System.Windows.MessageBoxImage.Error);
+                return;
+            }
+
             SelectSignalWindow window = new SelectSignalWindow();
             SelectSignalVM viewModel = new SelectSignalVM(m_analyticVM.SectionViewModel.TemplateViewModel, UpdateSignal,m_analyticVM.SectionViewModel.Order);
             window.DataContext = viewModel;
