@@ -140,8 +140,8 @@ namespace Adapt.ViewModels
         /// </summary>
         private void SelectDevice(Mapping mapping)
         {
-            SelectSignal dateSelection = new SelectSignal();
-            SelectSignalMappingVM<AdaptDevice> dateSelectionVM = new SelectSignalMappingVM<AdaptDevice>((d) => {
+            SelectSignal deviceSelection = new SelectSignal();
+            SelectSignalMappingVM<AdaptDevice> deviceSelectionVM = new SelectSignalMappingVM<AdaptDevice>((d) => {
                 mapping.SourceDeviceID = d.ID;
                 mapping.SourceDeviceName = d.Name;
 
@@ -173,8 +173,8 @@ namespace Adapt.ViewModels
                 OnPropertyChanged(nameof(Valid));
 
             },(d,s) => d.Name.ToLower().Contains(s.ToLower()),(d) => d.Name,AdaptDevice.Get(DataSource,DataSourceModel.ID,ConnectionString,DataProviderString));
-            dateSelection.DataContext = dateSelectionVM;
-            dateSelection.Show();
+            deviceSelection.DataContext = deviceSelectionVM;
+            deviceSelection.Show();
         }
 
         /// <summary>
