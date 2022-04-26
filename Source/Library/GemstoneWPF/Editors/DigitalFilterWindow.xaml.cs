@@ -57,7 +57,7 @@ namespace GemstoneWPF.Editors
             m_connectionString = connectionString;
             m_currentValue = currentValue;
 
-            DataContext = new DigitalFilterWindowViewModel();
+            DataContext = new DigitalFilterWindowViewModel(m_currentValue, (object obj) => { m_setValue(obj); this.Close();  });
         }
 
         #endregion [ Constructors ]

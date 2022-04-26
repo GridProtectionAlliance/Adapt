@@ -9,8 +9,57 @@
     <StackPanel Orientation="Vertical">
         <StackPanel Orientation="Horizontal">
             <TextBlock Margin="20 5">Filter Order:</TextBlock>
-            <TextBox Width="50" Margin="0 5" Text="{Binding Order}"></TextBox>
+            <TextBox Width="50" Margin="0 5" Text="{Binding Order, Mode=TwoWay}"></TextBox>
         </StackPanel>
-        
+        <WrapPanel Margin="20 5">
+            <ItemsControl ItemsSource="{Binding OutputCoefficents}" AlternationCount="{Binding RelativeSource={RelativeSource Self}, Path=Items.Count}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="0 0 5 0">
+                            <TextBlock Text="+" Margin="5 0 5 0" x:Name="Addition"/>
+                            <TextBox Text="{Binding Value}" Margin="0 0 5 0" />
+                            <TextBlock Text="y["/>
+                            <TextBlock Text="{Binding Order}"/>
+                            <TextBlock Text="]"/>
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <Trigger Property="ItemsControl.AlternationIndex" Value="0">
+                                <Setter Property="Visibility" TargetName="Addition" Value="Collapsed"/>
+                            </Trigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="=" Margin="0 0 5 0"/>
+            <ItemsControl ItemsSource="{Binding InputCoefficents}" AlternationCount="{Binding RelativeSource={RelativeSource Self}, Path=Items.Count}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="0 0 5 0">
+                            <TextBlock Text="+" Margin="5 0 5 0" x:Name="Addition"/>
+                            <TextBox Text="{Binding Value}" Margin="0 0 5 0" />
+                            <TextBlock Text="x["/>
+                            <TextBlock Text="{Binding Order}"/>
+                            <TextBlock Text="]"/>
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <Trigger Property="ItemsControl.AlternationIndex" Value="0">
+                                <Setter Property="Visibility" TargetName="Addition" Value="Collapsed"/>
+                            </Trigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </WrapPanel>
+        <Button Content="Create Filter" Margin="20 5" Command="{Binding CreateCommand}"/>
     </StackPanel>
 </Window>

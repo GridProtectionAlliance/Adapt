@@ -40,6 +40,11 @@ namespace GemstoneAnalytic
         private double[] m_A;
         private double[] m_B;
         private double m_gain;
+
+        public double[] InputCoefficents => m_B;
+        public double[] OutputCoefficents => m_A.Select(a => a * m_gain).ToArray();
+        public int Order => Math.Max(m_A.Count(), m_B.Count()) - 1;
+
         #endregion[ Properties ]
 
 
