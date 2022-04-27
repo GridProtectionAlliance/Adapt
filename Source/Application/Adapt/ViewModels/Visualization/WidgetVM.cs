@@ -48,7 +48,8 @@ namespace Adapt.ViewModels.Vizsalization
         #region [ Members ]
 
         private IDisplayWidget m_widget;
-        
+        private MainVisualizationVM m_parent;
+
         public class AvailableReader: ViewModelBase
         {
             private IReader m_reader;
@@ -90,15 +91,32 @@ namespace Adapt.ViewModels.Vizsalization
             }
         }
 
-        public class AvailableDevice: ViewModelBase
+        public class ContextMenueVM: ViewModelBase
         {
-            public string Name { get; }
-            public ObservableCollection<AvailableReader> Signals { get; }
+            public string Text { get; }
 
-            public AvailableDevice(WidgetVM widgetVM, List<SignalReader> readers, string name, bool selected = false)
+            public bool Selected { get; set; }
+
+            public ObservableCollection<ContextMenueVM> SubMenue { get; }
+
+            public ICommand Command { get; }
+            public ContextMenueVM(string message, bool selected, Action<bool> onClick)
             {
-                Name = name;
-                Signals = new ObservableCollection<AvailableReader>(readers.Select(r => new AvailableReader(widgetVM, r, selected)));
+                Text = message;
+                Selected = selected;
+                SubMenue = new ObservableCollection<ContextMenueVM>();
+                Command = new RelayCommand(() => {
+                    Selected = !Selected;  
+                    onClick.Invoke(Selected);
+                });
+            }
+
+            public ContextMenueVM(string message, IEnumerable<ContextMenueVM> subMenues )
+            {
+                Text = message;
+                Selected = false;
+                SubMenue = new ObservableCollection<ContextMenueVM>(subMenues);
+                Command = new RelayCommand(() => { });
             }
         }
 
@@ -108,8 +126,7 @@ namespace Adapt.ViewModels.Vizsalization
         public IDisplayWidget Widget => m_widget;
         public UIElement UserControl => m_widget.UserControl;
 
-        public ObservableCollection<AvailableDevice> Devices { get; set; }
-        public ContextMenu ContextMenu { get; }
+        public ObservableCollection<ContextMenueVM> ContextMenue { get; set; }
 
         /// <summary>
         /// Event that gets triggered when the User changes the Window.
@@ -119,15 +136,13 @@ namespace Adapt.ViewModels.Vizsalization
         #endregion
 
         #region[ Constructor]
-        public WidgetVM(IDisplayWidget widget, DateTime start, DateTime end, Dictionary<string,List<SignalReader>> dataReader)
+        public WidgetVM(MainVisualizationVM parent, IDisplayWidget widget, DateTime start, DateTime end, Dictionary<string,List<SignalReader>> dataReader)
         {
             m_widget = widget;
-
+            m_parent = parent;
             m_widget.Zoom(start, end);
             m_widget.ChangedWindow += WindowChanged;
 
-
-            ContextMenu = new ContextMenu();
             CreateContextMenue(dataReader);
 
         }
@@ -147,20 +162,29 @@ namespace Adapt.ViewModels.Vizsalization
         private void CreateContextMenue(Dictionary<string, List<SignalReader>> readers)
         {
             bool isInitial = true;
-            List<AvailableDevice> pmus = new List<AvailableDevice>();
+            List<ContextMenueVM> menue = new List<ContextMenueVM>();
 
             foreach (string device in readers.Keys)
             {
                 if (!readers[device].Any(s => m_widget.AllowSignal(s.Signal)))
                     continue;
-                pmus.Add(new AvailableDevice(this,readers[device].Where(s => m_widget.AllowSignal(s.Signal)).ToList(), device, isInitial));
+                menue.Add(new ContextMenueVM(device, readers[device].Where(s => m_widget.AllowSignal(s.Signal))
+                    .Select(s => new ContextMenueVM(s.Signal.Name,isInitial,(bool selected) => { if (selected) m_widget.AddReader(s); else m_widget.RemoveReader(s); }))));
+                if (isInitial)
+                    readers[device].Where(s => m_widget.AllowSignal(s.Signal)).Select(s => { m_widget.AddReader(s); return 1; });
+
                 isInitial = false;
             }
 
-            Devices = new ObservableCollection<AvailableDevice>(pmus);
-            OnPropertyChanged(nameof(Devices));
+            menue.Add(new ContextMenueVM("Remove Widget", false, (bool selected) => { RemoveWidget(); }));
+            ContextMenue = new ObservableCollection<ContextMenueVM>(menue);
+            OnPropertyChanged(nameof(ContextMenue));
         }
 
+        private void RemoveWidget()
+        {
+            m_parent.RemoveWidget(this);
+        }
         #endregion
 
         #region [ static ]
