@@ -171,7 +171,7 @@ namespace Adapt.ViewModels.Vizsalization
                 menue.Add(new ContextMenueVM(device, readers[device].Where(s => m_widget.AllowSignal(s.Signal))
                     .Select(s => new ContextMenueVM(s.Signal.Name,isInitial,(bool selected) => { if (selected) m_widget.AddReader(s); else m_widget.RemoveReader(s); }))));
                 if (isInitial)
-                    readers[device].Where(s => m_widget.AllowSignal(s.Signal)).Select(s => { m_widget.AddReader(s); return 1; });
+                    readers[device].Where(s => m_widget.AllowSignal(s.Signal)).Select(s => { m_widget.AddReader(s); return 1; }).ToList();
 
                 isInitial = false;
             }
