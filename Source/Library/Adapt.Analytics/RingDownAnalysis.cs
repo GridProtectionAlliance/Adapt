@@ -41,7 +41,7 @@ namespace Adapt.DataSources
 
     [AnalyticSection(AnalyticSection.EventDetection)]
 
-    [Description("RingDown Analysis: Detects Frequency excursions")]
+    [Description("RingDown Analysis: Ringdown analysis for identifying ringdown events")]
     public class RingDownAnalysis : BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
