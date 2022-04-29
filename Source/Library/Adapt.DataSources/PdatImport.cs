@@ -226,32 +226,23 @@ namespace Adapt.DataSources
                 if (m_FileComplete != null)
                     m_FileComplete.Set();
 
-                n_files = files.Count();
+                // 10 Threads for now. We can increase this in the future if necessary
+                List<Channel<IDataFrame>> readers = new List<Channel<IDataFrame>>();
+                List<string> fileNames = files.Select((d) => m_Files[d]).ToList();
+                List<string> completeFileNames = new List<string>();
+                int n_readers = Math.Min(files.Count(), 10);
+                int n_files = (int)Math.Ceiling((double)files.Count() / (double)n_readers);
 
-                for (int i = 0; i < files.Count; i++)
+                for (int i = 0; i < n_readers; i++)
                 {
-                    if (cancellationToken.IsCancellationRequested)
-                        break;
-                    MultiProtocolFrameParser parser = new MultiProtocolFrameParser();
-                    m_FileComplete = new ManualResetEvent(false);
-                    parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
-                    parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
-                    parser.ConnectionString = $"file={m_Files[files[i]]}";
-                    LogInfo($"reading File: {m_Files[files[i]]}");
-                    parser.CompletedFileParsing += CompletedFileParsing;
-                    parser.ReceivedDataFrame += RecievedDataFrame;
-                    parser.DefinedFrameRate = 10000000;
-                    parser.DisconnectAtEOF = true;
-                    parser.ParsingException += ParsingException;
-                    parser.Start();
-                    WaitHandle.WaitAny(new WaitHandle[] { m_FileComplete, cancellationToken.WaitHandle },10000);
-                    parser.Stop();
-                    LogInfo($"reading File {m_Files[files[i]]} complete");
-                    n_filesProcessed++;
+                    readers.Add(Channel.CreateUnbounded<IDataFrame>());
+                    GenerateReader(fileNames.Skip(i * n_files).Take(n_files).ToList(),readers[i],cancellationToken);
+                    completeFileNames.Add(fileNames[(i + 1) * n_files]);
                 }
-
+                CombineQueues(readers, completeFileNames);
                 m_dataQueue.Writer.Complete();
             }, cancellationToken);
+
         }
 
         public IEnumerable<AdaptDevice> GetDevices()
@@ -272,8 +263,59 @@ namespace Adapt.DataSources
             return ((double)n_filesProcessed / (double)(n_files)*100.0D);
         }
 
-        
+        private void CombineQueues(List<Channel<IDataFrame>> queues,List<string> files)
+        {
+            int i = 0;
+            foreach (Channel<IDataFrame> channel in queues)
+            {
 
+                while (!channel.Reader.Completion.IsCompleted)
+                {
+                    IDataFrame point;
+                    if (!channel.Reader.TryRead(out point))
+                        continue;
+
+                    m_dataQueue.Writer.TryWrite(point);
+                }
+                LogInfo($"aligning File {files[i]} complete");
+                n_filesProcessed++;
+                i++;
+            }
+        }
+
+        private void GenerateReader(List<string> files, Channel<IDataFrame> queue,CancellationToken cancellationToken)
+        {
+            Task.Run(() => {
+
+                n_files = files.Count();
+
+                for (int i = 0; i < files.Count; i++)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+                    MultiProtocolFrameParser parser = new MultiProtocolFrameParser();
+                    ManualResetEvent fileComplete = new ManualResetEvent(false);
+                    parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
+                    parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
+                    parser.ConnectionString = $"file={files[i]}";
+                    LogInfo($"reading File: {files[i]}");
+                    parser.CompletedFileParsing += (object sender, EventArgs<int> conf) => { fileComplete.Set(); };
+                    parser.ReceivedDataFrame += (object sender, EventArgs<IDataFrame> conf) => {
+                        queue.Writer.TryWrite(conf.Argument);
+                    };
+                    parser.DefinedFrameRate = 10000000;
+                    parser.DisconnectAtEOF = true;
+                    parser.ParsingException += ParsingException;
+                    parser.Start();
+                    WaitHandle.WaitAny(new WaitHandle[] { fileComplete, cancellationToken.WaitHandle }, 5000);
+                    parser.Stop();
+                    LogInfo($"Reading File {files[i]} complete");
+                }
+                queue.Writer.Complete();
+
+            },cancellationToken);
+
+        }
         public IEnumerable<AdaptSignal> GetSignals()
         {
             if (!m_ConfigFrameSource.Task.IsCompleted && m_ConfigFrameSource.Task.Status != TaskStatus.WaitingForActivation)
