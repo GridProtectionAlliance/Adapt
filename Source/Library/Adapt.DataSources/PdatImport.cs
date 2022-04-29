@@ -227,19 +227,20 @@ namespace Adapt.DataSources
                     m_FileComplete.Set();
 
                 // 10 Threads for now. We can increase this in the future if necessary
-                List<Channel<IDataFrame>> readers = new List<Channel<IDataFrame>>();
+                List<Tuple<Channel<IDataFrame>,int,string>> readers = new List<Tuple<Channel<IDataFrame>,int,string>>();
                 List<string> fileNames = files.Select((d) => m_Files[d]).ToList();
-                List<string> completeFileNames = new List<string>();
+
                 int n_readers = Math.Min(files.Count(), 10);
                 int n_files = (int)Math.Ceiling((double)files.Count() / (double)n_readers);
 
                 for (int i = 0; i < n_readers; i++)
                 {
-                    readers.Add(Channel.CreateUnbounded<IDataFrame>());
-                    GenerateReader(fileNames.Skip(i * n_files).Take(n_files).ToList(),readers[i],cancellationToken);
-                    completeFileNames.Add(fileNames[(i + 1) * n_files]);
+                    List<string> activeFileNames = fileNames.Skip(i * n_files).Take(n_files).ToList();
+                    readers.Add(new Tuple<Channel<IDataFrame>,int,string>(Channel.CreateUnbounded<IDataFrame>(), activeFileNames.Count(), activeFileNames.Last() ));
+                    
+                    GenerateReader(activeFileNames, readers[i],cancellationToken);
                 }
-                CombineQueues(readers, completeFileNames);
+                CombineQueues(readers).Wait();
                 m_dataQueue.Writer.Complete();
             }, cancellationToken);
 
@@ -263,27 +264,25 @@ namespace Adapt.DataSources
             return ((double)n_filesProcessed / (double)(n_files)*100.0D);
         }
 
-        private void CombineQueues(List<Channel<IDataFrame>> queues,List<string> files)
+        private async Task CombineQueues(List<Tuple<Channel<IDataFrame>, int, string>> queues)
         {
-            int i = 0;
-            foreach (Channel<IDataFrame> channel in queues)
+            foreach (Tuple<Channel<IDataFrame>, int, string> channel in queues)
             {
-
-                while (!channel.Reader.Completion.IsCompleted)
+                IDataFrame point;
+                while (await channel.Item1.Reader.WaitToReadAsync())
                 {
-                    IDataFrame point;
-                    if (!channel.Reader.TryRead(out point))
+                    if (!channel.Item1.Reader.TryRead(out point))
                         continue;
-
                     m_dataQueue.Writer.TryWrite(point);
+                   
                 }
-                LogInfo($"aligning File {files[i]} complete");
-                n_filesProcessed++;
-                i++;
+
+                LogInfo($"aligning File {channel.Item3} complete");
+                n_filesProcessed += channel.Item2;
             }
         }
 
-        private void GenerateReader(List<string> files, Channel<IDataFrame> queue,CancellationToken cancellationToken)
+        private void GenerateReader(List<string> files, Tuple<Channel<IDataFrame>, int, string> reader, CancellationToken cancellationToken)
         {
             Task.Run(() => {
 
@@ -301,7 +300,7 @@ namespace Adapt.DataSources
                     LogInfo($"reading File: {files[i]}");
                     parser.CompletedFileParsing += (object sender, EventArgs<int> conf) => { fileComplete.Set(); };
                     parser.ReceivedDataFrame += (object sender, EventArgs<IDataFrame> conf) => {
-                        queue.Writer.TryWrite(conf.Argument);
+                        reader.Item1.Writer.TryWrite(conf.Argument);
                     };
                     parser.DefinedFrameRate = 10000000;
                     parser.DisconnectAtEOF = true;
@@ -311,7 +310,7 @@ namespace Adapt.DataSources
                     parser.Stop();
                     LogInfo($"Reading File {files[i]} complete");
                 }
-                queue.Writer.Complete();
+                reader.Item1.Writer.Complete();
 
             },cancellationToken);
 
