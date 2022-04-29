@@ -82,6 +82,8 @@ namespace Adapt.ViewModels
             }
         }
 
+        public bool ShowDelete => false;
+
         /// <summary>
         /// Event that get's raised when a new Datasource has been saved
         /// </summary>

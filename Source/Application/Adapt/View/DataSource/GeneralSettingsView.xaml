@@ -4,9 +4,11 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.DataSource"
+             xmlns:localcv="clr-namespace:Adapt.Converter"
              mc:Ignorable="d" >
     <UserControl.Resources>
         <CollectionViewSource Source="{Binding Path=DataSourceTypes}" x:Key="DataSourceTypes" />
+        <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
     </UserControl.Resources>
     <WrapPanel>
         <StackPanel Orientation="Horizontal" Margin="0,0,50,0">
@@ -31,7 +33,7 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
         </StackPanel>
-        <StackPanel Orientation="Horizontal" Margin="5,5,5,5">
+        <StackPanel Orientation="Horizontal" Margin="5,5,5,5" Visibility="{Binding Path=ShowDelete, Converter={StaticResource ObjectToVisibility}}">
             <Button Command="{Binding DeleteCommand}">Delete Data Source</Button>
         </StackPanel>
     </WrapPanel>

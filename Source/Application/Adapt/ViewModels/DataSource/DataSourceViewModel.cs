@@ -198,6 +198,7 @@ namespace Adapt.ViewModels
 
         public ICommand ClearCommand => m_clearCommand;
 
+        public bool ShowDelete => true;
         public bool CanSave => ValidConfig();
 
         /// <summary>
