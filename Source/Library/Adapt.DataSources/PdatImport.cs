@@ -53,7 +53,8 @@ namespace Adapt.DataSources
         private Dictionary<DateTime, string> m_Files = new Dictionary<DateTime, string>();
         private Channel<IDataFrame> m_dataQueue;
         private ManualResetEvent m_FileComplete;
-        public TaskCompletionSource<IConfigurationFrame> m_ConfigFrameSource;
+        private TaskCompletionSource<IConfigurationFrame> m_ConfigFrameSource;
+        private TaskCompletionSource<IConfigurationFrame> m_LastConfigFrameSource;
         private int n_files;
         private int n_filesProcessed;
 
@@ -72,6 +73,7 @@ namespace Adapt.DataSources
         public PdatImporter()
         {
             m_ConfigFrameSource = new TaskCompletionSource<IConfigurationFrame>();
+            m_LastConfigFrameSource = new TaskCompletionSource<IConfigurationFrame>();
         }
         #endregion
 
@@ -254,7 +256,22 @@ namespace Adapt.DataSources
             if (m_ConfigFrameSource.Task.Result == null)
                 return new List<AdaptDevice>();
 
+            if (!m_LastConfigFrameSource.Task.IsCompleted && m_LastConfigFrameSource.Task.Status != TaskStatus.WaitingForActivation)
+                return new List<AdaptDevice>();
+
+            if (m_LastConfigFrameSource.Task.Result == null)
+                return new List<AdaptDevice>();
+
             IConfigurationFrame configuration = m_ConfigFrameSource.Task.Result;
+            IConfigurationFrame lastconfiguration = m_LastConfigFrameSource.Task.Result;
+
+            List<AdaptDevice> devices = configuration.Cells.Select(cell => new AdaptDevice(cell.IDCode.ToString(), cell.StationName)).ToList();
+            
+            foreach (IConfigurationCell cell in lastconfiguration.Cells)
+            {
+                if (devices.FindIndex(d => d.ID == cell.IDCode.ToString()) == -1)
+                    devices.Add(new AdaptDevice(cell.IDCode.ToString(), cell.StationName));
+            }
 
             return configuration.Cells.Select(cell => new AdaptDevice(cell.IDCode.ToString(),cell.StationName)).ToList();
         }
@@ -319,10 +336,15 @@ namespace Adapt.DataSources
         {
             if (!m_ConfigFrameSource.Task.IsCompleted && m_ConfigFrameSource.Task.Status != TaskStatus.WaitingForActivation)
                 return new List<AdaptSignal>();
-            
-            IConfigurationFrame configuration = m_ConfigFrameSource.Task.Result;
 
-            if (configuration == null)
+
+            if (!m_LastConfigFrameSource.Task.IsCompleted && m_LastConfigFrameSource.Task.Status != TaskStatus.WaitingForActivation)
+                return new List<AdaptSignal>();
+
+            IConfigurationFrame configuration = m_ConfigFrameSource.Task.Result;
+            IConfigurationFrame lastConfiguration = m_LastConfigFrameSource.Task.Result;
+
+            if (configuration == null || lastConfiguration == null)
                 return new List<AdaptSignal>();
 
             IEnumerable<AdaptSignal> analogs = configuration.Cells.SelectMany(cell => cell.AnalogDefinitions
@@ -363,6 +385,8 @@ namespace Adapt.DataSources
                    Type =MeasurementType.Frequency,
                });
 
+
+
             return magnitudes.Concat(phases).Concat(digitals).Concat(analogs).Concat(frequency);
         }
 
@@ -378,29 +402,43 @@ namespace Adapt.DataSources
         private void GetConfigFrame()
         {
             if (m_Files.Count == 0)
+            {
                 m_ConfigFrameSource.SetResult(null);
+                m_LastConfigFrameSource.SetResult(null);
+            }
 
-            if (m_ConfigFrameSource.Task.IsCompleted)
-                return;
-            
-            MultiProtocolFrameParser parser = new MultiProtocolFrameParser();
-            parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
-            parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
-            parser.ConnectionString = $"file={m_Files.First().Value}";
+            if (!m_ConfigFrameSource.Task.IsCompleted)
+            {
+                MultiProtocolFrameParser parser = new MultiProtocolFrameParser();
+                parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
+                parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
+                parser.ConnectionString = $"file={m_Files.First().Value}";
 
-            parser.ReceivedConfigurationFrame += RecievedConfigFrame;
-            parser.Start();
+                parser.ReceivedConfigurationFrame += (object sender, EventArgs<IConfigurationFrame> conf) => { m_ConfigFrameSource.SetResult(conf.Argument); };
+                parser.Start();
 
-            m_ConfigFrameSource.Task.ContinueWith((t) => {
-                parser.Stop();
-            });
+                m_ConfigFrameSource.Task.ContinueWith((t) =>
+                {
+                    parser.Stop();
+                });
+            }
+
+            if (!m_LastConfigFrameSource.Task.IsCompleted)
+            {
+                MultiProtocolFrameParser parser = new MultiProtocolFrameParser();
+                parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
+                parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
+                parser.ConnectionString = $"file={m_Files.Last().Value}";
+
+                parser.ReceivedConfigurationFrame += (object sender, EventArgs<IConfigurationFrame> conf) => { m_LastConfigFrameSource.SetResult(conf.Argument); };
+                parser.Start();
+
+                m_LastConfigFrameSource.Task.ContinueWith((t) =>
+                {
+                    parser.Stop();
+                });
+            }
             return;
-        }
-
-        private void RecievedConfigFrame(object sender, EventArgs<IConfigurationFrame> conf)
-        {
-            m_ConfigFrameSource.SetResult(conf.Argument);
-
         }
 
         private void RecievedDataFrame(object sender, EventArgs<IDataFrame> conf)
