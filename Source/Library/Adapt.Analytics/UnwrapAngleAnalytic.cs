@@ -54,6 +54,8 @@ namespace Adapt.DataSources
         private Setting m_settings;
 
         public override int PrevFrames => 1;
+        private double prevValue = double.NaN;
+
         public class Setting
         {
             [SettingName("Angle Unit")]
@@ -78,12 +80,10 @@ namespace Adapt.DataSources
         public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] future) 
         {
             double current = frame.Measurements["Original"].Value;
-            double prevValue = previousFrames.FirstOrDefault()?.Measurements["Original"].Value ?? double.NaN;
 
             if (m_settings.InputUnit == AngleUnit.Radians) 
             {
                 current *= 180 / Math.PI;
-                prevValue *= 180 / Math.PI;
             }
 
             if (prevValue > 0)
@@ -92,6 +92,7 @@ namespace Adapt.DataSources
                 {
                     current += 360;
                 }
+                prevValue = current;
                 return new AdaptValue[] { new AdaptValue("Angle", current, frame.Timestamp) };
             }
             if (prevValue < 0)
@@ -100,6 +101,7 @@ namespace Adapt.DataSources
                 {
                     current -= 360;
                 }
+                prevValue = current;
                 return new AdaptValue[] { new AdaptValue("Angle", current, frame.Timestamp) };
             }
             else 
@@ -108,14 +110,19 @@ namespace Adapt.DataSources
                     current -= 360;
                 else
                     current += 360;
+                prevValue = current;
                 return new AdaptValue[] { new AdaptValue("Angle", current, frame.Timestamp) };
             }
+
+            
         }
 
         public void Configure(IConfiguration config)
         {
             m_settings = new Setting();
             config.Bind(m_settings);
+
+            prevValue = double.NaN;
         }
 
     }
