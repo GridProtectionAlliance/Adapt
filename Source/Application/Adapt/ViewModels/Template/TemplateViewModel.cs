@@ -294,6 +294,16 @@ namespace Adapt.ViewModels
 
         public void Delete() 
         {
+            int nTemplates = 0;
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                nTemplates = new TableOperations<Template>(connection).QueryRecordCount();
+
+            if (nTemplates == 1)
+            {
+                MessageBox.Show("At least 1 Template has to be set up", $"Unable to delete {Name}", MessageBoxButton.OK);
+                return;
+            }
+
             if (!(MessageBox.Show("This will Delete the Template Permanently. Are you sure you want to continue?", $"Delete {Name}", MessageBoxButton.YesNo) == MessageBoxResult.Yes))
                 return;
 
