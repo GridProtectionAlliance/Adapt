@@ -99,6 +99,8 @@ namespace Adapt.ViewModels
                 SelectedIndex = 0;
             else if (Id != -1)
                 SelectedIndex = m_templates.FindIndex(ds => ds.Id == Id);
+            else if (m_templates.Count > 0)
+                SelectedIndex = m_templates.Count - 1;
             else
                 SelectedIndex = -1;
 

@@ -57,6 +57,7 @@ namespace Adapt.ViewModels
         private ObservableCollection<InputDeviceVM> m_Devices;
 
         private bool m_changed;
+        private bool m_removed;
 
         private ObservableCollection<SectionVM> m_Sections;
 
@@ -160,6 +161,7 @@ namespace Adapt.ViewModels
             m_deleteCommand = new RelayCommand(Delete, () => CanDelete);
             m_addDeviceCommand = new RelayCommand(() => AddDevice(true), () => true);
             m_changed = false;
+            m_removed = false;
             m_Sections = new ObservableCollection<SectionVM>();
             m_addSectionCommand = new RelayCommand(AddSection, () => m_Sections.Count() < 10);
         }
@@ -175,19 +177,19 @@ namespace Adapt.ViewModels
             Mouse.OverrideCursor = Cursors.Wait;
             try
             {
-                if (!m_Devices.Any())
+                if (!m_Devices.Any() && !m_removed)
                 {
                     AddSaveErrorMessage("At least 1 Device has to be added.");
                     throw new OperationCanceledException("Save was canceled.");
                 }
 
-                if (!m_Devices.Where(item => item.SelectedOutput).Any())
+                if (!m_Devices.Where(item => item.SelectedOutput).Any() && !m_removed)
                 {
                     AddSaveErrorMessage("At least 1 Device has to designated as output.");
                     throw new OperationCanceledException("Save was canceled.");
                 }
 
-                if (!m_Devices.SelectMany(item => item.Signals).Any())
+                if (!m_Devices.SelectMany(item => item.Signals).Any() && !m_removed)
                 {
                     AddSaveErrorMessage("At least 1 Input Signal has to be set up.");
                     throw new OperationCanceledException("Save was canceled.");
@@ -206,19 +208,26 @@ namespace Adapt.ViewModels
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     connection.ExecuteNonQuery("DELETE FROM TemplateOutputSignal WHERE TemplateID = {0}", m_template.Id);
 
+                // Save Sections before devices for removing
+                if (m_removed)
+                    m_Sections.ToList().ForEach(s => s.Save());
+
                 // Save Devices
                 m_Devices.ToList().ForEach(d => d.Save());
 
-                // Save Sections
-                m_Sections.ToList().ForEach(s => s.Save());
+                // Save Sections after devices for saving/adding
+                if (!m_removed)
+                    m_Sections.ToList().ForEach(s => s.Save());
 
                 // Save outputs
                 m_Devices.ToList().ForEach(d => d.SaveOutputs());
 
-
-                Load(m_template.Id);
-                m_changed = false;
-                OnSaved();
+                if (!m_removed)
+                {
+                    Load(m_template.Id);
+                    m_changed = false;
+                    OnSaved();
+                }
             }
             catch (OperationCanceledException ex)
             {
@@ -310,8 +319,11 @@ namespace Adapt.ViewModels
             Mouse.OverrideCursor = Cursors.Wait;
             try
             {
+                
                 if (OnBeforeDeleteCanceled())
                     throw new OperationCanceledException("Delete was canceled.");
+
+                m_removed = true;
 
                 // First we empty everything out - All Sections and Devices need to be deleted
                 foreach (SectionVM section in Sections)
@@ -407,6 +419,7 @@ namespace Adapt.ViewModels
             finally
             {
                 m_changed = false;
+                m_removed = false;
                 m_saveErrors = new List<string>();
                 Mouse.OverrideCursor = null;
                 OnPropertyChanged(nameof(CanSave));

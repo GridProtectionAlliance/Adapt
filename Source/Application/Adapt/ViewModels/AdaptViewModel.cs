@@ -113,6 +113,7 @@ namespace Adapt.ViewModels
             m_dataSource.Deleted += DataSource_Deleted;
 
             m_template.PropertyChanged += Template_Changed;
+            m_template.Deleted += Templated_Deleted;
 
             m_currentView = m_dataSource;
 
@@ -168,6 +169,13 @@ namespace Adapt.ViewModels
             m_dataSourceList.Load();
             if (m_dataSourceList.DataSource.Count > 0)
                 m_dataSource.Load(m_dataSourceList.DataSource[0].ID);
+        }
+
+        public void Templated_Deleted(object sender, EventArgs e)
+        {
+            
+            m_templateList.Load();
+            
         }
 
 
