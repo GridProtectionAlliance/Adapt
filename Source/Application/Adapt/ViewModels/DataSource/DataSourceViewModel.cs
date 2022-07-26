@@ -311,7 +311,7 @@ namespace Adapt.ViewModels
             {
                 ConfigureInstance();
 
-                PassedTest = m_instance.Test();
+                
                 if (PassedTest)
                     Popup("This DataSource is set up Properly and ADAPT was able to get data.", "Success", MessageBoxImage.Information);
                 else
@@ -561,6 +561,11 @@ namespace Adapt.ViewModels
                 Instance.Configure(config);
                 try
                 {
+
+                    PassedTest = m_instance.Test();
+                    if (!PassedTest)
+                        throw new Exception("Failed Test");
+
                     IEnumerable<AdaptSignal> signals = Instance.GetSignals();
 
                     using (TransactionScope scope = new TransactionScope())
@@ -580,6 +585,7 @@ namespace Adapt.ViewModels
                 }
                 catch (Exception ex)
                 {
+                    PassedTest = false;
                     m_Devices = new List<DeviceViewModel>();
                 }
             }
