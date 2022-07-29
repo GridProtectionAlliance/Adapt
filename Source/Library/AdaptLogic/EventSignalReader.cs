@@ -86,7 +86,9 @@ namespace AdaptLogic
                     Count = 0,
                     Continuation = false,
                     Min = 0,
-                    Max = 0
+                    Max = 0,
+                    Tmin = start,
+                    Tmax = end
                 };
 
             return new EventSummary()
