@@ -8,14 +8,13 @@
              xmlns:System="clr-namespace:System;assembly=System.Runtime"
              xmlns:widgets="clr-namespace:Adapt.View.Visualization.Widgets"
              mc:Ignorable="d"
-             VerticalAlignment="Stretch"
              >
     <UserControl.Resources>
         <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
             <System:Boolean x:Key="FalseValue">False</System:Boolean>
         <System:Boolean x:Key="TrueValue">True</System:Boolean>
     </UserControl.Resources>
-    <Grid>
+    <Grid VerticalAlignment="Stretch">
         <Grid.RowDefinitions>
             <RowDefinition  Height="auto" />
             <RowDefinition Height="*" />
@@ -61,9 +60,7 @@
                                       SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
                                       HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
                                       VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}"
-                                      CanContentScroll="{TemplateBinding ScrollViewer.CanContentScroll}"
-                                      Height="auto"
-                                      
+                                      CanContentScroll="{TemplateBinding ScrollViewer.CanContentScroll}"                                      
                                       >
                             <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
                         </ScrollViewer>

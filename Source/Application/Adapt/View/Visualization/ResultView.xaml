@@ -9,16 +9,16 @@
     <UserControl.Resources>
         <localcv:TaskStateToVisibility x:Key="ExpanderToVisibility" />
     </UserControl.Resources>
-    <StackPanel>
+    <Grid>
         <StackPanel Visibility="{Binding ResultStatus, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=0}" Orientation="Vertical">
             <TextBlock Text="No Task has been Run" FontSize="26" />
             <TextBlock Text="Go to the TASK tab to set up and run a task." FontSize="16" />
         </StackPanel>
-        <StackPanel Visibility="{Binding ResultStatus, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=1}" Orientation="Vertical">
+        <Grid Visibility="{Binding ResultStatus, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=1}">
             <local1:ProcessNotification DataContext="{Binding ProgressVM}" HorizontalAlignment="Center"/>
-        </StackPanel>
-        <StackPanel Visibility="{Binding ResultStatus, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=2}" Orientation="Vertical">
-            <local:MainVisualization DataContext="{Binding VisualizationVM}" />
-        </StackPanel>
-    </StackPanel>
+        </Grid>
+        <Grid Visibility="{Binding ResultStatus, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=2}" VerticalAlignment="Stretch">
+            <local:MainVisualization DataContext="{Binding VisualizationVM}" VerticalAlignment="Stretch"/>
+        </Grid>
+    </Grid>
 </UserControl>

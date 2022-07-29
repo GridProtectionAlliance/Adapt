@@ -25,7 +25,7 @@
             <localv:TaskView/>
         </DataTemplate>
         <DataTemplate DataType="{x:Type localvm:ResultViewVM}">
-            <localvViz:ResultView/>
+            <localvViz:ResultView VerticalAlignment="Stretch"/>
         </DataTemplate>
     </Window.Resources>
     
