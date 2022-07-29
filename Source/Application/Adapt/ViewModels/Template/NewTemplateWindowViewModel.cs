@@ -103,7 +103,7 @@ namespace Adapt.ViewModels
             Mouse.OverrideCursor = Cursors.Wait;
             try
             {
-                              int id = 0;
+                int id = 0;
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 {
                     new TableOperations<Template>(connection).AddNewRecord(m_template);
@@ -133,9 +133,15 @@ namespace Adapt.ViewModels
 
         private bool ValidConfig()
         {
-            if (m_template.Name == null || m_template.Name.Length == 0)
+            int count;
+            if (m_template.Name == null || m_template.Name.Length == 0 )
                 return false;
-
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString)) 
+            {
+                count = connection.ExecuteScalar<int>("Select count(*) FROM Template WHERE Name = {0}", m_template.Name);
+            }
+            if (count > 0)
+                return false;
             return true;
         }
 
