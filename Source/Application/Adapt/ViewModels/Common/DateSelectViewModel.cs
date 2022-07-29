@@ -35,6 +35,7 @@ using GemstoneWPF;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
@@ -73,7 +74,7 @@ namespace Adapt.ViewModels.Common
                 OnPropertyChanged(nameof(StartHour));
                 OnPropertyChanged(nameof(StartMinute));
                 OnPropertyChanged(nameof(StartSecond));
-            }
+                }
         }
 
 
@@ -271,15 +272,63 @@ namespace Adapt.ViewModels.Common
 
         public DateSelectVM()
         {
-            m_end = DateTime.UtcNow;
-            m_start = m_end.Subtract(new TimeSpan(0, 10, 0));
+            try
+            {
+                if (!File.Exists(TempDateTimeFile))
+                {
+                    m_end = DateTime.UtcNow;
+                    m_start = m_end.Subtract(new TimeSpan(0, 10, 0));
+                    WriteTempFile();
+                }
+                else
+                    ReadTempFile();
+                
+            }
+            catch (Exception ex)
+            {
+                m_end = DateTime.UtcNow;
+                m_start = m_end.Subtract(new TimeSpan(0, 10, 0));
+            }
+
+            this.PropertyChanged += UpdateFile;
+          
         }
 
+        private void UpdateFile(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "Start" || e.PropertyName == "End")
+                try
+                {
+                    WriteTempFile();
+                }
+                catch { }
+        }
+
+        private void WriteTempFile()
+        {
+            byte[] data = new byte[16];
+            BitConverter.GetBytes(m_start.ToBinary()).CopyTo(data, 0);
+            BitConverter.GetBytes(m_end.ToBinary()).CopyTo(data, 8);
+
+            using (BinaryWriter writer = new BinaryWriter(File.OpenWrite(TempDateTimeFile)))
+            {                
+                writer.Write(data);
+                writer.Flush();
+                writer.Close();
+            }
+        }
+
+        private void ReadTempFile()
+        {
+            byte[] data = File.ReadAllBytes(TempDateTimeFile);
+            m_start = DateTime.FromBinary(BitConverter.ToInt64(data, 0));
+            m_end = DateTime.FromBinary(BitConverter.ToInt64(data, 8));
+        }
         #endregion
 
         #region [ Static ]
 
-
+        private static readonly string TempDateTimeFile = $"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{Path.DirectorySeparatorChar}Adapt{Path.DirectorySeparatorChar}DateTimes.tmp";
 
         #endregion
     }
