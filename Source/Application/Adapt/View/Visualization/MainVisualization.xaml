@@ -7,7 +7,7 @@
              xmlns:converter="clr-namespace:Adapt.Converter"
              xmlns:widgets="clr-namespace:Adapt.View.Visualization.Widgets"
              mc:Ignorable="d"
-             Height="{Binding Height,RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}"
+             VerticalAlignment="Stretch"
              >
     <UserControl.Resources>
         <converter:HeightSubtraction  x:Key="HeightSubtraction"/>
@@ -15,13 +15,13 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition  Height="auto" />
-            <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <local:VisToolBar Grid.Row="0" />
         
         <!--<ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="1" Width="Auto"> -->
-        <ItemsControl ItemsSource="{Binding Widgets}" Grid.Row="1" Width="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" 
-                      Height="{Binding Height,RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type UserControl}}, Converter={StaticResource HeightSubtraction}, ConverterParameter=100}" >
+        <ItemsControl ItemsSource="{Binding Widgets}" Grid.Row="1" Width="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      VerticalAlignment="Stretch" >
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <StackPanel DataContext="{Binding .}" Background="Transparent">
@@ -57,7 +57,10 @@
                                       SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
                                       HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
                                       VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}"
-                                      CanContentScroll="{TemplateBinding ScrollViewer.CanContentScroll}">
+                                      CanContentScroll="{TemplateBinding ScrollViewer.CanContentScroll}"
+                                      Height="auto"
+                                      
+                                      >
                             <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
                         </ScrollViewer>
                     </Border>

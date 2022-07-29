@@ -289,7 +289,7 @@ namespace Adapt.ViewModels.Common
             {
                 m_end = DateTime.UtcNow;
                 m_start = m_end.Subtract(new TimeSpan(0, 10, 0));
-                Log.Logger.Error(ex, "Unable to read DateTime Temp File");
+                Log.Logger.Warning(ex, "Unable to read DateTime Temp File");
             }
 
             this.PropertyChanged += UpdateFile;
@@ -305,7 +305,7 @@ namespace Adapt.ViewModels.Common
                 }
                 catch (Exception ex)
                 {
-                    Log.Logger.Error(ex, "Unable to write DateTime Temp File");
+                    Log.Logger.Warning(ex, "Unable to write DateTime Temp File");
                 }
         }
 
