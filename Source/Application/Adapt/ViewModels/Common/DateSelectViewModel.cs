@@ -32,6 +32,7 @@ using Gemstone.Reflection.MemberInfoExtensions;
 using Gemstone.StringExtensions;
 using GemstoneCommon;
 using GemstoneWPF;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -288,6 +289,7 @@ namespace Adapt.ViewModels.Common
             {
                 m_end = DateTime.UtcNow;
                 m_start = m_end.Subtract(new TimeSpan(0, 10, 0));
+                Log.Logger.Error(ex, "Unable to read DateTime Temp File");
             }
 
             this.PropertyChanged += UpdateFile;
@@ -301,7 +303,10 @@ namespace Adapt.ViewModels.Common
                 {
                     WriteTempFile();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Log.Logger.Error(ex, "Unable to write DateTime Temp File");
+                }
         }
 
         private void WriteTempFile()
