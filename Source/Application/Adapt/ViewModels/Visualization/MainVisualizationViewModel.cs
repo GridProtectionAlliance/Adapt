@@ -116,6 +116,10 @@ namespace Adapt.ViewModels.Vizsalization
         {
             get { return m_widgets; }
         }
+        /// <summary>
+        /// Flag to indicate whether any Widgets are added
+        /// </summary>
+        public bool HasWidgets => m_widgets.Count > 0;
 
         /// <summary>
         /// List of Widgets available for use
@@ -168,6 +172,7 @@ namespace Adapt.ViewModels.Vizsalization
                 widget.ChangedWindow += ChangedWindow;
 
             OnPropertyChanged(nameof(Widgets));
+            OnPropertyChanged(nameof(HasWidgets));
         }
 
         private void ChangedWindow(object sender, ZoomEventArgs args)
@@ -203,6 +208,7 @@ namespace Adapt.ViewModels.Vizsalization
                     m_widgets.Add(new WidgetVM(this, (IDisplayWidget)Activator.CreateInstance(m_loadedWigets[desc]), m_startVisualization, m_endVisualization, m_reader));
                     m_widgets.Last().ChangedWindow += ChangedWindow;
                     OnPropertyChanged(nameof(Widgets));
+                    OnPropertyChanged(nameof(HasWidgets));
                 }
                 else
                     Popup("Unable to find widget", "Load Widget Exception:", MessageBoxImage.Error);
@@ -217,6 +223,7 @@ namespace Adapt.ViewModels.Vizsalization
         {
             m_widgets.Remove(widget);
             OnPropertyChanged(nameof(Widgets));
+            OnPropertyChanged(nameof(HasWidgets));
         }
         public void Reset()
         {
