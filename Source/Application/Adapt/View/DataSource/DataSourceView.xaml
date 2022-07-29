@@ -26,8 +26,8 @@
             <TabItem Header="General MetaData" TabIndex="1" VerticalAlignment="Stretch" Height="auto" >
                 <StackPanel VerticalAlignment="Stretch">
                     <StackPanel Visibility="{Binding PassedTest, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" Orientation="Vertical">
-                        <TextBlock Text="This DataSource has not been Tested" FontSize="26" />
-                        <TextBlock Text="Please click the TEST AND SAVE CHANGE button on the bottom of this page." FontSize="16" />
+                        <TextBlock Text="This DataSource has not been Tested" FontSize="26" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Please click the TEST AND SAVE CHANGE button on the bottom of this page." FontSize="16" HorizontalAlignment="Center"/>
                     </StackPanel>
                     <ScrollViewer Visibility="{Binding PassedTest, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}" MaxHeight="{Binding Path=ActualHeight, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UIElement}}" >
                         <local:MetaDataView/>
