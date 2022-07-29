@@ -150,6 +150,8 @@ namespace Adapt.DataSources
         private Channel<IFrame> m_OutputQueue;
 
         private DateTime m_epoch = new DateTime(1970, 1, 1);
+        private static readonly HttpClient client = new HttpClient();
+
         const ulong ValidHours = 16777215; // Math.Pow(2, 24) - 1
         const ulong ValidDays = 127; //  (int)(Math.Pow(2, 7) - 1);
         const ulong ValidWeeks = 9007199254740991; // (int)(Math.Pow(2, 53) - 1);
@@ -164,7 +166,7 @@ namespace Adapt.DataSources
         /// The OH DataSource does not support Progress Reports.
         /// </summary>
         /// <returns>Returns False.</returns>
-        public bool SupportProgress => true;
+        public bool SupportProgress => false;
 
         #region [ Constructor ]
 
@@ -176,7 +178,11 @@ namespace Adapt.DataSources
         public void Configure(IConfiguration config)
         {
             m_settings = new POWOpenHistorianSettings();
-            config.Bind(m_settings);          
+            config.Bind(m_settings);
+
+            m_settings.Server = m_settings.Server.Trim();
+            m_settings.Server = m_settings.Server.TrimEnd('/');
+            
         }
 
         public async IAsyncEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
@@ -232,22 +238,21 @@ namespace Adapt.DataSources
 
             string token = GenerateAntiForgeryToken();
             DateTime section = start;
-            DateTime sectionEnd = section.AddDays(5);
+            DateTime sectionEnd = section.AddMinutes(5);
 
-            sectionEnd = (sectionEnd > end ? sectionEnd : end);
+            sectionEnd = (sectionEnd > end ? end : sectionEnd);
                 while (section < end)
                 {
-
-                    using (HttpClientHandler handler = new HttpClientHandler() { UseCookies = true })
-                    using (HttpClient client = new HttpClient(handler))
+                    try
                     {
-                        try
+                        using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, m_settings.Server + "/api/trendap/Query"))
                         {
-                            client.BaseAddress = new Uri(m_settings.Server);
-                            client.DefaultRequestHeaders.Accept.Clear();
-                            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                            client.DefaultRequestHeaders.Add("X-GSF-Verify", token);
-                            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.ASCII.GetBytes($"{m_settings.User}:{m_settings.Password}")));
+                            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                            request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                                    Convert.ToBase64String(Encoding.ASCII.GetBytes($"{m_settings.User}:{m_settings.Password}")));
+
+                            request.Headers.Add("X-GSF-Verify", token);
+
 
                             Post post = new Post()
                             {
@@ -265,46 +270,52 @@ namespace Adapt.DataSources
                                 Tags = signals.Select(s => s.ID).ToArray()
                             };
 
-                            HttpResponseMessage response = client.PostAsync($"api/trendap/Query", JsonContent.Create(post)).Result;
+                            HttpContent content = JsonContent.Create(post);
 
-                            Task<string> rsp = response.Content.ReadAsStringAsync();
+                            request.Content = content;
 
-                            IEnumerable<HistorianAggregatePoint>  points = JsonConvert.DeserializeObject<IEnumerable<HistorianAggregatePoint>>(rsp.Result);
-                            foreach (IGrouping<string, HistorianAggregatePoint> grp in points.GroupBy(item => item.Timestamp))
+                            using (HttpResponseMessage response = client.SendAsync(request).Result)
                             {
 
-                                DateTime TS = DateTime.Parse(grp.Key).ToUniversalTime();
+                                Task<string> rsp = response.Content.ReadAsStringAsync();
 
-                                Tuple<DateTime, Dictionary<string, double>> data = new Tuple<DateTime, Dictionary<string, double>>(TS, new Dictionary<string, double>());
-                                
-                                foreach (HistorianAggregatePoint pt in grp)
+                                IEnumerable<HistorianAggregatePoint> points = JsonConvert.DeserializeObject<IEnumerable<HistorianAggregatePoint>>(rsp.Result);
+                                foreach (IGrouping<string, HistorianAggregatePoint> grp in points.GroupBy(item => item.Timestamp))
                                 {
-                                    data.Item2.Add(pt.Tag, pt.Average);
-                                  
+
+                                    DateTime TS = DateTime.Parse(grp.Key).ToUniversalTime();
+
+                                    Tuple<DateTime, Dictionary<string, double>> data = new Tuple<DateTime, Dictionary<string, double>>(TS, new Dictionary<string, double>());
+
+                                    foreach (HistorianAggregatePoint pt in grp)
+                                    {
+                                        data.Item2.Add(pt.Tag, pt.Average);
+
+                                    }
+                                    m_DataQueue.Writer.TryWrite(data);
                                 }
-                                m_DataQueue.Writer.TryWrite(data);
                             }
-
                         }
-                        catch (Exception ex)
-                        {
-                            LogError($"Unable to retrieve Timeslice {section.ToShortDateString()} {section.ToShortTimeString()}to {sectionEnd.ToShortDateString()} {sectionEnd.ToShortTimeString()}");
-                        }
-
-                        section = sectionEnd.AddMilliseconds(1);
-                        sectionEnd = section.AddDays(5);
-                        sectionEnd = (sectionEnd > end ? sectionEnd : end);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError($"Unable to retrieve Timeslice {section.ToShortDateString()} {section.ToShortTimeString()}to {sectionEnd.ToShortDateString()} {sectionEnd.ToShortTimeString()}");
                     }
 
-                    m_DataQueue.Writer.Complete();
+                    section = sectionEnd.AddTicks(1);
+                    sectionEnd = section.AddMinutes(5);
+                    sectionEnd = (sectionEnd > end ? end : sectionEnd);
                 }
+
+                m_DataQueue.Writer.Complete();
+                
             }, cancellationToken);
 
         }
 
-        private async Task ComputePhasor(DateTime start, List<PowSignal> signals)
+        private Task ComputePhasor(DateTime start, List<PowSignal> signals)
         {
-            new Task(async () =>
+            return new Task(async () =>
             {
                 DateTime ts = Ticks.AlignToSubsecondDistribution(start, (int)m_settings.SamplingFrequency, 0);
 
@@ -318,20 +329,22 @@ namespace Adapt.DataSources
                     if (!m_DataQueue.Reader.TryRead(out point))
                         continue;
 
-                    ts = ProcessPoint(point, data, ts, signals);
+                    Tuple<DateTime, List<Tuple<DateTime, Dictionary<string, double>>>> r = ProcessPoint(point, data, ts, signals);
+                    ts = r.Item1;
+                    data = r.Item2;
                 }
 
                 m_OutputQueue.Writer.Complete();
             });
         }
 
-        private DateTime ProcessPoint(Tuple<DateTime, Dictionary<string, double>> point, List<Tuple<DateTime, Dictionary<string, double>>> data, DateTime currentTS, List<PowSignal> powSignals)
+        private Tuple<DateTime, List<Tuple<DateTime, Dictionary<string, double>>>>  ProcessPoint(Tuple<DateTime, Dictionary<string, double>> point, List<Tuple<DateTime, Dictionary<string, double>>> data, DateTime currentTS, List<PowSignal> powSignals)
         {
 
             data.Add(point);
          
             if (point.Item1 < currentTS.AddSeconds(0.5D*m_settings.WindowSize))
-                return currentTS;
+                return new Tuple<DateTime, List<Tuple<DateTime, Dictionary<string, double>>>> (currentTS, data);
 
             data = data.Where(item => item.Item1 > currentTS.AddSeconds(-0.5D * m_settings.WindowSize)).ToList();
 
@@ -363,7 +376,7 @@ namespace Adapt.DataSources
                 LogError($"no point on wave data available for {currentTS.ToShortDateString()} {currentTS.ToShortTimeString()}");
 
             }
-            return currentTS.AddTicks((long)((1.0D / m_settings.SamplingFrequency) * (double)Ticks.PerSecond));
+            return new Tuple<DateTime, List<Tuple<DateTime, Dictionary<string, double>>>>(currentTS.AddTicks((long)((1.0D / m_settings.SamplingFrequency) * (double)Ticks.PerSecond)), data);
         }
 
         public IEnumerable<AdaptDevice> GetDevices()
@@ -394,9 +407,6 @@ namespace Adapt.DataSources
             return m_Signals;
 
         }
-
-       
-        
 
         /// <summary>
         /// The Test Function required by <see cref="IDataSource.Test"/>
@@ -558,38 +568,32 @@ namespace Adapt.DataSources
         private string GenerateAntiForgeryToken()
         {
 
-            using (HttpClientHandler handler = new HttpClientHandler())
-            using (HttpClient client = new HttpClient(handler))
+            using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, m_settings.Server + "/api/rvht"))
             {
-                handler.ServerCertificateCustomValidationCallback = ServerCertificateCustomValidation;
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                        Convert.ToBase64String(Encoding.ASCII.GetBytes($"{m_settings.User}:{m_settings.Password}")));
 
-                    
-                client.BaseAddress = new Uri(m_settings.Server);
-                client.DefaultRequestHeaders.Accept.Clear();
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.ASCII.GetBytes($"{m_settings.User}:{m_settings.Password}")));
+                using (HttpResponseMessage response = client.SendAsync(request).Result)
+                {
+                    if (!response.IsSuccessStatusCode)
+                        return "";
 
-
-                HttpResponseMessage response = client.GetAsync($"api/rvht").Result;
-
-                if (!response.IsSuccessStatusCode)
-                    return "";
-
-                Task<string> rsp = response.Content.ReadAsStringAsync();
-                return response.Content.ReadAsStringAsync().Result;
-
+                    Task<string> rsp = response.Content.ReadAsStringAsync();
+                    return response.Content.ReadAsStringAsync().Result;
+                }
             }
+                
         }
-
-
-        private bool ServerCertificateCustomValidation(HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslErrors)
-            {
-                return sslErrors == SslPolicyErrors.None;
-            }
 
         private void LogError(string message)
         {
             MessageRecieved?.Invoke(this, new MessageArgs(message, MessageArgs.MessageLevel.Error));
+        }
+
+        private void LogInfo(string message)
+        {
+            MessageRecieved?.Invoke(this, new MessageArgs(message, MessageArgs.MessageLevel.Info));
         }
         #endregion
 
