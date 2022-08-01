@@ -139,9 +139,9 @@ namespace GemstoneAnalytic
         /// <returns>a <see cref="string"/> representation of the Filter </returns>
         public override string ToString()
         {
-            string s = string.Join('+', m_B.Select((v, i) => v.ToString() + "y[" + i.ToString() + "]"));
+            string s = string.Join('+', m_A.Select((v, i) => v.ToString() + "y[" + i.ToString() + "]"));
             s += "=";
-            s += string.Join('+', m_A.Select((v, i) => v.ToString() + "x[" + i.ToString() + "]"));
+            s += string.Join('+', m_B.Select((v, i) => v.ToString() + "x[" + i.ToString() + "]"));
 
             return s;
         }

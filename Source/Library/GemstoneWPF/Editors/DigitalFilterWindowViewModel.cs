@@ -104,9 +104,18 @@ namespace GemstoneWPF.Editors
             try 
             {
                 DigitalFilter flt = (DigitalFilter)currentValue;
-                m_order = flt.Order;
-                InputCoefficents = new ObservableCollection<CoefficentVM>(flt.InputCoefficents.Select((v,i) => new CoefficentVM(i,v)));
-                OutputCoefficents = new ObservableCollection<CoefficentVM>(flt.OutputCoefficents.Select((v, i) => new CoefficentVM(i, v)));
+                if (flt is null)
+                {
+                    m_order = flt.Order;
+                    InputCoefficents = new ObservableCollection<CoefficentVM>(flt.InputCoefficents.Select((v, i) => new CoefficentVM(i, v)));
+                    OutputCoefficents = new ObservableCollection<CoefficentVM>(flt.OutputCoefficents.Select((v, i) => new CoefficentVM(i, v)));
+                }
+                else
+                {
+                    m_order = 1;
+                    OutputCoefficents = new ObservableCollection<CoefficentVM>() { new CoefficentVM(0), new CoefficentVM(1) };
+                    InputCoefficents = new ObservableCollection<CoefficentVM>() { new CoefficentVM(0), new CoefficentVM(1) };
+                }
 
             }
             catch
