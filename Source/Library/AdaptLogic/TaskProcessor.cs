@@ -128,7 +128,10 @@ namespace AdaptLogic
             task.OutputSignals.ForEach(s => s.FramesPerSecond = framesPerSecond[s.ID]);
             m_writers = new ConcurrentDictionary<string, SignalWritter>(task.OutputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal, task.VariableReplacements)));
 
-            m_commonFrameRate = TimeAlignment.Combine(m_processors.Select(item => item.FramesPerSecond).Where(fps => fps > 0).ToArray());
+            if (m_processors.Where(item => item.FramesPerSecond > 0).Any())
+                m_commonFrameRate = TimeAlignment.Combine(m_processors.Select(item => item.FramesPerSecond).Where(fps => fps > 0).ToArray());
+            else
+                m_commonFrameRate = TimeAlignment.Combine(inputSignals.Select(item => item.FramesPerSecond).ToArray());
         }
         #endregion
 
@@ -207,6 +210,10 @@ namespace AdaptLogic
                     if (count % 1000 == 0 && m_Source.SupportProgress)
                         ReportDatasourceProgress(m_Source.GetProgress());
                 }
+            }
+            catch (Exception ex)
+            {
+                int t = 1;
             }
             finally
             {
