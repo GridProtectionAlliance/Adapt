@@ -59,6 +59,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
             }
         }
 
+        public bool HasSignal => m_readers.Count() > 0;
         public PlotController PlotController => m_plotController;
    
         public override UIElement UserControl => m_xamlClass;
@@ -137,12 +138,14 @@ namespace Adapt.ViewModels.Visualization.Widgets
         {
             base.AddReader(reader);
             UpdateChart();
+            OnPropertyChanged(nameof(HasSignal));
         }
 
         public override void RemoveReader(IReader reader)
         {
             base.RemoveReader(reader);
             UpdateChart();
+            OnPropertyChanged(nameof(HasSignal));
         }
 
         public override bool AllowSignal(AdaptSignal signal) 

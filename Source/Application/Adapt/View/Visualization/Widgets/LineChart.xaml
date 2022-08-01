@@ -4,9 +4,22 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:oxy="http://oxyplot.org/wpf"
+             xmlns:localcv="clr-namespace:Adapt.Converter"
+             xmlns:System="clr-namespace:System;assembly=System.Runtime"
              xmlns:local="clr-namespace:Adapt.View.Visualization.Widgets"
              mc:Ignorable="d" 
              >
-    <oxy:PlotView Model="{Binding PlotModel}" Controller="{Binding PlotController}">
-    </oxy:PlotView>
+    <UserControl.Resources>
+        <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
+        <System:Boolean x:Key="FalseValue">False</System:Boolean>
+        <System:Boolean x:Key="TrueValue">True</System:Boolean>
+    </UserControl.Resources>
+    <Grid>
+        <StackPanel Visibility="{Binding HasSignal, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="No Signal was Selected" FontSize="26" />
+            <TextBlock Text="Right Click to select a signal for display." FontSize="16" />
+        </StackPanel>
+        <oxy:PlotView Model="{Binding PlotModel}" Controller="{Binding PlotController}" Visibility="{Binding HasSignal, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}">
+        </oxy:PlotView>
+    </Grid>
 </UserControl>

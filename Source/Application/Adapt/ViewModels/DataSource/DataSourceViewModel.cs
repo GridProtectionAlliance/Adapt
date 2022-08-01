@@ -29,6 +29,8 @@ using Gemstone.StringExtensions;
 using GemstoneCommon;
 using GemstoneWPF;
 using Microsoft.Extensions.Configuration;
+using Serilog;
+using Serilog.Core;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -313,21 +315,15 @@ namespace Adapt.ViewModels
 
                 
                 if (PassedTest)
-                    Popup("This DataSource is set up Properly and ADAPT was able to get data.", "Success", MessageBoxImage.Information);
+                    Popup("This DataSource is set up Properly and SciSync was able to get data.", "Success", MessageBoxImage.Information);
                 else
-                    Popup("This DataSource is not set up Properly and ADAPT was unable to get data. Please check the settings.","Failed", MessageBoxImage.Warning);
+                    Popup("This DataSource is not set up Properly and SciSync was unable to get data. Please check the settings.", "Failed", MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
                 PassedTest = false;
-                if (ex.InnerException != null)
-                {
-                    Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Test DataSource Exception:", MessageBoxImage.Error);
-                }
-                else
-                {
-                    Popup(ex.Message, "Test DataSource Exception:", MessageBoxImage.Error);
-                }
+                Popup("This DataSource is not set up Properly and SciSync was unable to get data. Please check the settings.", "Failed", MessageBoxImage.Error);
+                Log.Logger.Warning(ex, $"DataSource {Name} ({m_dataSourceTypes[AdapterTypeSelectedIndex].Type.FullName}) Testing Failed");                
             }
             finally
             {
