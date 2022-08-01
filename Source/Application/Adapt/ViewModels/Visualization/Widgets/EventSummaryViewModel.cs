@@ -53,6 +53,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         {
             get { return m_data; }
         }
+        public bool HasSignal => m_readers.Count() > 0;
 
         public override UIElement UserControl => m_xamlClass;
         #endregion
@@ -82,12 +83,14 @@ namespace Adapt.ViewModels.Visualization.Widgets
         {
             base.AddReader(reader);
             UpdateTable();
+            OnPropertyChanged(nameof(HasSignal));
         }
 
         public override void RemoveReader(IReader reader)
         {
             base.RemoveReader(reader);
             UpdateTable();
+            OnPropertyChanged(nameof(HasSignal));
         }
 
         private void UpdateTable()
