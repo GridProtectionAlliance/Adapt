@@ -115,7 +115,7 @@ namespace Adapt.DataSources
                     yield return new Frame()
                     {
                         Published = true,
-                        Timestamp = currentTime,
+                        Timestamp = value.Timestamp.UtcTime.Ticks,
                         Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(data)
                     };
                     m_progress = (currentTime - startTicks) / totalTicks;
@@ -184,30 +184,57 @@ namespace Adapt.DataSources
            
             foreach (AFElement pmu in LoadElements())
             {
-
-                signals.Add(new AdaptSignal(pmu.Attributes["Frequency"].PIPoint.Name, "Frequency", pmu.UniqueID, 30) 
-                { 
-                    Phase = Phase.NONE, 
-                    Type=MeasurementType.Frequency
-                });
-                signals.Add(new AdaptSignal(pmu.Attributes["DfDT"].PIPoint.Name, "ROCOF", pmu.UniqueID, 30)
+                try
                 {
-                    Phase = Phase.NONE,
-                    Type = MeasurementType.DeltaFrequency
-                });
+                    signals.Add(new AdaptSignal(pmu.Attributes["Frequency"].PIPoint.Name, "Frequency", pmu.UniqueID, 30)
+                    {
+                        Phase = Phase.NONE,
+                        Type = MeasurementType.Frequency
+                    });
+                }
+                catch (Exception ex)
+                {
+                    LogInfo($"Unable to get Frequency for PMU {pmu.Name}");
+                }
+                try
+                {
+                    signals.Add(new AdaptSignal(pmu.Attributes["DfDT"].PIPoint.Name, "ROCOF", pmu.UniqueID, 30)
+                    {
+                        Phase = Phase.NONE,
+                        Type = MeasurementType.DeltaFrequency
+                    });
+                }
+                catch (Exception ex)
+                {
+                    LogInfo($"Unable to get DfDT for PMU {pmu.Name}");
+                }
 
                 foreach (AFElement phasor in pmu.Elements)
                 {
-                    signals.Add(new AdaptSignal(phasor.Attributes["Magnitude"].PIPoint.Name, phasor.Name + " Magnitude", pmu.UniqueID, 30)
+                    try
                     {
-                        Phase = ConvertPhase(phasor.Attributes["Phase"].Value.ToString()),
-                        Type = ConvertType(phasor.Attributes["Type"].Value.ToString(), true)
-                    });
-                    signals.Add(new AdaptSignal(phasor.Attributes["Angle"].PIPoint.Name, phasor.Name + " Phase", pmu.UniqueID, 30)
+                        signals.Add(new AdaptSignal(phasor.Attributes["Magnitude"].PIPoint.Name, phasor.Name + " Magnitude", pmu.UniqueID, 30)
+                        {
+                            Phase = ConvertPhase(phasor.Attributes["Phase"].Value.ToString()),
+                            Type = ConvertType(phasor.Attributes["Type"].Value.ToString(), true)
+                        });
+                    }
+                    catch (Exception ex)
                     {
-                        Phase = ConvertPhase(phasor.Attributes["Phase"].Value.ToString()),
-                        Type = ConvertType(phasor.Attributes["Type"].Value.ToString(), false)
-                    });
+                        LogInfo($"Unable to get Magnitude for PMU {pmu.Name} Phasor: ${phasor.Name}");
+                    }
+                    try
+                    {
+                        signals.Add(new AdaptSignal(phasor.Attributes["Angle"].PIPoint.Name, phasor.Name + " Phase", pmu.UniqueID, 30)
+                        {
+                            Phase = ConvertPhase(phasor.Attributes["Phase"].Value.ToString()),
+                            Type = ConvertType(phasor.Attributes["Type"].Value.ToString(), false)
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        LogInfo($"Unable to get Phase for PMU {pmu.Name} Phasor: ${phasor.Name}");
+                    }
                 }
             }
 
@@ -290,6 +317,17 @@ namespace Adapt.DataSources
                 m_server.Connect(true);
             }
         }
+
+        private void LogInfo(string message)
+        {
+            MessageRecieved?.Invoke(this, new MessageArgs(message, MessageArgs.MessageLevel.Info));
+        }
+
+        private void LogError(string message)
+        {
+            MessageRecieved?.Invoke(this, new MessageArgs(message, MessageArgs.MessageLevel.Error));
+        }
+
         /// <summary>
         /// Function to start AFSDKHost if necessary
         /// </summary>

@@ -558,8 +558,10 @@ namespace Adapt.ViewModels
                 try
                 {
 
-                    PassedTest = m_instance.Test();
-                    if (!PassedTest)
+                    bool passed = m_instance.Test();
+                    PassedTest = passed;
+
+                    if (!passed)
                         throw new Exception("Failed Test");
 
                     IEnumerable<AdaptSignal> signals = Instance.GetSignals();
