@@ -43,10 +43,13 @@ namespace Adapt.DataSources
     public class FrequencyExcursion : BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
-        private Gemstone.Ticks m_lastCrossing;
+
+        private bool m_isLow;
+        private bool m_isHigh;
+        private Gemstone.Ticks m_lastNormal;
+
         private double m_differenceLower;
         private double m_differenceUpper;
-        private ExcursionType m_currentExcursion;
 
         public Type SettingType => typeof(Setting);
 
@@ -101,14 +104,14 @@ namespace Adapt.DataSources
         private ITimeSeriesValue[] CheckLastPoint(Gemstone.Ticks ticks)
         {
             List<AdaptEvent> result = new List<AdaptEvent>();
-            if (m_currentExcursion == ExcursionType.UpperAndLower)
+            if (!m_isHigh && ! m_isLow)
                 return result.ToArray();
 
-            double length = ticks - m_lastCrossing;
-            if (m_currentExcursion == ExcursionType.Upper && length > m_settings.minDur * Gemstone.Ticks.PerSecond)
-                result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.upper + m_differenceUpper)));
-            if (m_currentExcursion == ExcursionType.Lower && length > m_settings.minDur * Gemstone.Ticks.PerSecond)
-                result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.lower - m_differenceLower)));
+            double length = ticks - m_lastNormal;
+            if (m_isHigh && length > m_settings.minDur * Gemstone.Ticks.PerSecond)
+                result.Add(new AdaptEvent("Excursion Detected", m_lastNormal, length, new KeyValuePair<string, double>("Deviation", m_settings.upper + m_differenceUpper)));
+            if (m_isLow && length > m_settings.minDur * Gemstone.Ticks.PerSecond)
+                result.Add(new AdaptEvent("Excursion Detected", m_lastNormal, length, new KeyValuePair<string, double>("Deviation", m_settings.lower - m_differenceLower)));
 
             return result.ToArray();
 
@@ -119,52 +122,59 @@ namespace Adapt.DataSources
             List<AdaptEvent> result = new List<AdaptEvent>();
 
             double value = frame.Measurements["Signal"].Value;
-            double prevValue = previousFrames.FirstOrDefault()?.Measurements["Signal"].Value ?? double.NaN;
 
             if (double.IsNaN(value))
                 return result.ToArray();
 
             if (m_settings.excursionType == ExcursionType.Lower || m_settings.excursionType == ExcursionType.UpperAndLower)
             {
-                // On switch from Ok to in Alarm
-                if (value < m_settings.lower && (prevValue >= m_settings.lower || double.IsNaN(prevValue)))
+               
+                // On Low
+                if (value < m_settings.lower && !m_isLow)
                 {
-                    m_lastCrossing = frame.Timestamp;
+                    m_isLow = true;
+                    m_lastNormal = frame.Timestamp;
                     m_differenceLower = m_settings.lower - value;
-                    m_currentExcursion = ExcursionType.Lower;
                 }
-                // On switch from in Alarm to OK
-                else if (value > m_settings.lower && (prevValue <= m_settings.lower))
+                // ON not Low
+                else if (value > m_settings.lower && m_isLow)
                 {
-                    double length = frame.Timestamp - m_lastCrossing;
+                    m_isLow = false;
+                    double length = frame.Timestamp - m_lastNormal;
                     if (length > m_settings.minDur*Gemstone.Ticks.PerSecond)
-                        result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length,new KeyValuePair<string, double>("Deviation", m_settings.lower - m_differenceLower)));
-                    m_currentExcursion = ExcursionType.UpperAndLower;
+                        result.Add(new AdaptEvent("Excursion Detected", m_lastNormal, length,new KeyValuePair<string, double>("Deviation", m_settings.lower - m_differenceLower)));
+                }
+                else if (value < m_settings.lower && m_isLow)
+                {
+                    if ((m_settings.lower - value) > m_differenceLower)
+                        m_differenceLower = (m_settings.lower - value);
                 }
 
-                if ((m_settings.lower - value) > m_differenceLower)
-                    m_differenceLower = (m_settings.lower - value);
+
             }
             if (m_settings.excursionType == ExcursionType.Upper || m_settings.excursionType == ExcursionType.UpperAndLower)
             {
-                // On switch from Ok to in Alarm
-                if (value > m_settings.upper && (prevValue <= m_settings.upper || double.IsNaN(prevValue)))
+                // On High
+                if (value > m_settings.upper && !m_isHigh)
                 {
-                    m_lastCrossing = frame.Timestamp;
+                    m_differenceLower = frame.Timestamp;
                     m_differenceUpper = value - m_settings.upper;
-                    m_currentExcursion = ExcursionType.Upper;
+                    m_isHigh = true;
                 }
-                // On switch from in Alarm to OK
-                else if (value < m_settings.upper && (prevValue >= m_settings.upper))
+                // On not High
+                else if (value < m_settings.upper && m_isHigh)
                 {
-                    double length = frame.Timestamp - m_lastCrossing;
+                    m_isHigh = false;
+                    double length = frame.Timestamp - m_lastNormal;
                     if (length > m_settings.minDur * Gemstone.Ticks.PerSecond)
-                        result.Add(new AdaptEvent("Excursion Detected", m_lastCrossing, length, new KeyValuePair<string, double>("Deviation", m_settings.upper + m_differenceUpper)));
-                    m_currentExcursion = ExcursionType.UpperAndLower;
+                        result.Add(new AdaptEvent("Excursion Detected", m_lastNormal, length, new KeyValuePair<string, double>("Deviation", m_settings.upper + m_differenceUpper)));
                 }
-
-                if ((value - m_settings.upper) > m_differenceUpper)
-                    m_differenceUpper = (value - m_settings.upper);
+                else if (value > m_settings.upper && m_isHigh)
+                {
+                    if ((value - m_settings.upper) > m_differenceUpper)
+                        m_differenceUpper = (value - m_settings.upper);
+                }
+                
             }
 
             return result.ToArray();
@@ -174,6 +184,10 @@ namespace Adapt.DataSources
         {
             m_settings = new Setting();
             config.Bind(m_settings);
+            m_isHigh = false;
+            m_isLow = false;
+            m_differenceLower = 0;
+            m_differenceUpper = 0;
         }
 
     }
