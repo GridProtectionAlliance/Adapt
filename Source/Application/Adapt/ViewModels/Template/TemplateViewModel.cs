@@ -177,6 +177,18 @@ namespace Adapt.ViewModels
             Mouse.OverrideCursor = Cursors.Wait;
             try
             {
+
+                // Check if another template with the matching name already exists
+                int count;
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString)) 
+                {
+                    count = connection.ExecuteScalar<int>("Select count(*) FROM Template WHERE Name = {0} AND NOT ID = {1}", m_template.Name, m_template.Id);
+                }
+                if (count > 0 && !m_removed) 
+                {
+                    AddSaveErrorMessage("Templates cannot have the same names.");
+                    throw new OperationCanceledException("Save was canceled.");
+                }
                 if (!m_Devices.Any() && !m_removed)
                 {
                     AddSaveErrorMessage("At least 1 Device has to be added.");
@@ -317,11 +329,13 @@ namespace Adapt.ViewModels
                 return;
 
             Mouse.OverrideCursor = Cursors.Wait;
+
             try
             {
                 
                 if (OnBeforeDeleteCanceled())
                     throw new OperationCanceledException("Delete was canceled.");
+
 
                 m_removed = true;
 
@@ -329,7 +343,7 @@ namespace Adapt.ViewModels
                 foreach (SectionVM section in Sections)
                     section.RemoveSection();
                 foreach (InputDeviceVM dev in Devices)
-                    dev.Delete();
+                    dev.Rmv();
 
                 // Then we save the Template
                 Save();
@@ -357,6 +371,11 @@ namespace Adapt.ViewModels
             {
                 Mouse.OverrideCursor = null;
             }
+        }
+
+        public void Remove() 
+        {
+            m_removed = true;
         }
 
         /// <summary>

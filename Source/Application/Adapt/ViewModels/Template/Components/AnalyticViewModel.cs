@@ -48,6 +48,8 @@ namespace Adapt.ViewModels
 
         private bool m_removed;
         private bool m_changed;
+        private bool m_added;
+        private TemplateVM m_template;
         private Analytic m_analytic;
         private List<TypeDescription> m_analyticTypes;
 
@@ -69,8 +71,10 @@ namespace Adapt.ViewModels
         }
 
         public int ID => m_analytic.ID;
+        public TemplateVM TemplateVM => m_template;
         public bool Changed => m_changed || m_removed;
         public bool Removed => m_removed;
+        public bool Added => m_added;
 
         public ObservableCollection<AdapterSettingParameterVM> Settings => m_settings;
 
@@ -115,7 +119,6 @@ namespace Adapt.ViewModels
                 }
 
                 OnAdapterTypeSelectedIndexChanged();
-
             }
         }
 
@@ -144,9 +147,11 @@ namespace Adapt.ViewModels
         /// </summary>
         /// <param name="analytic">The <see cref="Analytic"/> for this ViewModel </param>
         /// <param name="section">The <see cref="SectionVM"/> associated with this <see cref="Analytic"/> </param>
-        public AnalyticVM(Analytic analytic, SectionVM section)
+        public AnalyticVM(Analytic analytic, SectionVM section, TemplateVM template)
         {
             m_removed = false;
+            m_added = false;
+            m_template = template;
             m_changed = analytic.ID < 1;
             m_analytic = analytic;
             m_settings = new ObservableCollection<AdapterSettingParameterVM>();
@@ -180,8 +185,8 @@ namespace Adapt.ViewModels
                     
                     Outputs.ToList().ForEach(item => item.RemoveErrorMessages());
                     Inputs.ToList().ForEach(item => item.RemoveErrorMessages());
-                    Outputs = new ObservableCollection<AnalyticOutputVM>(GetOutputs(Instance));
-                    Inputs = new ObservableCollection<AnalyticInputVM>(GetInputs(Instance));
+                    LoadOutputs(); // load them here - get rid of getinputs/outputs
+                    LoadInputs();
                 }
                 catch (Exception ex)
                 {
@@ -203,43 +208,6 @@ namespace Adapt.ViewModels
             OnPropertyChanged(nameof(Inputs));
         }
 
-        private IEnumerable<AnalyticOutputVM> GetOutputs(IAnalytic Instance)
-        {
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                TableOperations<AnalyticOutputSignal> tbl = new TableOperations<AnalyticOutputSignal>(connection);
-                return Instance.Outputs().Select((n, i) =>
-                {
-                    int ct = tbl.QueryRecordCountWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i);
-                    if (ct > 0)
-                        return new AnalyticOutputVM(this, tbl.QueryRecordWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i), n.Name);
-
-                    return new AnalyticOutputVM(this, new AnalyticOutputSignal()
-                    {
-                        AnalyticID = m_analytic.ID,
-                        DeviceID = SectionViewModel.TemplateViewModel.Devices.First().ID,
-                        Name = n.Name,
-                        OutputIndex = i
-                    }, n.Name);
-                }).ToList();
-            }
-        }
-
-        private IEnumerable<AnalyticInputVM> GetInputs(IAnalytic Instance)
-        {
-            List<AnalyticInputVM> inputs = Inputs.ToList();
-
-            return Instance.InputNames().Select((n, i) => {
-                if (inputs.FindIndex(item => item.Label == n) > -1)
-                    return inputs.Find(item => item.Label == n);
-                return new AnalyticInputVM(this, new AnalyticInput()
-                {
-                    AnalyticID = m_analytic.ID,
-                    InputIndex = i
-                }, n, i);
-                });
-        
-        }
         private void OnSettingChanged(object sender, SettingChangedArg args)
         {
             m_changed = true;
@@ -251,6 +219,7 @@ namespace Adapt.ViewModels
         /// </summary>
         public void Save()
         {
+            /*
             if (!Changed)
                 return;
 
@@ -295,6 +264,37 @@ namespace Adapt.ViewModels
                     Outputs.ToList().ForEach(o => o.Save());
                     Inputs.ToList().ForEach(i => i.Save());
                 }
+            }
+            */
+            // If it is added, then we need to save it and then pull it out because it doesn't have an ID set yet
+            bool removed = m_removed || SectionViewModel.Removed;
+
+            if (!removed && !m_changed && !m_added) 
+            {
+                Outputs.ToList().ForEach(item => item.Save());
+                Inputs.ToList().ForEach(item => item.Save());
+                return;
+            }
+
+            if (removed) {
+                Outputs.ToList().ForEach(item => item.Save());
+                Inputs.ToList().ForEach(item => item.Save());
+            }
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString)) 
+            {
+                TableOperations<Analytic> tbl = new TableOperations<Analytic>(connection);
+                if (removed)
+                    tbl.DeleteRecord(m_analytic);
+                if (!removed && (m_changed || m_added)) {
+                    if (m_added)
+                        //What to do in this case to get the id assigned
+                    tbl.AddNewOrUpdateRecord(m_analytic);
+                }
+            }
+
+            if (!removed) {
+                Outputs.ToList().ForEach(item => item.Save());
+                Inputs.ToList().ForEach(item => item.Save());
             }
 
         }
@@ -353,7 +353,8 @@ namespace Adapt.ViewModels
                             AnalyticID = m_analytic.ID,
                             OutputIndex = i,
                             Name = n.Name,
-                            DeviceID = SectionViewModel.TemplateViewModel.Devices.FirstOrDefault()?.ID ?? 0
+                            DeviceID = SectionViewModel.TemplateViewModel.Devices.FirstOrDefault()?.ID ?? 0,
+                            
                         }, n.Name);
                     }));
                 }
@@ -370,7 +371,17 @@ namespace Adapt.ViewModels
         /// </summary>
         private void Delete()
         {
+            // TODO - Change this function to remove the model from the database;
             m_removed = true;
+            OnPropertyChanged(nameof(Removed));
+            OnPropertyChanged(nameof(Changed));
+        }
+
+        private void Remove() 
+        {
+            m_removed = true;
+            Inputs.ToList().ForEach(item => item.Remove());
+            Outputs.ToList().ForEach(item => item.Rmv());
             OnPropertyChanged(nameof(Removed));
             OnPropertyChanged(nameof(Changed));
         }

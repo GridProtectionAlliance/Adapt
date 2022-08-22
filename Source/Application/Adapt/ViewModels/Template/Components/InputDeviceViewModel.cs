@@ -46,13 +46,17 @@ namespace Adapt.ViewModels
         private TemplateInputDevice m_device;
         private bool m_removed;
         private bool m_changed;
+        private bool m_noModel;
         private bool m_outputFlag;
-
+        private bool m_added;
+        private List<AnalyticOutputVM> m_outputVMs;
         private TemplateVM m_templateViewModel;
 
         #endregion
 
         #region[ Properties ]
+        public bool Added => m_added;
+
         /// <summary>
         /// The unique ID for the <see cref="TemplateInputDevice"/>
         /// </summary>
@@ -150,6 +154,8 @@ namespace Adapt.ViewModels
         /// The Template View Model
         /// </summary>
         public TemplateVM TemplateViewModel => m_templateViewModel;
+
+        public List<AnalyticOutputVM> AnalyticOutputVMs => m_outputVMs;
       
         #endregion
 
@@ -163,10 +169,32 @@ namespace Adapt.ViewModels
         {
             m_device = device;
             Signals = new ObservableCollection<InputSignalVM>();
+            m_outputVMs = new List<AnalyticOutputVM>();
             m_removed = false;
-            Remove = new RelayCommand(Delete, () => true);
+            m_noModel = false;
+            Remove = new RelayCommand(Rmv, () => true);
             AddSignal = new RelayCommand(AddNewSignal, () => true);
             m_changed = !(device.ID > 0);
+            m_added = false;
+            m_templateViewModel = templateViewModel;
+            int test = 0;
+        }
+
+        /// <summary>
+        /// Creates a new ViewModel for an input device with no associated model
+        /// </summary>
+        /// <param name="templateViewModel"></param>
+        public InputDeviceVM(TemplateVM templateViewModel) 
+        {
+            // m_device remains undefined
+            Signals = new ObservableCollection<InputSignalVM>();
+            m_outputVMs = new List<AnalyticOutputVM>();
+            m_removed = false;
+            m_noModel = true;
+            Remove = new RelayCommand(Rmv, () => true);
+            AddSignal = new RelayCommand(AddNewSignal, () => true);
+            m_changed = false;
+            m_added = false;
             m_templateViewModel = templateViewModel;
         }
 
@@ -175,7 +203,8 @@ namespace Adapt.ViewModels
         #region [ Methods ]
 
         public void Save()
-        {           
+        {
+            /*
             if (m_removed)
                 Signals.ToList().ForEach(s => s.Save());
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
@@ -195,8 +224,55 @@ namespace Adapt.ViewModels
             }
             if (!m_removed)
                 Signals.ToList().ForEach(s => s.Save());
+            */
+            if (!m_changed && !m_added && !m_removed) {
+                Signals.ToList().ForEach(item => item.Save());
+                return;
+            }
+            if (m_removed)
+                Signals.ToList().ForEach(item => item.Save());
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString)) 
+            {
+                TableOperations<TemplateInputDevice> tbl = new TableOperations<TemplateInputDevice>(connection);
 
+                if (m_removed)
+                    tbl.DeleteRecord(m_device);
+                if (!m_removed && (m_changed || m_added)) 
+                {
+                    tbl.AddNewOrUpdateRecord(m_device);
+                }
+            }
+            if (!m_removed)
+                Signals.ToList().ForEach(item => item.Save());
+        }
 
+        /// <summary>
+        /// Add <see cref="AnalyticOutputVM" /> to this device
+        /// </summary>
+        /// <param name="output"></param>
+        public void RegisterOutputSignal(AnalyticOutputVM output) 
+        {
+            
+            AnalyticOutputVM match = m_outputVMs.Find(item => item.SignalID == output.SignalID);
+            if (match != null)
+                m_outputVMs[m_outputVMs.IndexOf(match)] = output;
+            
+            else
+                m_outputVMs.Add(output);
+            OnPropertyChanged(nameof(AnalyticOutputVMs));
+        }
+
+        /// <summary>
+        /// Remove <see cref="AnalyticOutputVM" /> from this device
+        /// </summary>
+        /// <param name="output"></param>
+        public void DeRegisterOutputSignal(AnalyticOutputVM output) 
+        {
+            if (m_outputVMs.Count == 0)
+                return;
+            m_outputVMs.Remove(output);
+
+            OnPropertyChanged(nameof(AnalyticOutputVMs));
         }
 
         public void SaveOutputs()
@@ -255,20 +331,31 @@ namespace Adapt.ViewModels
             }
             
         }
+
+        //TODO: Change this function to remove it from the database
         public void Delete()
         {
             m_removed = true;
-            Signals.ToList().ForEach(item => item.Delete());
+            Signals.ToList().ForEach(item => item.Rmv());
             OnPropertyChanged(nameof(Removed));
             OnPropertyChanged(nameof(Changed));
         }
+
+        //Remove this InputDeviceViewModel but don't delete it from the database
+        public void Rmv() 
+        {
+            m_removed = true;
+            Signals.ToList().ForEach(item => item.Rmv());
+            OnPropertyChanged(nameof(Removed));
+            OnPropertyChanged(nameof(Changed));
+        } 
 
         public void LoadSignals() 
         {
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 Signals = new ObservableCollection<InputSignalVM>(new TableOperations<TemplateInputSignal>(connection)
                         .QueryRecordsWhere("DeviceId = {0}", m_device.ID)
-                        .Select(d => new InputSignalVM(this,d)));
+                        .Select(d => new InputSignalVM(this ,d)));
 
             OnPropertyChanged(nameof(Signals));
             OnPropertyChanged(nameof(NSignals));
@@ -296,6 +383,9 @@ namespace Adapt.ViewModels
 
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         private void AddNewSignal()
         {
             string name = "Signal 1";
@@ -305,7 +395,6 @@ namespace Adapt.ViewModels
                 i++;
                 name = "Signal " + i.ToString();
             }
-
             Signals.Add(new InputSignalVM(this, new TemplateInputSignal()
             {
                 Name = name,
@@ -314,6 +403,8 @@ namespace Adapt.ViewModels
                 Phase = Phase.A,
                 ID = m_templateViewModel.CreateInputSignalID()
             }));
+            
+            
 
             Signals.Last().PropertyChanged += SignalChanged;
             OnPropertyChanged(nameof(Signals));

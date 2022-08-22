@@ -28,6 +28,7 @@ using GemstoneCommon;
 using GemstoneWPF;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Windows.Input;
@@ -43,11 +44,15 @@ namespace Adapt.ViewModels
 
         private bool m_removed;
         private bool m_changed;
+        private bool m_added;
+        private bool m_noModel;
         private TemplateInputSignal m_signal;
         private InputDeviceVM m_DeviceVM;
         #endregion
 
         #region[ Properties ]
+
+        public bool Added => m_added;
 
         /// <summary>
         /// The Name of the <see cref="TemplateInputSignal"/>.
@@ -135,11 +140,29 @@ namespace Adapt.ViewModels
         public InputSignalVM(InputDeviceVM deviceViewModel, TemplateInputSignal signal)
         {
             m_removed = false;
+            m_added = signal.ID < 0;
             m_changed = false;
+            m_noModel = false;
             m_signal = signal;
             m_DeviceVM = deviceViewModel;
-            Remove = new RelayCommand(Delete, () => true);
+            Remove = new RelayCommand(Rmv, () => true);
             SignalID = m_signal.ID;
+            OnSignalChange();
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="InputSignalVM"> with no associated model
+        /// </summary>
+        /// <param name="deviceViewModel"></param>
+        public InputSignalVM(InputDeviceVM deviceViewModel) 
+        {
+            // m_signal and SignalID will remain undefined when the viewmodel is created
+            m_removed = false;
+            m_changed = false;
+            m_added = false;
+            m_noModel = true;
+            m_DeviceVM = deviceViewModel;
+            Remove = new RelayCommand(Rmv, () => true);
             OnSignalChange();
         }
 
@@ -149,13 +172,15 @@ namespace Adapt.ViewModels
 
         public void Save()
         {
-            
-
+            /*
             if (!m_removed)
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 {
+
                     int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", m_DeviceVM.TemplateViewModel.Name).Id;
                     int deviceID = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND templateID = {1}", m_DeviceVM.Name, templateId).ID;
+                    int sectionID = new TableOperations<TemplateSection>(connection).QueryRecordWhere("templateID = {0}", templateId).ID;
+                    int analyticID = new TableOperations<Analytic>(connection).QueryRecordWhere("sectionID = {0}", sectionID).ID;
 
                     m_signal.DeviceID = deviceID;
 
@@ -170,10 +195,32 @@ namespace Adapt.ViewModels
             else
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                     new TableOperations<TemplateInputSignal>(connection).DeleteRecord(m_signal);
+            */
+            if (!m_changed && !m_added && !m_removed)
+                return;
 
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString)) 
+            {
+                TableOperations<TemplateInputSignal> tbl = new TableOperations<TemplateInputSignal>(connection);
+                if (m_removed)
+                    tbl.DeleteRecord(m_signal);
+                if (!m_removed && m_added) 
+                    tbl.AddNewRecord(m_signal);
+                if (!m_removed && m_changed)
+                    tbl.UpdateRecord(m_signal);
+                
+            }
         }
 
+        // Delete this signal from the database
         public void Delete()
+        {
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                new TableOperations<TemplateInputSignal>(connection).DeleteRecord(m_signal);
+        }
+
+        // Remove this signal but don't delete it from the database
+        public void Rmv() 
         {
             m_removed = true;
             OnPropertyChanged(nameof(Changed));
@@ -185,6 +232,7 @@ namespace Adapt.ViewModels
             OnPropertyChanged(nameof(Name));
 
         }
+
         #endregion
 
         #region [ Static ]

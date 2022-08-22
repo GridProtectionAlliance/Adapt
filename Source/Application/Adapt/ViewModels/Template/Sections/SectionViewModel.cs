@@ -47,10 +47,13 @@ namespace Adapt.ViewModels
         private TemplateSection m_section;
         private ObservableCollection<AnalyticVM> m_analytics;
         private bool m_removed = false;
+        private bool m_added;
 
         #endregion
 
         #region[ Properties ]
+
+        public bool Added => m_added;
 
         public string Description => GetDescription((AnalyticSection)m_section.AnalyticTypeID);
       
@@ -116,6 +119,7 @@ namespace Adapt.ViewModels
         {
             TemplateViewModel = template;
             m_section = section;
+            m_added = section.ID < 0;
 
             AddAnalyticCommand = new RelayCommand(AddAnalytic, () => true);
             DeleteSectionCommand = new RelayCommand(RemoveSection, () => true);
@@ -132,7 +136,7 @@ namespace Adapt.ViewModels
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 m_analytics = new ObservableCollection<AnalyticVM>(new TableOperations<Analytic>(connection)
                     .QueryRecordsWhere("TemplateID = {0} AND SectionID = {1}", TemplateViewModel.ID, m_section.ID)
-                    .Select(d => new AnalyticVM(d, this)));
+                    .Select(d => new AnalyticVM(d, this, TemplateViewModel)));
 
             m_analytics.ToList().ForEach(d => d.LoadOutputs());
             m_analytics.ToList().ForEach(d => d.LoadInputs());
@@ -153,7 +157,7 @@ namespace Adapt.ViewModels
                 SectionID = m_section.ID,
                 TemplateID = TemplateViewModel.ID,
                 ID = TemplateViewModel.CreateAnalyticID()
-            }, this));
+            }, this, TemplateViewModel));
 
             OnPropertyChanged(nameof(Analytics));
         }
@@ -194,6 +198,7 @@ namespace Adapt.ViewModels
         /// </summary>
         public void Save()
         {
+            /*
             if (!Changed)
                 return;
 
@@ -222,6 +227,29 @@ namespace Adapt.ViewModels
                 if (!m_removed)
                     m_analytics.ToList().ForEach(a => a.Save());
             }
+            */
+
+            if (!m_added && !m_removed) {
+                Analytics.ToList().ForEach(item => item.Save());
+                return;
+            }
+
+            if (m_removed)
+                Analytics.ToList().ForEach(item => item.Save());
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString)) 
+            {
+                TableOperations<TemplateSection> tbl = new TableOperations<TemplateSection>(connection);
+
+                if (m_removed)
+                    tbl.DeleteRecord(m_section);
+                if (m_added && !m_removed) 
+                {
+                    // Needs ID assigned
+                    tbl.AddNewRecord(m_section);
+                }
+            }
+            if (!m_removed)
+                Analytics.ToList().ForEach(item => item.Save());
         }
         #endregion
 

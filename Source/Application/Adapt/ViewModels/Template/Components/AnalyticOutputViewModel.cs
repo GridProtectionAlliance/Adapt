@@ -45,9 +45,13 @@ namespace Adapt.ViewModels
         #region [ Members ]
 
         private bool m_changed;
+        private bool m_removed;
+        private bool m_added;
         private AnalyticVM m_analyticVM;
         private AnalyticOutputSignal m_signal;
         private int m_deviceIndex;
+        private AnalyticInputVM m_inputVM;
+        private InputDeviceVM m_inputDeviceVM;
         private ObservableCollection<string> m_Devicenames;
         #endregion
 
@@ -95,9 +99,15 @@ namespace Adapt.ViewModels
 
         public int SignalID { get; private set; }
 
+        public bool Added => m_added;
+
+        public InputDeviceVM InputDeviceViewModel => m_inputDeviceVM;
+
         public AnalyticVM AnalyticVM => m_analyticVM;
 
-        public bool Removed => m_analyticVM.Removed;
+        public AnalyticInputVM AnalyticInputViewModel => m_inputVM;
+
+        public bool Removed => m_removed;
         #endregion
 
         #region [ Constructor ]
@@ -111,6 +121,7 @@ namespace Adapt.ViewModels
         {
             Label = label;
             m_changed = analyticOutputSignal.ID < 1;
+            m_added = false;
             m_analyticVM = analytic;
             m_signal = analyticOutputSignal;
             if (analyticOutputSignal.DeviceID < 1)
@@ -127,6 +138,12 @@ namespace Adapt.ViewModels
             m_Devicenames = new ObservableCollection<string>(m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().Where(d => !d.Removed).Select(d => d.Name));
             m_Devicenames.Add("Add New Device");
             SignalID = m_signal.ID;
+            m_inputDeviceVM = m_analyticVM.TemplateVM.Devices
+                .Where(item => !item.Removed && item.ID == DeviceID).FirstOrDefault();
+            if (!m_inputDeviceVM.AnalyticOutputVMs.Any(item => item.SignalID == SignalID))
+                m_inputDeviceVM.RegisterOutputSignal(this);
+            m_inputVM = m_analyticVM.Inputs.Where(item => !item.Removed && item.AnalyticOutputViewModel != null).FirstOrDefault();
+            int test = 0;
         }
 
         #endregion
@@ -141,13 +158,14 @@ namespace Adapt.ViewModels
                 m_deviceIndex = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().FindIndex(d => d.ID == m_signal.ID);
                 if (m_deviceIndex == -1)
                     m_deviceIndex = m_Devicenames.Count() - 1;
-
+                
                 OnPropertyChanged(nameof(DeviceNames));
             }
         }
 
         public void Save()
         {
+            /*
             bool removed = m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed;
             if (!Changed && !removed)
                 return;
@@ -166,7 +184,7 @@ namespace Adapt.ViewModels
                     DeviceID = deviceId,
                     Name = m_signal.Name,
                     OutputIndex = m_signal.OutputIndex,
-                    ID = (m_signal.ID < -1? 0 : m_signal.ID)
+                    ID = m_signal.ID < -1? 0 : m_signal.ID
                 };
 
                 TableOperations<AnalyticOutputSignal> tbl = new TableOperations<AnalyticOutputSignal>(connection);
@@ -180,6 +198,26 @@ namespace Adapt.ViewModels
                 }
                 if (removed)
                     tbl.DeleteRecord(sig);
+            }
+            */
+            if (!m_added && !m_removed && !m_added)
+                return;
+
+            // Assign correct device id to this signal
+            if (m_inputDeviceVM.Added || m_inputDeviceVM.Changed) {
+                m_inputDeviceVM.Save();
+                m_signal.DeviceID = m_inputDeviceVM.ID;
+            }
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString)) 
+            {
+                TableOperations<AnalyticOutputSignal> tbl = new TableOperations<AnalyticOutputSignal>(connection);
+
+                if (m_removed)
+                    tbl.DeleteRecord(m_signal);
+                if (m_changed || m_added) 
+                {
+                    tbl.AddNewOrUpdateRecord(m_signal);
+                }
             }
         }
 
@@ -207,9 +245,17 @@ namespace Adapt.ViewModels
                 OnPropertyChanged(nameof(Removed));
         }
 
+        // Remove this AnalyticOutputViewModel but don't delete it from database
+        public void Rmv() 
+        {
+            m_removed = true;
+            m_inputDeviceVM.DeRegisterOutputSignal(this);
+            OnPropertyChanged(nameof(Removed));
+        }
+
         #endregion
 
-            #region [ Static ]
+        #region [ Static ]
 
         private static readonly string ConnectionString = $"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{Path.DirectorySeparatorChar}Adapt{Path.DirectorySeparatorChar}DataBase.db; Version=3; Foreign Keys=True; FailIfMissing=True";
         private static readonly string DataProviderString = "AssemblyName={System.Data.SQLite, Version=1.0.109.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139}; ConnectionType=System.Data.SQLite.SQLiteConnection; AdapterType=System.Data.SQLite.SQLiteDataAdapter";
