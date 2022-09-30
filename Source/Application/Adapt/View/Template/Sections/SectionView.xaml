@@ -13,10 +13,15 @@
         <System:Boolean x:Key="TrueValue">True</System:Boolean>
         <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
     </UserControl.Resources>
-    <Expander ExpandDirection="Down" Background="Gray" Visibility="{Binding Path=Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}">
+    <Expander ExpandDirection="Down" Background="Gray" Visibility="{Binding Path=Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" HorizontalAlignment="Stretch">
         <Expander.Header>
-            <TextBlock FontWeight="bold"  Text="{Binding Title}" Width="auto" FontSize="24">
-            </TextBlock>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
+                <Button Width="100" Height="18" Margin="2, 5" Command="{Binding MoveUpCommand}">UP</Button>
+                <Button Width="100" Height="18" Margin="2, 5" Command="{Binding MoveDownCommand}">DOWN</Button>
+                <TextBlock FontWeight="bold"  Text="{Binding Title}" Width="auto" FontSize="24">
+                </TextBlock>
+                
+            </StackPanel>
         </Expander.Header>
         <StackPanel Orientation="Vertical" Height="auto" Background="LightGray">
             <StackPanel Orientation="Horizontal" Height="auto" Background="LightGray">

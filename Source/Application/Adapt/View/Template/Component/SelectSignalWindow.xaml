@@ -8,7 +8,7 @@
         xmlns:localvm="clr-namespace:Adapt.ViewModels"
         xmlns:System="clr-namespace:System;assembly=System.Runtime"
         mc:Ignorable="d"
-        Title="Select a Signal" Height="600" Width="400" x:Name="SelectionWindow">
+        Title="Select a Signal" Height="600" Width="600" x:Name="SelectionWindow">
     <Window.Resources>
         <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
         <System:Boolean x:Key="FalseValue">False</System:Boolean>
@@ -17,8 +17,8 @@
     <StackPanel Orientation="Vertical">
         <TreeView ItemsSource="{Binding Devices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800" SelectedItemChanged="TreeView_SelectedItemChanged">
             <TreeView.ItemTemplate>
-                <HierarchicalDataTemplate DataType="{x:Type localvm:InputDeviceVM}" ItemsSource="{Binding Signals}">
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" Width="600">
+                <HierarchicalDataTemplate ItemsSource="{Binding Signals}">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Width="600">
                         <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="PMU Name: "/>
                         <TextBlock Text="{Binding Path=Name}"  Height="20" Width="150"/>
                         <WrapPanel Margin="100,0">

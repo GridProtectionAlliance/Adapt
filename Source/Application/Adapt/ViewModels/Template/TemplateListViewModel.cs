@@ -68,7 +68,10 @@ namespace Adapt.ViewModels
             {
                 if (m_selectedIndex == value)
                     return;
-                m_selectedIndex = value;
+                if (value == -1)
+                    m_selectedIndex = 0;
+                else
+                    m_selectedIndex = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(SelectedID));
             }

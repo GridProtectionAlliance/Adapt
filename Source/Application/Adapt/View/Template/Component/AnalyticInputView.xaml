@@ -4,12 +4,17 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Adapt.View.Template" xmlns:common="clr-namespace:Adapt.View.Common"
+             xmlns:localcv="clr-namespace:Adapt.Converter"
+             xmlns:System="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" >
-
-    <StackPanel Orientation="Horizontal" Height="auto" Background="LightGray">
+    <UserControl.Resources>
+        <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
+        <System:Boolean x:Key="TrueValue">True</System:Boolean>
+    </UserControl.Resources>
+    <StackPanel Orientation="Horizontal" Height="auto" Background="LightGray" Visibility="{Binding Path=Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}">
         <TextBlock Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Label}" />
         <TextBlock Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Name}" />
-        <Button Width="80" Height="18" Margin="2, 5" Command="{Binding ChangeSignal}">Change Input</Button>      
+        <Button Width="80" Height="18" Margin="2, 5" Command="{Binding ChangeSignal}">Change Signal</Button>      
 
     </StackPanel>
             

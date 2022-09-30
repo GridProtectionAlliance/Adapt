@@ -25,6 +25,7 @@ using Adapt.View.Template;
 using Gemstone.Data;
 using Gemstone.Data.Model;
 using GemstoneWPF;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -42,22 +43,19 @@ namespace Adapt.ViewModels
     /// <summary>
     /// ViewModel for DataSource Window
     /// </summary>
-    public class TemplateVM : AdaptTabViewModelBase, IViewModel
+    public class TemplateVM : AdaptTabViewModelBase
     {
         #region [ Members ]
 
-        private Template m_template;
-        private RelayCommand m_saveCommand;
-        private RelayCommand m_deleteCommand;
-        private RelayCommand m_clearCommand;
-        private RelayCommand m_addDeviceCommand;
-        private RelayCommand m_addSectionCommand;
+        private NewSectionView m_newSectionWindow;
 
+        private bool m_removed;
+
+        private Template m_model;
 
         private ObservableCollection<InputDeviceVM> m_Devices;
 
-        private bool m_changed;
-        private bool m_removed;
+        private string m_name;
 
         private ObservableCollection<SectionVM> m_Sections;
 
@@ -67,66 +65,38 @@ namespace Adapt.ViewModels
 
         #region[ Properties ]
 
-        public Template Template
-        {
-            get { return m_template; }
-            set
-            {
-                m_template = value;
-                
-                OnTemplateChanged();
-            }
-        }
 
+
+        /// <summary>
+        /// Indicates if the Section has been Removed.
+        /// </summary>
+        public bool Removed => m_removed;
         public string Name
         {
-            get => m_template?.Name ?? "";
+            get => m_name ?? m_model?.Name ?? "";
             set
             {
-                m_template.Name = value;
-                m_changed = true;
-                OnPropertyChanged(nameof(Changed));
+                m_name = value;
                 OnPropertyChanged();
             }
         }
+        public int ID => m_model?.Id ?? -1;
 
-        public int ID
-        {
-            get => m_template?.Id ?? -1;
-            set
-            {
-                if (value != (m_template?.Id ?? -1))
-                {
-                    Load(value);
-                    OnPropertyChanged();
-                }
-            }
-        }
+        public ICommand SaveCommand { get; }
 
-        public bool Changed => m_changed || m_Devices.Where(d => d.Changed).Any() || m_Sections.Where(s => s.Changed).Any();
-        
-        public ICommand SaveCommand => m_saveCommand;
+        public ICommand DeleteCommand { get; }
 
-        public ICommand DeleteCommand => m_deleteCommand;
-
-        public ICommand ClearCommand => m_clearCommand;
+        public ICommand ClearCommand { get; }
 
         /// <summary>
         /// Command that adds a <see cref="TemplateInputDevice"/> to this <see cref="Template"/>
         /// </summary>
-        public ICommand AddDeviceCommand => m_addDeviceCommand;
+        public ICommand AddDeviceCommand { get; }
 
         /// <summary>
         /// Command that adds a <see cref="SectionVM"/> to this <see cref="Template"/>
         /// </summary>
-        public ICommand AddSectionCommand => m_addSectionCommand;
-
-        public bool CanSave => Changed;
-
-        public bool CanDelete => true;
-
-        public bool CanClear => !Changed;
-        
+        public ICommand AddSectionCommand { get;  }       
 
         public event CancelEventHandler BeforeLoad;
         public event EventHandler Loaded;
@@ -136,10 +106,11 @@ namespace Adapt.ViewModels
         public event EventHandler Deleted;
 
         public int NumberPMU => m_Devices?.Count() ?? 0;
-        public int NumberSignals => m_Devices?.Sum(pmu => pmu.NSignals) ?? 0;
+        public int NumberSignals => m_Devices?.Sum(pmu => pmu.NInputSignals) ?? 0;
 
         public ObservableCollection<InputDeviceVM> Devices => m_Devices;
 
+        public ObservableCollection<TemplateOutputDeviceWrapper> OutputDevices => new ObservableCollection<TemplateOutputDeviceWrapper>(m_Devices.Select(d => new TemplateOutputDeviceWrapper(d)));
         public ObservableCollection<SectionVM> Sections => m_Sections;
 
         #endregion
@@ -147,23 +118,25 @@ namespace Adapt.ViewModels
         #region [ Constructor ]
         public TemplateVM(int ID): this() 
         {
+            m_removed = false;
             m_saveErrors = new List<string>();
             Load(ID);
         }
 
         public TemplateVM()
         {
-            m_template = null;
+            m_model = null;
+            m_name = "";
+
             m_Devices = new ObservableCollection<InputDeviceVM>();
 
-            m_clearCommand = new RelayCommand(Clear, () => CanClear);
-            m_saveCommand = new RelayCommand(Save, () => CanSave);
-            m_deleteCommand = new RelayCommand(Delete, () => CanDelete);
-            m_addDeviceCommand = new RelayCommand(() => AddDevice(true), () => true);
-            m_changed = false;
-            m_removed = false;
+            ClearCommand = new RelayCommand(Clear, HasChanged);
+            SaveCommand = new RelayCommand(Save, () => HasChanged() && isValid());
+            DeleteCommand = new RelayCommand(Delete, () => true);
+            AddDeviceCommand = new RelayCommand(AddDevice, () => true);
+            
             m_Sections = new ObservableCollection<SectionVM>();
-            m_addSectionCommand = new RelayCommand(AddSection, () => m_Sections.Count() < 10);
+            AddSectionCommand = new RelayCommand(AddSection, () => m_Sections.Count() < 10);
         }
 
         #endregion
@@ -174,74 +147,47 @@ namespace Adapt.ViewModels
         /// </summary>
         public void Save()
         {
+            
+            
             Mouse.OverrideCursor = Cursors.Wait;
             try
             {
-                if (!m_Devices.Any() && !m_removed)
-                {
-                    AddSaveErrorMessage("At least 1 Device has to be added.");
-                    throw new OperationCanceledException("Save was canceled.");
-                }
-
-                if (!m_Devices.Where(item => item.SelectedOutput).Any() && !m_removed)
-                {
-                    AddSaveErrorMessage("At least 1 Device has to designated as output.");
-                    throw new OperationCanceledException("Save was canceled.");
-                }
-
-                if (!m_Devices.SelectMany(item => item.Signals).Any() && !m_removed)
-                {
-                    AddSaveErrorMessage("At least 1 Input Signal has to be set up.");
-                    throw new OperationCanceledException("Save was canceled.");
-                }
+                if (m_model is null)
+                    throw new OperationCanceledException("No Template was loaded.");
 
                 if (OnBeforeSaveCanceled())
                     throw new OperationCanceledException("Save was canceled.");
 
+                // update Template
+                m_model.Name = m_name;
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                {
-                    TableOperations<Template> templateTbl = new TableOperations<Template>(connection);
-                    templateTbl.AddNewOrUpdateRecord(m_template);
-                }
+                    new TableOperations<Template>(connection).UpdateRecord(m_model);
 
-                // Remove Outputs
-                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    connection.ExecuteNonQuery("DELETE FROM TemplateOutputSignal WHERE TemplateID = {0}", m_template.Id);
+                // update or Add Devices
+                foreach (InputDeviceVM d in Devices)
+                    d.Save();
 
-                // Save Sections before devices for removing
-                if (m_removed)
-                    m_Sections.ToList().ForEach(s => s.Save());
+                // update Sections
+                foreach (SectionVM s in Sections)
+                    s.Save();
 
-                // Save Devices
-                m_Devices.ToList().ForEach(d => d.Save());
+                // Remove Extra Sections in Reverse Order
+                foreach (SectionVM s in Sections.Reverse())
+                    s.Delete();
 
-                // Save Sections after devices for saving/adding
-                if (!m_removed)
-                    m_Sections.ToList().ForEach(s => s.Save());
-
-                // Save outputs
-                m_Devices.ToList().ForEach(d => d.SaveOutputs());
-
-                if (!m_removed)
-                {
-                    Load(m_template.Id);
-                    m_changed = false;
-                    OnSaved();
-                }
-            }
-            catch (OperationCanceledException ex)
-            {
-                if (m_saveErrors.Count == 0)
-                    Popup(ex.Message, "Save Template Exception:", MessageBoxImage.Error);
-                else
-                    Popup(string.Join(Environment.NewLine,m_saveErrors), "Please fix the following errors:", MessageBoxImage.Warning);
+                //remove Extra Devices
+                foreach (InputDeviceVM d in Devices)
+                    d.Delete();
             }
             catch (Exception ex)
             {
+
+                Popup("An error occurred while saving this template. Please see the Logs or contact GPA.", "Error", MessageBoxImage.Error);
+
                 if (ex.InnerException != null)
-                    Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Save DataSource Exception:", MessageBoxImage.Error);
+                    Log.Logger.Error(ex, $"Template {ID} Save Failed Exception: {ex.InnerException.Message} StackTrace: {ex.InnerException.StackTrace}");
                 else
-                    Popup(ex.Message, "Save Template Exception:", MessageBoxImage.Error);
+                    Log.Logger.Error(ex, $"Template {ID} Save Failed Exception: {ex.Message} StackTrace: {ex.StackTrace}");
             }
             finally
             {
@@ -254,109 +200,78 @@ namespace Adapt.ViewModels
         /// </summary>
         /// <param name="isInput"> indicates if that device is supposed to be available as an input</param>
         /// <returns>The <see cref="InputDeviceVM"/> for the Device in question</returns>
-        public InputDeviceVM AddDevice(bool isInput)
+        public void AddDevice()
         {
-            string name = "PMU 1";
-            int i = 1;
-            while (m_Devices.Where(d => d.Name == name).Any())
-            {
-                i++;
-                name = "PMU " + i.ToString();
-            }
-
-            m_Devices.Add(new InputDeviceVM(this, new TemplateInputDevice()
-            {
-                Name = name,
-                TemplateID = m_template?.Id ?? 0,
-                ID = CreateDeviceID(),
-                IsInput = isInput,
-                OutputName = name
-            }));
-                
-            m_Devices.Last().PropertyChanged += OnDeviceChange;
+            InputDeviceVM d = new InputDeviceVM(this);
+            d.PropertyChanged += (object src, PropertyChangedEventArgs arg) => { if (arg.PropertyName == nameof(d.Removed)) OnPropertyChanged(nameof(Devices)); };
+            m_Devices.Add(d);
             OnPropertyChanged(nameof(Devices));
-            OnPropertyChanged(nameof(Changed));
-            return m_Devices.Last();
+            OnPropertyChanged(nameof(OutputDevices));
         }
 
         private void AddSection()
         {
-            NewSectionView window = new NewSectionView();
-            NewSectionVM vm = new NewSectionVM((TemplateSection section) => {
-                section.TemplateID = m_template.Id;
-                section.Order = m_Sections.Count() > 0 ? m_Sections.Max(s => s.Order) + 1 : 1;
-                section.ID = CreateSectionID();
-                m_Sections.Add(new SectionVM(section, this));
-                m_Sections.Last().PropertyChanged += OnSectionChange;
 
-                OnPropertyChanged(nameof(Sections));
-                window.Dispatcher.Invoke(DispatcherPriority.Normal, new ThreadStart(() =>
-                {
-                    window.Close();
-                }));
-            },this);
-            window.DataContext = vm;
-            
-            window.Show();
+            m_newSectionWindow = new NewSectionView();
+            SectionVM vm = new SectionVM(this);
+            m_newSectionWindow.DataContext = vm;
 
+            m_newSectionWindow.ShowDialog();
+
+
+        }
+
+        /// <summary>
+        /// Callback triggered by the Section added to the Template
+        /// </summary>
+        /// <param name="section"></param>
+        public void AddSectionCallback(SectionVM section)
+        {
+            m_newSectionWindow.Close();
+            m_Sections.Add(section);
+            OnPropertyChanged(nameof(Sections));
         }
 
         public void Delete() 
         {
-            int nTemplates = 0;
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                nTemplates = new TableOperations<Template>(connection).QueryRecordCount();
+            m_removed = true;
 
-            if (nTemplates == 1)
-            {
-                MessageBox.Show("At least 1 Template has to be set up", $"Unable to delete {Name}", MessageBoxButton.OK);
-                return;
-            }
-
-            if (!(MessageBox.Show("This will Delete the Template Permanently. Are you sure you want to continue?", $"Delete {Name}", MessageBoxButton.YesNo) == MessageBoxResult.Yes))
-                return;
+            foreach (SectionVM s in Sections)
+                s.Removal();
+            foreach (InputDeviceVM d in Devices)
+                d.Removal();
 
             Mouse.OverrideCursor = Cursors.Wait;
             try
             {
-                
-                if (OnBeforeDeleteCanceled())
-                    throw new OperationCanceledException("Delete was canceled.");
+                // Remove Extra Sections in Reverse Order
+                foreach (SectionVM s in Sections.Reverse())
+                    s.Delete();
 
-                m_removed = true;
-
-                // First we empty everything out - All Sections and Devices need to be deleted
-                foreach (SectionVM section in Sections)
-                    section.RemoveSection();
-                foreach (InputDeviceVM dev in Devices)
-                    dev.Delete();
-
-                // Then we save the Template
-                Save();
-
-                // Then we remove left over Model
+                //remove Extra Devices
+                foreach (InputDeviceVM d in Devices)
+                    d.Delete();
 
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    new TableOperations<Template>(connection).DeleteRecord(m_template);
+                    new TableOperations<Template>(connection).DeleteRecord(m_model.Id);
+
 
                 OnDeleted();
-
             }
             catch (Exception ex)
             {
+                Popup("An error occurred while deleting this template. Please see the Logs or contact GPA.", "Error",MessageBoxImage.Error);
+
                 if (ex.InnerException != null)
-                {
-                    Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Delete Template Exception:", MessageBoxImage.Error);
-                }
+                    Log.Logger.Error(ex, $"Template {ID} Delete Failed Exception: {ex.InnerException.Message} StackTrace: {ex.InnerException.StackTrace}");
                 else
-                {
-                    Popup(ex.Message, "Delete Template Exception:", MessageBoxImage.Error);
-                }
+                    Log.Logger.Error(ex, $"Template {ID} Delete Failed Exception: {ex.Message} StackTrace: {ex.StackTrace}");
             }
             finally
             {
                 Mouse.OverrideCursor = null;
             }
+
         }
 
         /// <summary>
@@ -382,9 +297,12 @@ namespace Adapt.ViewModels
         }
 
         public void Clear()
-        {}
+        {
+            if (!(m_model is null))
+                Load();
+        }
 
-        public void Load() => Load(m_template?.Id ?? 1);
+        public void Load() => Load(m_model?.Id ?? 1);
         
         public void Load(int ID)
         {
@@ -398,32 +316,35 @@ namespace Adapt.ViewModels
                 BeforeSave = null;
 
                 using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    Template = new TableOperations<Template>(connection).QueryRecordWhere("Id = {0}", ID);
+                    m_model = new TableOperations<Template>(connection).QueryRecordWhere("Id = {0}", ID);
 
+                if (!(m_model is null))
+                    m_name = m_model.Name;
 
                 LoadDevices();
                 LoadSections();
                 OnLoaded();
+
+                // Ensure at least 1 Input Signal and Device exist
+                if (m_Devices.Count() == 0)
+                    AddDevice();
+
+                OnPropertyChanged(nameof(Name));
             }
             catch(Exception ex)
             {
+                Popup( "An error occurred while loading this template. Please see the Logs or contact GPA.", "Error", MessageBoxImage.Error);
+
                 if (ex.InnerException != null)
-                {
-                    Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Load DataSource Exception:", MessageBoxImage.Error);
-                }
+                    Log.Logger.Error(ex, $"Template {ID} Load Failed Exception: {ex.InnerException.Message} StackTrace: {ex.InnerException.StackTrace}");
                 else
-                {
-                    Popup(ex.Message, "Load Template Exception:", MessageBoxImage.Error);
-                }
+                    Log.Logger.Error(ex, $"Template {ID} Load Failed Exception: {ex.Message} StackTrace: {ex.StackTrace}");
+                
             }
             finally
             {
-                m_changed = false;
                 m_removed = false;
-                m_saveErrors = new List<string>();
                 Mouse.OverrideCursor = null;
-                OnPropertyChanged(nameof(CanSave));
-                OnPropertyChanged(nameof(Changed));
             }
         }
 
@@ -472,117 +393,104 @@ namespace Adapt.ViewModels
             if (Saved != null)
                 Saved(this, EventArgs.Empty);
         }
-       
-        private void OnTemplateChanged()
-        {
-            OnPropertyChanged(nameof(Template));
-            OnPropertyChanged(nameof(Name));
-           
-        }
-        
+
         private void LoadDevices()
         {
-            if (m_template == null)
-                m_Devices = new ObservableCollection<InputDeviceVM>();
-            else
-                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    m_Devices = new ObservableCollection<InputDeviceVM>(new TableOperations<TemplateInputDevice>(connection)
-                        .QueryRecordsWhere("TemplateID = {0}", m_template.Id)
-                        .Select(d => new InputDeviceVM(this,d)));
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                m_Devices = new ObservableCollection<InputDeviceVM>(new TableOperations<TemplateInputDevice>(connection)
+                    .QueryRecordsWhere("TemplateID = {0}", m_model.Id)
+                    .Select(d => {
+                        InputDeviceVM r = new InputDeviceVM(this, d);
+                        r.PropertyChanged += (object src, PropertyChangedEventArgs arg) => { if (arg.PropertyName == nameof(r.Removed)) OnPropertyChanged(nameof(Devices)); };
+                        return r;
+                    }));
 
-            m_Devices.ToList().ForEach(d => d.PropertyChanged += OnDeviceChange);
-            m_Devices.ToList().ForEach(d => d.LoadSignals());
             OnPropertyChanged(nameof(Devices));
-        }
-
-        private void OnDeviceChange(object sender, PropertyChangedEventArgs args)
-        {
-            if (args.PropertyName == "Changed")
-                OnPropertyChanged(nameof(Changed));
-        }
-
-        private void OnSectionChange(object sender, PropertyChangedEventArgs args)
-        {
-            if (args.PropertyName == "Changed")
-                OnPropertyChanged(nameof(Changed));
+            OnPropertyChanged(nameof(OutputDevices));
         }
 
         private void LoadSections()
         {
-            if (m_template == null)
-                m_Sections = new ObservableCollection<SectionVM>();
-            else
-                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    m_Sections = new ObservableCollection<SectionVM>(new TableOperations<TemplateSection>(connection)
-                        .QueryRecordsWhere("TemplateID = {0}", m_template.Id).OrderBy(item => item.Order)
-                        .Select(d => new SectionVM(d, this)));
-
-            m_Sections.ToList().ForEach(d => d.PropertyChanged += OnSectionChange);
-            m_Sections.ToList().ForEach(d => d.LoadAnalytics());           
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                m_Sections = new ObservableCollection<SectionVM>(new TableOperations<TemplateSection>(connection)
+                    .QueryRecordsWhere("TemplateID = {0}", m_model.Id).OrderBy(item => item.Order)
+                    .Select(s => new SectionVM(s, this)));
 
             OnPropertyChanged(nameof(Sections));
+
+        }
+
+
+        public bool HasChanged()
+        {
+            if (m_model == null)
+                return false;
+
+            bool changed = m_model.Name != m_name;
+            changed = changed || m_Devices.Any(d => d.HasChanged());
+            changed = changed || m_Sections.Any(d => d.HasChanged());
+
+            return changed;
+        }
+
+        public List<string> Validate()
+        {
+            List<string> issues = new List<string>();
+
+            if (m_model is null)
+                return new List<string>() { "No template was loaded." };
+
+            if (string.IsNullOrEmpty(m_name))
+                issues.Add($"{m_name} is not a valid name.");
+
+            if (OutputDevices.Count(o => o.Enabled ?? true) == 0)
+                issues.Add($"At least one output is required.");
+
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                if (new TableOperations<Template>(connection).QueryRecordCountWhere("Name = {0} AND ID <> {1}",m_name, m_model.Id) > 1)
+                    issues.Add($"{m_name} is not a valid name.");
+
+            issues.AddRange(m_Devices.SelectMany(d => d.Validate()));
+            issues.AddRange(m_Sections.SelectMany(d => d.Validate()));
+            
+            return issues;
         }
 
         /// <summary>
-        /// Creates a unique ID for a new Device. 
-        /// All IDs < 0 to indicate they have never been saved to the Database.
+        /// Swap the order of two Sections. 
         /// </summary>
-        /// <returns> a negative unique deviceID</returns>
-        public int CreateDeviceID()
+        /// <param name="index1"> The index of the first section</param>
+        /// <param name="index2">The index of the second section</param>
+        public void SwapSectionOrder(int index1, int index2)
         {
-            if (m_Devices.Count() == 0)
-                return -1;
-            int min =  m_Devices.Min(item => item.ID);
-            return (min < 0 ? (min - 1) : -1);
-        }
+            if (index1 == index2)
+                return;
 
-        /// <summary>
-        /// Creates a unique ID for a new InputSignal. 
-        /// All IDs < 0 to indicate they have never been saved to the Database.
-        /// </summary>
-        /// <returns> a negative unique inpusSignalID</returns>
-        public int CreateInputSignalID()
-        {
-            if (m_Devices.Count() == 0)
-                return -1;
-            int min = m_Devices.Min(item => item.NSignals > 0 ? item.Signals.Min(s => s.ID) : 0 );
-            return (min < 0 ? (min - 1) : -1);
-        }
+            if (index1 >= m_Sections.Count() || index1 < 0)
+                return;
+            if (index2 >= m_Sections.Count() || index2 < 0)
+                return;
 
-        /// <summary>
-        /// Creates a unique ID for a new Analytic. 
-        /// All IDs < 0 to indicate they have never been saved to the Database.
-        /// </summary>
-        /// <returns> a negative unique analyticID</returns>
-        public int CreateAnalyticID()
-        {
-            if (m_Sections.Count() == 0)
-                return -1;
-            int min = m_Sections.Min(item => item.Analytics.Count() > 0 ? item.Analytics.Min(a => a.ID) : 0);
-            return (min < 0 ? (min - 1) : -1);
-        }
+            int order1 = m_Sections[index1].Order;
+            int order2 = m_Sections[index2].Order;
 
-        /// <summary>
-        /// Creates a unique ID for a new Section. 
-        /// All IDs < 0 to indicate they have never been saved to the Database.
-        /// </summary>
-        /// <returns> a negative unique sectionID</returns>
-        public int CreateSectionID()
-        {
-            if (m_Sections.Count() == 0)
-                return -1;
-            int min = m_Sections.Min(item => item.ID);
-            return (min < 0 ? (min - 1) : -1);
-        }
+            m_Sections[index1].Order = order2;
+            m_Sections[index2].Order = order1;
 
-        /// <summary>
-        /// Adds a Message to the Error List to be displayed when Saving is aborted
-        /// </summary>
-        /// <param name="error">The message to be Added</param>
-        public void AddSaveErrorMessage(string error)
-        {
-            m_saveErrors.Add(error);
+            if (index1 < index2)
+            {
+                m_Sections.Move(index1, index2);
+                m_Sections.Move(index2-1, index1);
+            }
+            else
+            {
+                m_Sections.Move(index2, index1);
+                m_Sections.Move(index1 - 1, index2);
+            }
+
         }
+        public bool isValid() => Validate().Count == 0;
+
         #endregion
 
         #region [ Static ]

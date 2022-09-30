@@ -34,70 +34,118 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using static Adapt.ViewModels.SelectSignalVM;
 
 namespace Adapt.ViewModels
 {
     /// <summary>
     /// ViewModel for an Analytic Output
     /// </summary>
-    public class AnalyticOutputVM : ViewModelBase
+    public class AnalyticOutputVM : ViewModelBase, ISignalVM
     {
         #region [ Members ]
 
-        private bool m_changed;
-        private AnalyticVM m_analyticVM;
-        private AnalyticOutputSignal m_signal;
-        private int m_deviceIndex;
-        private ObservableCollection<string> m_Devicenames;
+        private bool m_removed;
+        private AnalyticVM m_analytic;
+        private AnalyticOutputSignal m_model;
+        private InputDeviceVM m_device;
+        private TemplateVM m_template;
+        private TemplateOutputSignal m_outputModel;
+        private bool m_isOutput;
+        private string m_outputName;
+        private Phase m_phase;
+        private MeasurementType m_type;
+
+
+        private string m_label; // This is coming from the Analytic
+        private int m_index;
+        private string m_name;
+
+        private int? m_deviceID;
         #endregion
 
         #region[ Properties ]
 
-        public string Label { get; }
+        /// <summary>
+        /// The Label determined by the <see cref="IAnalytic"/>
+        /// </summary>
+        public string Label => m_label;
+        
+        /// <summary>
+        /// The Name of this Output signal
+        /// </summary>
         public string Name
         {
-            get => m_signal.Name;
+            get => m_name;
             set
             {
-                m_signal.Name = value;
+                m_name = value;
                 OnPropertyChanged();
-                m_changed = true;
-                OnPropertyChanged(nameof(Changed));
             }
         }
 
-        public bool Changed => m_changed;
-
-        public ObservableCollection<string> DeviceNames => m_Devicenames;
-        public int DeviceIndex
+        public InputDeviceVM Device
         {
-            get => m_deviceIndex;
+            get => m_device;
             set
             {
-                if (value < m_Devicenames.Count() - 1)
+                m_device.DeRegisterAnalyticOutput(this);
+                m_device.PropertyChanged -= DeviceChanged;
+                m_device = value;
+                if (m_device != null)
                 {
-                    m_deviceIndex = value;
-                    m_signal.DeviceID = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.Where(item => !item.Removed).ToList()[m_deviceIndex].ID;
+                    m_device.RegisterAnalyticOutput(this);
+                    m_device.PropertyChanged += DeviceChanged;
                 }
-                else
-                    m_signal.DeviceID = m_analyticVM.SectionViewModel.TemplateViewModel.AddDevice(false).ID;
-                 
-                m_changed = true;
-                OnPropertyChanged(nameof(Changed));
+                m_deviceID = m_device?.ID;
+
                 OnPropertyChanged();
             }
         }
 
-        public int DeviceID => m_signal.DeviceID;
+        public int OutputIndex {
+            get => m_index;
+            set
+            {
+                m_index = value;
+                OnPropertyChanged();
+            }
+        }
+        public bool Removed => m_removed;
 
-        public int OutputIndex => m_signal.OutputIndex;
-        public int ID => m_signal.ID;
+        /// <summary>
+        /// The ID of the Model if available. Null otherwise
+        /// </summary>
+        public int? ID => m_model?.ID ?? null;
 
-        public int SignalID { get; private set; }
+        /// <summary>
+        /// Indicates if the Signal is a Template Input Signal
+        /// </summary>
+        public bool IsInput => false;
 
-        public AnalyticVM AnalyticVM => m_analyticVM;
+        public bool IsOutput
+        {
+            get => m_isOutput;
+            set
+            {
+                m_isOutput = value;
+                OnPropertyChanged();
+            }
+        }
 
-        public bool Removed => m_analyticVM.Removed;
+        public string OutputName
+        {
+            get => m_outputName;
+            set
+            {
+                m_outputName = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public int SectionOrder => m_analytic.SectionVM.Order;
+
+        public ObservableCollection<InputDeviceVM> AllDevices => new ObservableCollection<InputDeviceVM>(m_template.Devices.Where(item => !item.Removed));
         #endregion
 
         #region [ Constructor ]
@@ -107,109 +155,273 @@ namespace Adapt.ViewModels
         /// <param name="analytic"> The <see cref="AnalyticVM"/> associated with this Output</param>
         /// <param name="analyticOutputSignal">The <see cref="AnalyticOutputSignal"/> for this ViewModel </param>
         /// <param name="label">The Label used for this Output based on the Analytic. </param>
-        public AnalyticOutputVM(AnalyticVM analytic, AnalyticOutputSignal analyticOutputSignal, string label)
+        public AnalyticOutputVM(AnalyticVM analytic, AnalyticOutputSignal model)
         {
-            Label = label;
-            m_changed = analyticOutputSignal.ID < 1;
-            m_analyticVM = analytic;
-            m_signal = analyticOutputSignal;
-            if (analyticOutputSignal.DeviceID < 1)
+            m_removed = false;
+            m_analytic = analytic;
+            m_model = model;
+
+            m_device = null;
+
+            m_template = analytic.TemplateVM;
+
+            m_label = "";
+            m_deviceID = null;
+
+
+            if (!(m_model is null))
             {
-                m_deviceIndex = 0;
-            }
-            else
-            {
-                m_deviceIndex = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().FindIndex(d => d.ID == analyticOutputSignal.DeviceID);
+                m_index = m_model.OutputIndex;
+                m_name = m_model.Name;
+                m_deviceID = m_model.DeviceID;
+
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    m_outputModel = new TableOperations<TemplateOutputSignal>(connection).QueryRecordWhere("SignalID = {0} AND IsInputSignal = 0", m_model.ID);
+                m_isOutput = !(m_outputModel is null);
+                m_outputName = m_outputModel?.Name ?? m_name;
             }
 
-            m_analyticVM.SectionViewModel.TemplateViewModel.PropertyChanged += DevicesChanged;
-            m_analyticVM.PropertyChanged += AnalyticChanged;
-            m_Devicenames = new ObservableCollection<string>(m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().Where(d => !d.Removed).Select(d => d.Name));
-            m_Devicenames.Add("Add New Device");
-            SignalID = m_signal.ID;
+            m_template.PropertyChanged += (object s, PropertyChangedEventArgs args) =>
+            {
+                if (args.PropertyName == nameof(m_template.Devices))
+                    OnPropertyChanged(nameof(AllDevices));
+            };
+
+            if (!(m_deviceID is null))
+            {
+                m_device = m_template.Devices.Where(item => item.ID == m_deviceID).FirstOrDefault();
+                if (m_device is null)
+                    m_device = m_template.Devices.FirstOrDefault();
+
+                m_deviceID = m_device.ID;
+                m_device.RegisterAnalyticOutput(this);
+                m_device.PropertyChanged += DeviceChanged;
+
+            }
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="AnalyticOutputSignal"/> VieModel
+        /// </summary>
+        /// <param name="analytic"> The <see cref="AnalyticVM"/> associated with this Output</param>
+        /// <param name="analyticOutputSignal">The <see cref="AnalyticOutputSignal"/> for this ViewModel </param>
+        /// <param name="label">The Label used for this Output based on the Analytic. </param>
+        public AnalyticOutputVM(AnalyticVM analytic): this(analytic,null)
+        {
+            string name = "Signal 1";
+            int i = 1;
+
+            m_device = m_template.Devices.Where(d => !d.Removed).FirstOrDefault();
+            m_device.RegisterAnalyticOutput(this);
+            m_device.PropertyChanged += DeviceChanged;
+            m_deviceID = m_device.ID;
+            
+            if (!(m_device is null))
+                while (m_device.Signals.Where(d => d.Name == name && !d.Removed).Any() || m_device.AnalyticSignals.Where(d => d.Name == name && !d.Removed).Any())
+                {
+                    i++;
+                    name = "Signal " + i.ToString();
+                }
+
+            m_name = name;
+            m_outputName = name;
+            OnPropertyChanged(nameof(Device));
         }
 
         #endregion
 
         #region [ Methods ]
-        private void DevicesChanged(object sender, PropertyChangedEventArgs args)
-        {
-            if (args.PropertyName == "Devices")
-            {
-                m_Devicenames = new ObservableCollection<string>(m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().Where(d => !d.Removed).Select(d => d.Name));
-                m_Devicenames.Add("Add New Device");
-                m_deviceIndex = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().FindIndex(d => d.ID == m_signal.ID);
-                if (m_deviceIndex == -1)
-                    m_deviceIndex = m_Devicenames.Count() - 1;
 
-                OnPropertyChanged(nameof(DeviceNames));
+        public void AnalyticTypeUpdate(IAnalytic instance, int index)
+        {
+            m_device.DeRegisterAnalyticOutput(this);
+            if (instance.Outputs().Count() <= index)
+            {
+
+                m_removed = true;
+                OnPropertyChanged(nameof(Removed));
+                return;
             }
+
+            m_device.RegisterAnalyticOutput(this);
+            m_removed = false;
+            m_label = instance.Outputs().ElementAt(index).Name;
+            m_phase = instance.Outputs().ElementAt(index).Phase;
+            m_type = instance.Outputs().ElementAt(index).Type;
+            m_index = index;
+            OnPropertyChanged(nameof(Removed));
+            OnPropertyChanged(nameof(Label));
         }
 
         public void Save()
         {
-            bool removed = m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed;
-            if (!Changed && !removed)
+            if (m_removed)
                 return;
 
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            if (m_model is null)
             {
-                int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", m_analyticVM.SectionViewModel.TemplateViewModel.Name).Id;
-                int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("[Order] = {0} AND TemplateId = {1}", m_analyticVM.SectionViewModel.Order, templateId).ID;
-                int analyticID = new TableOperations<Analytic>(connection).QueryRecordWhere("Name = {0} AND TemplateID = {1} AND SectionID = {2}", m_analyticVM.Name, templateId, sectionId).ID;
-                int deviceId = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND TemplateID = {1}",
-                    m_analyticVM.SectionViewModel.TemplateViewModel.Devices.ToList().Find(d => d.ID == m_signal.DeviceID).Name, templateId).ID;
-
-                AnalyticOutputSignal sig = new AnalyticOutputSignal()
+                m_model = new AnalyticOutputSignal()
                 {
-                    AnalyticID = analyticID,
-                    DeviceID = deviceId,
-                    Name = m_signal.Name,
-                    OutputIndex = m_signal.OutputIndex,
-                    ID = (m_signal.ID < -1? 0 : m_signal.ID)
+                    DeviceID = m_device.ID ?? -1,
+                    Name = m_name,
+                    AnalyticID = m_analytic?.ID ?? -1,
+                    OutputIndex = m_index
                 };
 
-                TableOperations<AnalyticOutputSignal> tbl = new TableOperations<AnalyticOutputSignal>(connection);
-                tbl.DeleteRecordWhere("AnalyticID = {0} AND OutputIndex = {1} AND ID <> {2}", analyticID, sig.OutputIndex, sig.ID);
-
-
-                if (!removed)
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 {
-                    tbl.AddNewOrUpdateRecord(sig);
-                    SignalID = tbl.QueryRecordWhere("AnalyticID = {0} AND OutputIndex = {1}",analyticID,sig.OutputIndex).ID;
+                    new TableOperations<AnalyticOutputSignal>(connection).AddNewRecord(m_model);
+                    m_model.ID = connection.ExecuteScalar<int>("select seq from sqlite_sequence where name = {0}", "AnalyticOutputSignal");
                 }
-                if (removed)
-                    tbl.DeleteRecord(sig);
+
             }
+            else
+            {
+
+                m_model.Name = m_name;
+                m_model.DeviceID = m_device.ID ?? -1;
+                m_model.OutputIndex = m_index;
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    new TableOperations<AnalyticOutputSignal>(connection).UpdateRecord(m_model);
+            }
+
+
+            // Output Models also need to be saved following the Signal Model
+            if (IsOutput)
+            {
+                if (m_outputModel is null)
+                {
+                    m_outputModel = new TemplateOutputSignal()
+                    {
+                        IsInputSignal = false,
+                        Name = m_outputName,
+                        Phase = (int)m_phase,
+                        SignalID = m_model.ID,
+                        TemplateID = m_analytic.TemplateVM.ID,
+                        Type = (int)m_type,
+                    };
+
+                    using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    {
+                        new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(m_outputModel);
+                        m_outputModel.ID = connection.ExecuteScalar<int>("select seq from sqlite_sequence where name = {0}", "TemplateOutputSignal");
+                    }
+
+                }
+                else
+                {
+
+                    m_outputModel.Name = m_outputName;
+                    m_outputModel.Phase = (int)m_phase;
+                    m_outputModel.Type = (int)m_type;
+
+                    using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                        new TableOperations<TemplateOutputSignal>(connection).UpdateRecord(m_outputModel);
+                }
+            }
+
         }
 
-        private void ValidateBeforeSave(object sender, CancelEventArgs args)
+        /// <summary>
+        /// Delete any unused models form the Database.
+        /// </summary>
+        public void Delete()
         {
-            if (m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed)
+            if (m_model is null)
                 return;
 
-            if (m_deviceIndex < 0)
+            if (m_removed || m_analytic.Removed)
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                new TableOperations<AnalyticOutputSignal>(connection).DeleteRecord(m_model.ID);
+
+            if (!m_isOutput || m_removed || m_analytic.Removed)
             {
-                m_analyticVM.SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {m_analyticVM.Name} Output Signal {Name} needs to be attached to a PMU");
-                args.Cancel = true;
+                if (m_outputModel == null)
+                    return;
+
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    new TableOperations<TemplateOutputSignal>(connection).DeleteRecord(m_outputModel.ID);
             }
         }
 
-
-        public void RemoveErrorMessages()
+        /// <summary>
+        /// Removes this <see cref="AnalyticOutputSignal"/>
+        /// </summary>
+        public void Removal()
         {
-            m_analyticVM.SectionViewModel.TemplateViewModel.BeforeSave -= ValidateBeforeSave;
+            m_removed = true;
+            OnPropertyChanged(nameof(Removed));
         }
 
-        private void AnalyticChanged(object sender, PropertyChangedEventArgs args)
+
+        /// <summary>
+        /// Determines Whether the Device has Changed
+        /// </summary>
+        /// <returns></returns>
+        public bool HasChanged()
         {
-            if (args.PropertyName == "Removed")
-                OnPropertyChanged(nameof(Removed));
+            if (m_model == null)
+                return !m_removed;
+
+            bool changed = m_model.Name != m_name;
+            changed = changed || (m_deviceID is null);
+
+            return changed;
         }
 
+        /// <summary>
+        /// Lists any Issues preventing this Analytic from being Saved
+        /// </summary>
+        /// <returns></returns>
+        public List<string> Validate()
+        {
+            List<string> issues = new List<string>();
+
+            if (m_removed)
+                return issues;
+
+            if (string.IsNullOrEmpty(m_name))
+                issues.Add($"A name is required for every Output Signal.");
+
+            if (m_device is null)
+                issues.Add($"A valid Device needs to be selected");
+            else
+            {
+                int nSig = m_device.Signals.Where(item => item.Name == m_name && !item.Removed).Count();
+                nSig += m_device.AnalyticSignals.Where(item => item.Name == m_name  && !item.Removed).Count();
+                if (nSig > 1)
+                    issues.Add($"A signal with name {m_name} already exists on this Device.");
+            }
+            
+
+            return issues;
+        }
+
+        private void DeviceChanged(object sender, PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == nameof(m_device.Removed) && m_device.Removed)
+            {
+                m_device.DeRegisterAnalyticOutput(this);
+                m_device.PropertyChanged -= DeviceChanged;
+                m_device = m_template.Devices.Where(d => !d.Removed).FirstOrDefault();
+                if (!(m_device is null))
+                {
+                    m_device.RegisterAnalyticOutput(this);
+                    m_device.PropertyChanged += DeviceChanged;
+                    m_deviceID = m_device.ID;
+                }
+
+                OnPropertyChanged(nameof(Device));
+            }
+        }
+        /// <summary>
+        /// Indicates whether the Analytic can be saved.
+        /// </summary>
+        /// <returns> <see cref="true"/> If the Analytic can be saved</returns>
+        public bool isValid() => Validate().Count() == 0;
         #endregion
 
-            #region [ Static ]
+        #region [ Static ]
 
         private static readonly string ConnectionString = $"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{Path.DirectorySeparatorChar}Adapt{Path.DirectorySeparatorChar}DataBase.db; Version=3; Foreign Keys=True; FailIfMissing=True";
         private static readonly string DataProviderString = "AssemblyName={System.Data.SQLite, Version=1.0.109.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139}; ConnectionType=System.Data.SQLite.SQLiteConnection; AdapterType=System.Data.SQLite.SQLiteDataAdapter";

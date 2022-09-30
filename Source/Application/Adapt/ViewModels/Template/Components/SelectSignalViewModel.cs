@@ -49,70 +49,35 @@ namespace Adapt.ViewModels
         #region [ Classes ]
 
         /// <summary>
-        /// ViewModel for an available Device
+        /// Wrapper class for <see cref="InputDeviceVM"/> to allow filtering for specific conditions such as Section Order
         /// </summary>
-        public class DeviceVM: ViewModelBase
+        public class InputDeviceWrapperVM : ViewModelBase
         {
-            public string Name { get; }
-            public int NSignals => Signals.Count();
-            public ObservableCollection<SignalVM> Signals { get; private set; }
-            public int ID { get; }
-            public DeviceVM(InputDeviceVM inputDeviceViewModel)
-            {
-                Name = inputDeviceViewModel.Name;
-                Signals = new ObservableCollection<SignalVM>(inputDeviceViewModel.Signals.Where(s => !s.Removed).Select(s => new SignalVM(s)));
-                ID = inputDeviceViewModel.ID;
+            public ObservableCollection<ISignalVM> Signals { get; }
+            public string Name => m_device.Name;
+            public int NSignals => m_device.NInputSignals + m_device.NAnalyticSignals;
 
-            }
-            /// <summary>
-            /// Adds Output Signals from other Analytics to this Device.
-            /// </summary>
-            public void AddSignals(IEnumerable<AnalyticOutputVM> signals)
+            private InputDeviceVM m_device;
+            public InputDeviceWrapperVM(InputDeviceVM device, Func<ISignalVM, bool> filter)
             {
-                foreach (AnalyticOutputVM s in signals)
-                    Signals.Add(new SignalVM(s));
-                
-                OnPropertyChanged(nameof(NSignals));
-                OnPropertyChanged(nameof(Signals));
+                m_device = device;
+                Signals = new ObservableCollection<ISignalVM>(
+                    ((IEnumerable<ISignalVM>)device.Signals.Where(s => !s.Removed && filter(s))).Concat(device.AnalyticSignals.Where(s => !s.Removed && filter(s)))
+                    );
+
             }
         }
 
-        /// <summary>
-        /// ViewModel for an available Signal
-        /// </summary>
-        public class SignalVM: ViewModelBase
-        {
-            public string Name { get; }
-            public int ID { get; }
-            public bool IsInput { get; }
-            public SignalVM(AnalyticOutputVM signal)
-            {
-                Name = signal.Name;
-                ID = signal.ID;
-                IsInput = false;
-            }
-            public SignalVM(InputSignalVM signalVM)
-            {
-                Name = signalVM.Name;
-                ID = signalVM.ID;
-                IsInput = true;
-            }
-        }
         #endregion
 
         #region [ Members ]
 
-        private Action<AnalyticInput> m_onComplete;
-        private int m_selectedSignalID;
-        private bool m_selectedInputSignal;
+        private Action<ISignalVM> m_onComplete;
+        private ISignalVM m_selectedItem;
+
         #endregion
 
         #region[ Properties ]
-
-        /// <summary>
-        /// The <see cref="ICommand"/> called by the Cancel Button.
-        /// </summary>
-        public ICommand CancelCommand { get; }
 
         /// <summary>
         /// The <see cref="ICommand"/> called by the Select Button.
@@ -122,36 +87,25 @@ namespace Adapt.ViewModels
         /// <summary>
         /// ViewModels for all available <see cref="TemplateInputDevice"/>.
         /// </summary>
-        public ObservableCollection<DeviceVM> Devices { get; private set; }
+        public ObservableCollection<InputDeviceWrapperVM> Devices { get; }
+
         #endregion
 
         #region [ Constructor ]
         /// <summary>
         /// Creates a new <see cref="SelectSignalVM"/> VieModel.
         /// </summary>
-        /// <param name="templateViewModel"> The <see cref="TemplateVM"/> used to get available Signals. </param>
+        /// <param name="template"> The <see cref="TemplateVM"/> used to get available Signals. </param>
         /// <param name="onComplete">The <see cref="Action"/> to be called when a Signal is selected. </param>
-        /// <param name="maxOrder">The maximum Order of the Sections. -1 for all Sections in the <paramref name="templateViewModel"/>. </param>
-        public SelectSignalVM(TemplateVM templateViewModel, Action<AnalyticInput> onComplete, int maxOrder=-1)
+        /// <param name="filter">The maximum Order of the Sections. -1 for all Sections in the <paramref name="templateViewModel"/>. </param>
+        public SelectSignalVM(TemplateVM template, Action<ISignalVM> onComplete, Func<ISignalVM,bool> filter)
         {
-            CancelCommand = new RelayCommand(Cancel, (obj) => true);
-            SelectCommand = new RelayCommand(Select, (obj) => true);
             m_onComplete = onComplete;
-               
+
             // Create Full List of Signals including outputs from Analytics
-            Devices = new ObservableCollection<DeviceVM>(templateViewModel.Devices.Where(d => !d.Removed).Select(d => new DeviceVM(d)));
-            IEnumerable<AnalyticOutputVM> outputs = templateViewModel.Sections
-                .Where(s => s.Order < maxOrder || maxOrder == -1)
-                .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs);
-
-            foreach(DeviceVM dev in Devices)
-            {
-                dev.AddSignals(outputs.Where(s => s.DeviceID == dev.ID));
-            
-            }
-
-            m_selectedSignalID = Devices.FirstOrDefault().Signals.FirstOrDefault()?.ID ?? -1;
-            m_selectedInputSignal = Devices.FirstOrDefault().Signals.FirstOrDefault()?.IsInput ?? false;
+            Devices = new ObservableCollection<InputDeviceWrapperVM>(template.Devices.Where(d => !d.Removed).Select(item => new InputDeviceWrapperVM(item, filter)).Where(d => d.Signals.Count() > 0));
+            m_selectedItem = Devices.FirstOrDefault()?.Signals.FirstOrDefault();
+            SelectCommand = new RelayCommand(Select, (obj) => !(m_selectedItem is null));
         }
 
         #endregion
@@ -159,28 +113,12 @@ namespace Adapt.ViewModels
         #region [ Methods ]
         
         /// <summary>
-        /// Closes the Window.
-        /// </summary>
-        /// <param name="window"> The <see cref="SelectSignalWindow"/>. </param>
-        private void Cancel(object window)
-        {
-            ((SelectSignalWindow)window).Close();
-        }
-
-        /// <summary>
         /// Creates the <see cref="AnalyticInput"/> and then closes the Window.
         /// </summary>
         /// <param name="window"> The <see cref="SelectSignalWindow"/>. </param>
         private void Select(object window)
         {
-            AnalyticInput result = new AnalyticInput() {
-                IsInputSignal = m_selectedInputSignal,
-                SignalID = m_selectedSignalID,
-
-            };
-
-            m_onComplete.Invoke(result);
-            Cancel(window);
+            m_onComplete.Invoke(m_selectedItem);
         }
 
         /// <summary>
@@ -192,16 +130,7 @@ namespace Adapt.ViewModels
         {
             TreeView tv = sender as TreeView;
             if (tv != null)
-            {
-                SignalVM tvi = tv.SelectedItem as SignalVM;
-                if (tvi != null)
-                {
-                    m_selectedSignalID = tvi.ID;
-                    m_selectedInputSignal = tvi.IsInput;
-
-
-                }
-            }
+                    m_selectedItem = tv.SelectedItem as ISignalVM;
         }
 
         #endregion

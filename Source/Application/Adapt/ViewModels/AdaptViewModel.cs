@@ -145,7 +145,7 @@ namespace Adapt.ViewModels
             if (e.PropertyName == nameof(m_templateList.SelectedIndex))
             {
                 if (m_template.ID != m_templateList.SelectedID)
-                    m_template.ID = m_templateList.SelectedID;
+                    m_template.Load(m_templateList.SelectedID);
             }
 
             if (e.PropertyName == nameof(m_templateList.Templates))
@@ -181,7 +181,7 @@ namespace Adapt.ViewModels
 
         public void Template_Changed(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(m_template.Template))
+            if (e.PropertyName == nameof(m_template.ID))
             {
                 if (m_template.ID != m_templateList.SelectedID)
                     m_templateList.Load(m_template.ID);

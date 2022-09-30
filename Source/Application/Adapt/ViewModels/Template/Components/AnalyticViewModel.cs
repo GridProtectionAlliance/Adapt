@@ -31,6 +31,7 @@ using GemstoneWPF;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -47,29 +48,37 @@ namespace Adapt.ViewModels
         #region [ Members ]
 
         private bool m_removed;
-        private bool m_changed;
-        private Analytic m_analytic;
-        private List<TypeDescription> m_analyticTypes;
+
+        private Analytic m_model;
+        private SectionVM m_parent;
+
+        private string m_name;
+        private string m_typeName;
+        private string m_assemblyName;
+        private string m_connectionString;
 
         private ObservableCollection<AdapterSettingParameterVM> m_settings;
+        private ObservableCollection<AnalyticOutputVM> m_outputs;
+        private ObservableCollection<AnalyticInputVM> m_inputs;
+        private IAnalytic m_instance;
+
         #endregion
 
         #region[ Properties ]
 
+        public TemplateVM TemplateVM => m_parent.TemplateVM;
+        public SectionVM SectionVM => m_parent;
+
         public string Name
         {
-            get => m_analytic.Name;
+            get => m_name ?? m_model?.Name ?? "";
             set
             {
-                m_analytic.Name = value;
+                m_name = value;
                 OnPropertyChanged();
-                m_changed = true;
-                OnPropertyChanged(nameof(Changed));
             }
         }
 
-        public int ID => m_analytic.ID;
-        public bool Changed => m_changed || m_removed;
         public bool Removed => m_removed;
 
         public ObservableCollection<AdapterSettingParameterVM> Settings => m_settings;
@@ -77,18 +86,18 @@ namespace Adapt.ViewModels
         /// <summary>
         /// The Outputs of this <see cref="Analytic"/>.
         /// </summary>
-        public ObservableCollection<AnalyticOutputVM> Outputs { get; private set; }
+        public ObservableCollection<AnalyticOutputVM> Outputs => m_outputs;
 
         /// <summary>
         /// The Inputs associated with this Analytic
         /// </summary>
-        public ObservableCollection<AnalyticInputVM> Inputs { get; private set; }
-        public List<TypeDescription> AnalyticTypes => m_analyticTypes;
+        public ObservableCollection<AnalyticInputVM> Inputs => m_inputs;
 
         /// <summary>
-        /// The Section View model this Analytic is associated with
+        /// List of available <see cref="IAnalytic"/>
         /// </summary>
-        public SectionVM SectionViewModel { get; set; }
+        public List<TypeDescription> AnalyticTypes => m_analyticTypes.Where(isAllowed).ToList();
+            
         /// <summary>
         /// Gets or sets the index of the selected item in the <see cref="AnalyticTypes"/>.
         /// </summary>
@@ -96,12 +105,12 @@ namespace Adapt.ViewModels
         {
             get
             {
-                int index = m_analyticTypes
+                int index = AnalyticTypes
                     .Select(tuple => tuple.Type)
                     .TakeWhile(type => type.FullName != TypeName)
                     .Count();
 
-                if (index == m_analyticTypes.Count)
+                if (index == AnalyticTypes.Count)
                     index = -1;
 
                 return index;
@@ -110,8 +119,8 @@ namespace Adapt.ViewModels
             {
                 if (value >= 0 && value < m_analyticTypes.Count)
                 {
-                    TypeName = m_analyticTypes[value].Type.FullName;
-                    m_analytic.AssemblyName = m_analyticTypes[value].Type.Assembly.FullName;
+                    m_typeName = AnalyticTypes[value].Type.FullName;
+                    m_assemblyName = AnalyticTypes[value].Type.Assembly.FullName;
                 }
 
                 OnAdapterTypeSelectedIndexChanged();
@@ -121,15 +130,19 @@ namespace Adapt.ViewModels
 
         public string TypeName
         {
-            get => m_analytic?.TypeName ?? "";
+            get => m_typeName ?? m_model?.TypeName ?? "";
             set
             {
-                m_analytic.TypeName = value;
+                m_typeName = value;
                 OnPropertyChanged();
-                m_changed = true;
-                OnPropertyChanged(nameof(Changed));
             }
         }
+
+        /// <summary>
+        /// The ID of the associated Model.
+        /// Note that this will be <see cref="Nullable"/> and is NULL if it's a new Model
+        /// </summary>
+        public int? ID => m_model?.ID ?? null;
 
         /// <summary>
         /// Command to Remove Analytic
@@ -147,17 +160,117 @@ namespace Adapt.ViewModels
         public AnalyticVM(Analytic analytic, SectionVM section)
         {
             m_removed = false;
-            m_changed = analytic.ID < 1;
-            m_analytic = analytic;
+            
+            m_model = analytic;
+            m_parent = section;
+
             m_settings = new ObservableCollection<AdapterSettingParameterVM>();
-            SectionViewModel = section;
-            Outputs = new ObservableCollection<AnalyticOutputVM>();
-            Inputs = new ObservableCollection<AnalyticInputVM>();
-            m_analyticTypes = TypeDescription.LoadDataSourceTypes(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar), typeof(IAnalytic));
-            m_analyticTypes = m_analyticTypes.Where(isAllowed).ToList();
-            OnAdapterTypeSelectedIndexChanged();
-            SectionViewModel.TemplateViewModel.BeforeSave += ValidateBeforeSave;
-            DeleteAnalyticCommand = new RelayCommand(Delete, () => true);
+            m_outputs = new ObservableCollection<AnalyticOutputVM>();
+            m_inputs = new ObservableCollection<AnalyticInputVM>();
+            m_instance = null;
+
+            if (!(analytic is null))
+            {
+                m_name = analytic.Name;
+                m_typeName = analytic.TypeName;
+                m_assemblyName = analytic.AssemblyName;
+                m_connectionString = analytic.ConnectionString;
+                m_instance = (IAnalytic)Activator.CreateInstance(AnalyticTypes[AdapterTypeSelectedIndex].Type);
+            }
+
+            if (!(m_instance is null))
+            {
+                m_settings = new ObservableCollection<AdapterSettingParameterVM>(AdapterSettingParameterVM.GetSettingParameters(m_instance, m_connectionString));
+                m_settings.ToList().ForEach(s => s.PropertyChanged += SettingChange);
+                m_connectionString = AdapterSettingParameterVM.GetConnectionString(Settings.ToList(), m_instance);
+            }
+
+            if (!(m_model is null))
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                {
+                    List<AnalyticOutputSignal> savedOutputs = new TableOperations<AnalyticOutputSignal>(connection)
+                        .QueryRecordsWhere("AnalyticID = {0}", m_model.ID).OrderBy(o => o.OutputIndex).ToList();
+                    List<AnalyticInput> savedInputs = new TableOperations<AnalyticInput>(connection)
+                        .QueryRecordsWhere("AnalyticID = {0}", m_model.ID).OrderBy(o => o.InputIndex).ToList();
+
+                    List<AnalyticOutputVM> actualOutputs = new List<AnalyticOutputVM>();
+                    List<AnalyticInputVM> actualInputs= new List<AnalyticInputVM>();
+
+                    int processedIndex = 0;
+                    int currentOrder = -1;
+                    while (processedIndex < savedOutputs.Count)
+                    {
+                        currentOrder++;
+                        if (currentOrder == savedOutputs[processedIndex].OutputIndex)
+                        {
+                            actualOutputs.Add(new AnalyticOutputVM(this,savedOutputs[processedIndex]));
+                            processedIndex++;
+                        }
+                        else
+                            actualOutputs.Add(new AnalyticOutputVM(this));
+
+                        if (processedIndex < savedOutputs.Count && currentOrder > savedOutputs[processedIndex].OutputIndex)
+                            processedIndex++;
+                    }
+                    processedIndex = 0;
+                    currentOrder = -1;
+                    while (processedIndex < savedInputs.Count)
+                    {
+                       
+                        currentOrder++;
+                        if (currentOrder == savedInputs[processedIndex].InputIndex)
+                        {
+                            actualInputs.Add(new AnalyticInputVM(this, savedInputs[processedIndex]));
+                            processedIndex++;
+                        }
+                        else
+                            actualInputs.Add(new AnalyticInputVM(this));
+
+                        if (processedIndex < savedInputs.Count && currentOrder > savedInputs[processedIndex].InputIndex)
+                            processedIndex++;
+                    }
+
+                    m_outputs = new ObservableCollection<AnalyticOutputVM>(actualOutputs);
+                    m_inputs = new ObservableCollection<AnalyticInputVM>(actualInputs);
+                }
+
+            UpdateSignals();
+            DeleteAnalyticCommand = new RelayCommand(Removal, () => true);
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="TemplateInputDevice"/> VieModel
+        /// </summary>
+        /// <param name="analytic">The <see cref="Analytic"/> for this ViewModel </param>
+        /// <param name="section">The <see cref="SectionVM"/> associated with this <see cref="Analytic"/> </param>
+        public AnalyticVM(SectionVM section): this(null,section)
+        {
+            string name = "Analytic 1";
+            int i = 1;
+            while (section.Analytics.Where(d => d.Name == name && !d.Removed).Any())
+            {
+                i++;
+                name = "Analytic " + i.ToString();
+            }
+
+            m_name = name;
+            AdapterTypeSelectedIndex = 0;
+            m_instance = (IAnalytic)Activator.CreateInstance(AnalyticTypes[AdapterTypeSelectedIndex].Type);
+            m_connectionString = "";
+
+            if (m_instance is null)
+                m_settings = new ObservableCollection<AdapterSettingParameterVM>();
+            else
+            {
+                m_settings = new ObservableCollection<AdapterSettingParameterVM>(AdapterSettingParameterVM.GetSettingParameters(m_instance, m_connectionString));
+                m_settings.ToList().ForEach(s => s.PropertyChanged += SettingChange);
+                m_connectionString = AdapterSettingParameterVM.GetConnectionString(Settings.ToList(), m_instance);
+            }
+            UpdateSignals();
+            OnPropertyChanged(nameof(Name));
+            OnPropertyChanged(nameof(Settings));
+            OnPropertyChanged(nameof(Outputs));
+            OnPropertyChanged(nameof(Inputs));
         }
 
         #endregion
@@ -166,213 +279,158 @@ namespace Adapt.ViewModels
 
         private void OnAdapterTypeSelectedIndexChanged()
         {
+
             OnPropertyChanged(nameof(AdapterTypeSelectedIndex));
             OnPropertyChanged(nameof(TypeName));
 
-            if (AdapterTypeSelectedIndex >= 0 && AdapterTypeSelectedIndex < m_analyticTypes.Count)
+
+            if (AdapterTypeSelectedIndex >= 0 && AdapterTypeSelectedIndex < AnalyticTypes.Count)
             {
                 try
                 {
 
-                    IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
-                    m_settings = new ObservableCollection<AdapterSettingParameterVM>(AdapterSettingParameterVM.GetSettingParameters(Instance, m_analytic?.ConnectionString ?? ""));
-                    m_settings.ToList().ForEach(s => s.SettingChanged += OnSettingChanged);
-                    
-                    Outputs.ToList().ForEach(item => item.RemoveErrorMessages());
-                    Inputs.ToList().ForEach(item => item.RemoveErrorMessages());
-                    Outputs = new ObservableCollection<AnalyticOutputVM>(GetOutputs(Instance));
-                    Inputs = new ObservableCollection<AnalyticInputVM>(GetInputs(Instance));
+                    m_instance = (IAnalytic)Activator.CreateInstance(AnalyticTypes[AdapterTypeSelectedIndex].Type);
+                    m_settings = new ObservableCollection<AdapterSettingParameterVM>(AdapterSettingParameterVM.GetSettingParameters(m_instance, m_connectionString));
+                    m_settings.ToList().ForEach(s => s.PropertyChanged += SettingChange);
+                    UpdateSignals();
+
+
                 }
                 catch (Exception ex)
                 {
                     m_settings = new ObservableCollection<AdapterSettingParameterVM>();
-                    Outputs = new ObservableCollection<AnalyticOutputVM>();
-                    Inputs = new ObservableCollection<AnalyticInputVM>();
                 }
             }
-            else
-            {
-                Outputs = new ObservableCollection<AnalyticOutputVM>();
-                m_settings = new ObservableCollection<AdapterSettingParameterVM>();
-                Inputs = new ObservableCollection<AnalyticInputVM>();
-            }
+           
             OnPropertyChanged(nameof(Settings));
             OnPropertyChanged(nameof(Outputs));
-            m_changed = true;
-            OnPropertyChanged(nameof(Changed));
             OnPropertyChanged(nameof(Inputs));
         }
-
-        private IEnumerable<AnalyticOutputVM> GetOutputs(IAnalytic Instance)
-        {
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                TableOperations<AnalyticOutputSignal> tbl = new TableOperations<AnalyticOutputSignal>(connection);
-                return Instance.Outputs().Select((n, i) =>
-                {
-                    int ct = tbl.QueryRecordCountWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i);
-                    if (ct > 0)
-                        return new AnalyticOutputVM(this, tbl.QueryRecordWhere("AnalyticID = {0} AND OutputIndex = {1}", m_analytic.ID, i), n.Name);
-
-                    return new AnalyticOutputVM(this, new AnalyticOutputSignal()
-                    {
-                        AnalyticID = m_analytic.ID,
-                        DeviceID = SectionViewModel.TemplateViewModel.Devices.First().ID,
-                        Name = n.Name,
-                        OutputIndex = i
-                    }, n.Name);
-                }).ToList();
-            }
-        }
-
-        private IEnumerable<AnalyticInputVM> GetInputs(IAnalytic Instance)
-        {
-            List<AnalyticInputVM> inputs = Inputs.ToList();
-
-            return Instance.InputNames().Select((n, i) => {
-                if (inputs.FindIndex(item => item.Label == n) > -1)
-                    return inputs.Find(item => item.Label == n);
-                return new AnalyticInputVM(this, new AnalyticInput()
-                {
-                    AnalyticID = m_analytic.ID,
-                    InputIndex = i
-                }, n, i);
-                });
-        
-        }
-        private void OnSettingChanged(object sender, SettingChangedArg args)
-        {
-            m_changed = true;
-            OnPropertyChanged("Changed");
-        }
-
+ 
         /// <summary>
         /// Saves this Analytic and all associated inputs and outputs.
         /// </summary>
         public void Save()
         {
-            if (!Changed)
+
+            if (m_removed)
                 return;
 
-            bool removed = m_removed || SectionViewModel.Removed;
+            if (m_instance != null)
+                m_connectionString = AdapterSettingParameterVM.GetConnectionString(Settings.ToList(), m_instance);
 
-            if (removed)
+            if (m_model is null)
             {
-                Outputs.ToList().ForEach(o => o.Save());
-                Inputs.ToList().ForEach(i => i.Save());
-            }
-
-            if (!removed)
-            {
-                IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
-                m_analytic.ConnectionString = AdapterSettingParameterVM.GetConnectionString(m_settings.ToList(), Instance);
-            }
-
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                TableOperations<Analytic> analyticTbl = new TableOperations<Analytic>(connection);
-                if (m_analytic.ID < 0 && !removed)
+               
+                m_model = new Analytic()
                 {
-                    int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", SectionViewModel.TemplateViewModel.Name).Id;
-                    int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("[Order] = {0} AND TemplateId = {1}", SectionViewModel.Order, templateId).ID;
-                    analyticTbl.AddNewRecord(new Analytic()
-                    {
-                        Name = m_analytic.Name,
-                        AssemblyName = m_analytic.AssemblyName,
-                        ConnectionString = m_analytic.ConnectionString,
-                        TypeName = m_analytic.TypeName,
-                        SectionID = sectionId,
-                        TemplateID = templateId
-                    });
-                }
-                else if (removed)
-                    analyticTbl.DeleteRecord(m_analytic);
-                else
-                    analyticTbl.UpdateRecord(m_analytic);
+                    Name = m_name,            
+                    TemplateID = m_parent.TemplateVM.ID,
+                    SectionID = m_parent.ID ?? -1,
+                    TypeName = m_typeName,
+                    ConnectionString = m_connectionString,
+                    AssemblyName = m_assemblyName
+                 };
 
-                if (!removed)
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 {
-                    Outputs.ToList().ForEach(o => o.Save());
-                    Inputs.ToList().ForEach(i => i.Save());
+                    new TableOperations<Analytic>(connection).AddNewRecord(m_model);
+                    m_model.ID = connection.ExecuteScalar<int>("select seq from sqlite_sequence where name = {0}", "Analytic");
                 }
+
             }
+            else
+            {
+                m_model.Name = m_name;
+                m_model.TypeName = m_typeName;
+                m_model.AssemblyName = m_assemblyName;
+                m_model.ConnectionString = m_connectionString;
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    new TableOperations<Analytic>(connection).UpdateRecord(m_model);
+            }
+
+            foreach (AnalyticInputVM i in Inputs)
+                i.Save();
+            foreach (AnalyticOutputVM o in Outputs)
+                o.Save();
 
         }
 
         /// <summary>
-        /// Loads all Inputs associated with this <see cref="Analytic"/>.
+        /// Delete any unused models form the Database.
         /// </summary>
-        public void LoadInputs()
-        {
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                try
-                {
-                    IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
+        public void Delete()
+        { 
+            
+            foreach (AnalyticInputVM i in Inputs)
+                i.Delete();
+            foreach (AnalyticOutputVM o in Outputs)
+                o.Delete();
 
-                    List<AnalyticInput> savedInputs = new TableOperations<AnalyticInput>(connection).QueryRecordsWhere("AnalyticID = {0}", m_analytic.ID).ToList();
-                    Inputs.ToList().ForEach(item => item.RemoveErrorMessages());
-                    Inputs = new ObservableCollection<AnalyticInputVM>(Instance.InputNames().Select((n, i) =>
-                   {
-                       if (savedInputs.FindIndex(item => item.InputIndex == i) > -1)
-                           return new AnalyticInputVM(this, savedInputs.Find(item => item.InputIndex == i), n, i);
-                       return new AnalyticInputVM(this, new AnalyticInput()
-                       {
-                           AnalyticID = m_analytic.ID,
-                           InputIndex = i
-                       }, n, i);
-                   }));
-                }
-                catch
-                {
-                    Inputs = new ObservableCollection<AnalyticInputVM>();
-                }                
-            }
-            OnPropertyChanged(nameof(Inputs));
+            if (!m_removed && !m_parent.Removed)
+                return;
+
+            if (m_model is null)
+                return;
+
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                new TableOperations<Analytic>(connection).DeleteRecord(m_model.ID);
         }
 
         /// <summary>
-        /// Loads all Outputs associated with this <see cref="Analytic"/>
+        /// Loads all Signals associated with this <see cref="Analytic"/>.
         /// </summary>
-        public void LoadOutputs()
+        private void UpdateSignals()
         {
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                try
-                {
-                    IAnalytic Instance = (IAnalytic)Activator.CreateInstance(m_analyticTypes[AdapterTypeSelectedIndex].Type);
+            if (m_instance == null)
+                return;
 
-                    List<AnalyticOutputSignal> savedOutputs = new TableOperations<AnalyticOutputSignal>(connection).QueryRecordsWhere("AnalyticID = {0}", m_analytic.ID).ToList();
-                    Outputs.ToList().ForEach(item => item.RemoveErrorMessages());
-                    Outputs = new ObservableCollection<AnalyticOutputVM>(Instance.Outputs().Select((n, i) =>
-                    {
-                        if (savedOutputs.FindIndex(item => item.OutputIndex == i) > -1)
-                            return new AnalyticOutputVM(this, savedOutputs.Find(item => item.OutputIndex == i), n.Name);
-                        return new AnalyticOutputVM(this, new AnalyticOutputSignal()
-                        {
-                            AnalyticID = m_analytic.ID,
-                            OutputIndex = i,
-                            Name = n.Name,
-                            DeviceID = SectionViewModel.TemplateViewModel.Devices.FirstOrDefault()?.ID ?? 0
-                        }, n.Name);
-                    }));
-                }
-                catch
-                {
-                    Outputs = new ObservableCollection<AnalyticOutputVM>();
-                }
+            int i = 0;
+            foreach (AnalyticOutputVM o in m_outputs)
+            {
+                o.AnalyticTypeUpdate(m_instance, i);
+                i++;
             }
+
+            while (m_outputs.Count() < m_instance.Outputs().Count())
+            {
+                AnalyticOutputVM o = new AnalyticOutputVM(this);
+                o.AnalyticTypeUpdate(m_instance, i);
+                i++;
+                m_outputs.Add(o);
+            }
+
+            i = 0;
+            foreach (AnalyticInputVM inp in m_inputs)
+            {
+                inp.AnalyticTypeUpdate(m_instance, i);
+                i++;
+            }
+
+            while (m_inputs.Count() < m_instance.InputNames().Count())
+            {
+                AnalyticInputVM inp = new AnalyticInputVM(this);
+                inp.AnalyticTypeUpdate(m_instance, i);
+                i++;
+                m_inputs.Add(inp);
+            }
+
             OnPropertyChanged(nameof(Outputs));
+            OnPropertyChanged(nameof(Inputs));
         }
 
         /// <summary>
         /// Removes this <see cref="Analytic"/>
         /// </summary>
-        private void Delete()
+        public void Removal()
         {
             m_removed = true;
+            foreach (AnalyticInputVM i in Inputs)
+                i.Removal();
+            foreach (AnalyticOutputVM o in Outputs)
+                o.Removal();
+
             OnPropertyChanged(nameof(Removed));
-            OnPropertyChanged(nameof(Changed));
         }
 
         /// <summary>
@@ -384,35 +442,78 @@ namespace Adapt.ViewModels
         {
             AnalyticSectionAttribute[] analytic = (AnalyticSectionAttribute[])typeDescription.Type.GetCustomAttributes(typeof(AnalyticSectionAttribute), false);
             AnalyticSection[] m = analytic.SelectMany(item => item.Sections).ToArray();
-            return m.Contains(SectionViewModel.AnalyticSection);
+            return m.Contains(m_parent.AnalyticSection);
         }
 
-        private void ValidateBeforeSave(object sender, CancelEventArgs args)
+        /// <summary>
+        /// Determines Whether the Device has Changed
+        /// </summary>
+        /// <returns></returns>
+        public bool HasChanged()
         {
-            if (SectionViewModel.Removed || Removed)
-                return;
+            if (m_model == null)
+                return !m_removed;
 
-            if (AdapterTypeSelectedIndex < 0 || AdapterTypeSelectedIndex >= m_analyticTypes.Count)
-            {
-                SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {Name} does not have a valid Type");
-                args.Cancel = true;
-            }
+            bool changed = m_model.Name != m_name;
+            changed = changed || m_model.TypeName != m_typeName;
+            changed = changed || m_model.AssemblyName != m_assemblyName;
+            
+            changed = changed || (m_model.ConnectionString != m_connectionString);
+            changed = changed || m_outputs.Any(o => o.HasChanged());
+            changed = changed || m_inputs.Any(o => o.HasChanged());
 
-            if (SectionViewModel.Analytics.Any(p => p.Name == Name && p.ID != ID)) 
-            {
-                SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic: {Name} does not have a valid Name");
-                args.Cancel = true;
-            }
+            return changed;
 
-            List<string> settingErrors = m_settings.Where(s => s.IsInvalid).Select(s => $"Analytic {Name} {s.Label} setting is not valid.").ToList();
-
-            if (settingErrors.Count > 0)
-                args.Cancel = true;
-            settingErrors.ForEach(e => SectionViewModel.TemplateViewModel.AddSaveErrorMessage(e));
         }
+
+        /// <summary>
+        /// Lists any Issues preventing this Analytic from being Saved
+        /// </summary>
+        /// <returns></returns>
+        public List<string> Validate()
+        {
+            List<string> issues = new List<string>();
+
+            if (m_removed)
+                return issues;
+
+            if (string.IsNullOrEmpty(m_name))
+                issues.Add($"A name is required for every Analytic.");
+
+            int nDev = m_parent.Analytics.Where(item => item.Name == m_name).Count();
+            if (nDev > 1)
+                issues.Add($"An analytic with name {m_name} already exists.");
+
+            if (m_instance is null)
+                issues.Add($"Unable to generate Analytic of type {m_typeName}");
+
+            issues.AddRange(m_settings.Where(s => s.IsInvalid).Select(s => $"{m_name} Setting {s.Name} is invalid."));
+            issues.AddRange(m_outputs.SelectMany(o => o.Validate()));
+            issues.AddRange(m_inputs.SelectMany(o => o.Validate()));
+            return issues;
+        }
+
+        /// <summary>
+        /// Indicates whether the Analytic can be saved.
+        /// </summary>
+        /// <returns> <see cref="true"/> If the Analytic can be saved</returns>
+        public bool isValid() => Validate().Count() == 0;
+
+        private void SettingChange(object sender, PropertyChangedEventArgs args)
+        {
+            AdapterSettingParameterVM setting = (AdapterSettingParameterVM)sender;
+            if (args.PropertyName == nameof(setting.Value))
+            {
+                if (m_instance != null)
+                    m_connectionString = AdapterSettingParameterVM.GetConnectionString(Settings.ToList(), m_instance);
+            }
+        }
+
         #endregion
 
         #region [ Static ]
+
+        private static List<TypeDescription> m_analyticTypes = TypeDescription.LoadDataSourceTypes(FilePath.GetAbsolutePath("").EnsureEnd(Path.DirectorySeparatorChar), typeof(IAnalytic));  
 
         private static readonly string ConnectionString = $"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{Path.DirectorySeparatorChar}Adapt{Path.DirectorySeparatorChar}DataBase.db; Version=3; Foreign Keys=True; FailIfMissing=True";
         private static readonly string DataProviderString = "AssemblyName={System.Data.SQLite, Version=1.0.109.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139}; ConnectionType=System.Data.SQLite.SQLiteConnection; AdapterType=System.Data.SQLite.SQLiteDataAdapter";

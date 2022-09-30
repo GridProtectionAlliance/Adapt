@@ -39,40 +39,49 @@ using System.Windows.Input;
 
 namespace Adapt.ViewModels
 {
+
     /// <summary>
     /// ViewModel for an <see cref="AnalyticInput"/>
     /// </summary>
-    public class AnalyticInputVM: ViewModelBase
+    public class AnalyticInputVM : ViewModelBase
     {
         #region [ Members ]
 
-        private bool m_changed;
-        private AnalyticVM m_analyticVM;
-        private AnalyticInput m_signal;
+        private bool m_removed;
+        private AnalyticVM m_analytic;
+        private AnalyticInput m_model;
+        private ISignalVM m_signal;
+        private TemplateVM m_template;
 
-        private string m_name;
+        private string m_label; // This is coming from the Analytic
         private int m_inputIndex;
+
+        private bool m_isInputSignal;
+        private int? m_SignalID;
+
+        private SelectSignalWindow m_selectWindow;
+
         #endregion
 
         #region[ Properties ]
 
-        public string Label { get; }
-        public string Name { 
-            get => m_name;
-            set
-            {
-                m_name = value;
-                OnPropertyChanged();
-                     
-            }
-        }
+        /// <summary>
+        /// The Label determined by the <see cref="IAnalytic"/>
+        /// </summary>
+        public string Label => m_label;
+
+        public string Name => m_signal?.Name ?? "No Signal Selected";
+
+        /// <summary>
+        /// A Flag Indicating whether the Signal has been removed
+        /// </summary>
+        public bool Removed => m_removed;
 
         /// <summary>
         /// Flag indicating whether a <see cref="AnalyticInput"/> has been assigned.
         /// </summary>
         public bool Assigned { get; private set; }
-        public bool Changed => m_changed;
-       
+
         /// <summary>
         /// The <see cref="ICommand"/> associated with the Change Signal Button.
         /// </summary>
@@ -83,250 +92,210 @@ namespace Adapt.ViewModels
         /// <summary>
         /// Creates a new <see cref="AnalyticInput"/> ViewModel.
         /// </summary>
-        /// <param name="analyticViewModel"> The <see cref="AnalyticVM"/> associated with this Input</param>
+        /// <param name="analytic"> The <see cref="AnalyticVM"/> associated with this Input</param>
         /// <param name="analyticInputSignal">The <see cref="AnalyticOutputSignal"/> for this ViewModel </param>
-        /// <param name="label">The Label used for this Output based on the Analytic. </param>
-        /// <param name="index"> The index of this Input for the specific Analytic.</param>
-        public AnalyticInputVM(AnalyticVM analyticViewModel, AnalyticInput analyticInputSignal, string label, int index)
+        public AnalyticInputVM(AnalyticVM analytic, AnalyticInput analyticInputSignal)
         {
-            Label = label;
-            m_changed = false;
-            Assigned = true;
-            m_inputIndex = index;
-            m_analyticVM = analyticViewModel;
 
-            if (analyticInputSignal == null || analyticInputSignal.SignalID == 0)
+            m_removed = false;
+            m_analytic = analytic;
+            m_model = analyticInputSignal;
+
+            m_signal = null;
+            m_isInputSignal = true;
+
+            m_template = analytic.TemplateVM;
+
+            m_label = "";
+
+            if (!(m_model is null))
             {
-                m_name = "Not Assigned";
-                Assigned = false;
+                m_inputIndex = m_model.InputIndex;
+                m_isInputSignal = m_model.IsInputSignal;
+                m_SignalID = m_model.SignalID;
             }
-            else
-                GetSignalName(analyticInputSignal);
 
-            m_signal = analyticInputSignal;
+            if (!(m_SignalID is null))
+            {
+                if (m_isInputSignal)
+                    m_signal = m_template.Devices.SelectMany(d => d.Signals).Where(s => s.ID == m_SignalID).FirstOrDefault();
+                else
+                    m_signal = m_template.Devices.SelectMany(d => d.AnalyticSignals).Where(s => s.ID == m_SignalID).FirstOrDefault();
+
+                if (m_signal is null)
+                    m_signal = m_template.Devices.SelectMany(d => d.Signals).Where(s => !s.Removed).FirstOrDefault();
+
+                m_SignalID = m_signal?.ID;
+                if (!(m_signal is null))
+                    m_signal.PropertyChanged += (object s, PropertyChangedEventArgs args) =>
+                    {
+                        if (args.PropertyName == nameof(m_signal.Name))
+                            OnPropertyChanged(nameof(Name));
+                    };
+                //m_device.PropertyChanged += DeviceChanged;
+            }
 
             ChangeSignal = new RelayCommand(SelectSignal, () => true);
+            m_analytic.SectionVM.PropertyChanged += SectionChanged;
+        }
 
-            analyticViewModel.SectionViewModel.TemplateViewModel.BeforeSave += ValidateBeforeSave;
+        /// <summary>
+        /// Creates a new <see cref="AnalyticInput"/> ViewModel.
+        /// </summary>
+        /// <param name="analytic"> The <see cref="AnalyticVM"/> associated with this Input</param>
+        public AnalyticInputVM(AnalyticVM analytic) : this(analytic, null)
+        {
+
         }
 
         #endregion
 
         #region [ Methods ]
-        
+
         /// <summary>
         /// Opens the Dialog to select a new Signal for this input
         /// </summary>
         private void SelectSignal()
         {
-            if (m_analyticVM.SectionViewModel.TemplateViewModel.Devices.Count() == 0)
-            {
-                Popup("There are no Devices Available. please add at least 1 Device", "No Devices Available", System.Windows.MessageBoxImage.Error);
-                return;
-            }
-            if (m_analyticVM.SectionViewModel.TemplateViewModel.Devices.Sum(d => d.NSignals) == 0)
-            {
-                Popup("There are no Signals Available. please add at least 1 Signal", "No Signals Available", System.Windows.MessageBoxImage.Error);
-                return;
-            }
+            m_selectWindow = new SelectSignalWindow();
+            SelectSignalVM viewModel = new SelectSignalVM(m_template, SelectSignalCVallback, (s) => s.IsInput || s.SectionOrder < m_analytic.SectionVM.Order);
+            m_selectWindow.DataContext = viewModel;
 
-            SelectSignalWindow window = new SelectSignalWindow();
-            SelectSignalVM viewModel = new SelectSignalVM(m_analyticVM.SectionViewModel.TemplateViewModel, UpdateSignal,m_analyticVM.SectionViewModel.Order);
-            window.DataContext = viewModel;
-            window.Show();
+            m_selectWindow.ShowDialog();
         }
 
-        /// <summary>
-        /// Updates the Selected Signal
-        /// </summary>
-        /// <param name="selectedSignal"> The new Signal selected. </param>
-        private void UpdateSignal(AnalyticInput selectedSignal)
+        public void SelectSignalCVallback(ISignalVM signalVM)
         {
-            Assigned = true;
-           
-            selectedSignal.AnalyticID = m_analyticVM.ID;
-            selectedSignal.InputIndex = m_inputIndex;
+            m_signal = signalVM;
+            m_SignalID = m_signal?.ID;
+            m_isInputSignal = m_signal?.IsInput ?? true;
 
-            GetSignalName(selectedSignal);
-            m_signal = selectedSignal;
-            
-            m_changed = true;
-            OnPropertyChanged(nameof(Changed));
-            OnPropertyChanged(nameof(Assigned));
-
-        }
-
-        /// <summary>
-        /// Update Name Property with correct SignalName
-        /// </summary>
-        /// <param name="signal">The <see cref="AnalyticInput"/> with the correct signalID</param>
-        private void GetSignalName(AnalyticInput signal)
-        {
-            if (m_signal != null)
-            {
-                if (m_signal.IsInputSignal)
+            if (!(m_signal is null))
+                m_signal.PropertyChanged += (object s, PropertyChangedEventArgs args) =>
                 {
-                    InputSignalVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.SelectMany(d => d.Signals).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
-                    signalVM.PropertyChanged -= SignalNameChanged;
-                }
-                else
-                {
-                    AnalyticOutputVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Sections
-                        .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
-                    if (signalVM != null)
-                        signalVM.PropertyChanged -= SignalNameChanged;
-                }
-            }
-
-            if (signal.IsInputSignal)
-            {
-                InputSignalVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.SelectMany(d => d.Signals).Where(s => s.ID == signal.SignalID).FirstOrDefault();
-                m_name = signalVM?.Name ?? "";
-                signalVM.PropertyChanged += SignalNameChanged;
-            }
-            else
-            {
-                AnalyticOutputVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Sections
-                    .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == signal.SignalID).FirstOrDefault();
-                if (signalVM == null)
-
-                    m_name = "";
-                else
-                {
-                    signalVM.PropertyChanged += SignalNameChanged;
-                    m_name = signalVM?.Name ?? "";
-                }
-            }
+                    if (args.PropertyName == nameof(m_signal.Name))
+                        OnPropertyChanged(nameof(Name));
+                };
 
             OnPropertyChanged(nameof(Name));
+            m_selectWindow.Close();
         }
-
-        /// <summary>
-        /// Function to update Name if the Signal Name changes.
-        /// </summary>
-        private void SignalNameChanged(object sender, PropertyChangedEventArgs args)
-        {
-            if (args.PropertyName == "Name" && m_signal != null)
-            {
-                if (m_signal.IsInputSignal)
-                {
-                    InputSignalVM signalVM = (InputSignalVM)sender;
-                    m_name = signalVM?.Name ?? "";
-                }
-                else
-                {
-                    AnalyticOutputVM signalVM = (AnalyticOutputVM)sender;
-                    m_name = signalVM?.Name ?? "";
-                }
-                OnPropertyChanged(nameof(Name));
-            }
-            if (args.PropertyName == "Removed" && m_signal != null)
-            {
-                if (m_signal.IsInputSignal)
-                {
-                    InputSignalVM signalVM = (InputSignalVM)sender;
-                    if (signalVM.Removed)
-                    {
-                        m_name = "";
-                        Assigned = false;
-                    }
-                }
-                else
-                {
-                    AnalyticOutputVM signalVM = (AnalyticOutputVM)sender;
-                    if (signalVM.AnalyticVM.Removed)
-                    {
-                        m_name = "";
-                        Assigned = false;
-                    }
-                }
-
-                OnPropertyChanged(nameof(Name));
-                OnPropertyChanged(nameof(Assigned));
-            }    
-            
-        }
-
         /// <summary>
         /// Saves the <see cref="AnalyticInput"/> to the DataBase.
         /// </summary>
         public void Save()
         {
 
-            bool removed = m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed;
-            if (!Changed && !removed)
+            if (m_removed)
+                return;
+
+            if (m_model is null)
+            {
+
+                m_model = new AnalyticInput()
+                {
+                    AnalyticID = m_analytic.ID ?? -1,
+                    InputIndex = m_inputIndex,
+                    IsInputSignal = m_isInputSignal,
+                    SignalID = m_signal?.ID ?? -1
+                };
+
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                {
+                    new TableOperations<AnalyticInput>(connection).AddNewRecord(m_model);
+                    m_model.ID = connection.ExecuteScalar<int>("select seq from sqlite_sequence where name = {0}", "AnalyticInput");
+                }
+
+            }
+            else
+            {
+                m_model.InputIndex = m_inputIndex;
+                m_model.IsInputSignal = m_isInputSignal;
+                m_model.SignalID = m_signal?.ID ?? -1;
+ 
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    new TableOperations<AnalyticInput>(connection).UpdateRecord(m_model);
+            }
+        }
+
+        /// <summary>
+        /// Delete any unused models form the Database.
+        /// </summary>
+        public void Delete()
+        {
+            if (!m_removed && !m_analytic.Removed)
+                return;
+
+            if (m_model is null)
                 return;
 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", m_analyticVM.SectionViewModel.TemplateViewModel.Name).Id;
-                int sectionId = new TableOperations<TemplateSection>(connection).QueryRecordWhere("[Order] = {0} AND TemplateId = {1}", m_analyticVM.SectionViewModel.Order, templateId).ID;
-                int analyticID = new TableOperations<Analytic>(connection).QueryRecordWhere("Name = {0} AND TemplateID = {1} AND SectionID = {2}", m_analyticVM.Name, templateId, sectionId).ID;
-                int signalID = m_signal.ID;
-
-                if (m_signal.IsInputSignal)
-                {
-                    InputSignalVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.SelectMany(d => d.Signals).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
-                    signalID = signalVM.SignalID;
-                }
-                else
-                {
-                    AnalyticOutputVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Sections
-                        .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
-                    signalID = signalVM.SignalID;
-                }
-
-                
-                TableOperations<AnalyticInput> tbl = new TableOperations<AnalyticInput>(connection);
-                tbl.DeleteRecordWhere("AnalyticID = {0} AND InputIndex = {1}", analyticID,m_signal.InputIndex);
-                m_signal.AnalyticID = analyticID;
-                m_signal.SignalID = signalID;
-
-                if (!removed)
-                    tbl.AddNewRecord(m_signal);
-
-            }
+                new TableOperations<AnalyticInput>(connection).DeleteRecord(m_model.ID);
         }
 
-        private void ValidateBeforeSave(object sender, CancelEventArgs args)
+        public void AnalyticTypeUpdate(IAnalytic instance, int index)
         {
-            if (m_analyticVM.Removed || m_analyticVM.SectionViewModel.Removed)
+            if (instance.InputNames().Count() <= index)
+            {
+                m_removed = true;
+                OnPropertyChanged(nameof(Removed));
                 return;
-
-
-            if (!Assigned)
-            {
-                m_analyticVM.SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {m_analyticVM.Name} Input for {Label} needs to be assigned to a signal.");
-                args.Cancel = true;
             }
-
-            if (Assigned)
-            {
-                if (m_signal.IsInputSignal)
-                {
-                    InputSignalVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Devices.SelectMany(d => d.Signals).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
-                    if (signalVM.Removed)
-                    {
-                        m_analyticVM.SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {m_analyticVM.Name} Input for {Label} needs to be assigned to a signal.");
-                        args.Cancel = true;
-                    }
-                }
-                else
-                {
-                    AnalyticOutputVM signalVM = m_analyticVM.SectionViewModel.TemplateViewModel.Sections
-                        .SelectMany(s => s.Analytics).SelectMany(a => a.Outputs).Where(s => s.ID == m_signal.SignalID).FirstOrDefault();
-                    if (signalVM.AnalyticVM.Removed)
-                    {
-                        m_analyticVM.SectionViewModel.TemplateViewModel.AddSaveErrorMessage($"Analytic {m_analyticVM.Name} Input for {Label} needs to be assigned to a signal.");
-                        args.Cancel = true;
-                    }
-                }
-            }
+            m_inputIndex = index;
+            m_removed = false;
+            m_label = instance.InputNames().ElementAt(index);
+            OnPropertyChanged(nameof(Removed));
+            OnPropertyChanged(nameof(Label));
         }
 
-        public void RemoveErrorMessages()
+        private void SectionChanged(object sender, PropertyChangedEventArgs arg)
         {
-            m_analyticVM.SectionViewModel.TemplateViewModel.BeforeSave -= ValidateBeforeSave;
+            if (arg.PropertyName == nameof(m_analytic.SectionVM.Order) && m_analytic.SectionVM.Order >= (m_signal?.SectionOrder ?? 0))
+            {
+                m_signal = null;
+                m_SignalID = null;
+                OnPropertyChanged(Name);
+            }
+        }
+        /// <summary>
+        /// Determines Whether the Device has Changed
+        /// </summary>
+        /// <returns></returns>
+        public bool HasChanged()
+        {
+            if (m_model == null)
+                return !m_removed;
+
+            bool changed = (m_SignalID is null);
+            changed = changed || (m_SignalID != m_model.SignalID) || m_isInputSignal != m_model.IsInputSignal;
+
+            return changed;
+        }
+
+        /// <summary>
+        /// Lists any Issues preventing this Analytic from being Saved
+        /// </summary>
+        /// <returns></returns>
+        public List<string> Validate()
+        {
+            List<string> issues = new List<string>();
+
+            if (m_removed)
+                return issues;
+
+            if (m_signal is null)
+                issues.Add($"A valid Signal needs to be selected for {Label}");
+
+            return issues;
+        }
+
+        /// <summary>
+        /// Removes this <see cref="AnalyticInput"/>
+        /// </summary>
+        public void Removal()
+        {
+            m_removed = true;
+            OnPropertyChanged(nameof(Removed));
         }
 
         #endregion

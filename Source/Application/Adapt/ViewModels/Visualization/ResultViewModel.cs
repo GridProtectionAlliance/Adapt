@@ -248,6 +248,15 @@ namespace Adapt.ViewModels
             return result;
         }
 
+        private TaskRouter GenerateTaskRouter(TaskVM viewModel)
+        {
+            DataSource ds = viewModel.DataSources[viewModel.SelectedDataSourceIndex];
+            DateTime start = viewModel.TimeSelectionViewModel.Start;
+            DateTime end = viewModel.TimeSelectionViewModel.End;
+            return null;
+            //return new TaskRouter(ds, start, end);
+
+        }
 
         #endregion
 

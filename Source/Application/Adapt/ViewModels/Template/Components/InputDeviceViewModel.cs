@@ -43,32 +43,32 @@ namespace Adapt.ViewModels
     {
         #region [ Members ]
 
-        private TemplateInputDevice m_device;
-        private bool m_removed;
-        private bool m_changed;
-        private bool m_outputFlag;
+        private TemplateInputDevice m_model;
 
-        private TemplateVM m_templateViewModel;
+        private bool m_removed;
+
+        private bool m_isInput;
+        private string m_name;
+        private string m_outputName;
+
+
+        private TemplateVM m_parentVM;
 
         #endregion
 
         #region[ Properties ]
-        /// <summary>
-        /// The unique ID for the <see cref="TemplateInputDevice"/>
-        /// </summary>
-        public int ID => m_device.ID;
+
+        public bool Removed => m_removed;
 
         /// <summary>
         /// The Name of the Device.
         /// </summary>
         public string Name
         {
-            get => m_device.Name;
+            get => m_name ?? m_model?.Name ?? "";
             set
             {
-                m_device.Name = value;
-                m_changed = true;
-                OnPropertyChanged(nameof(Changed));
+                m_name = value;
                 OnPropertyChanged();
             }
         }
@@ -78,62 +78,39 @@ namespace Adapt.ViewModels
         /// </summary>
         public string OutputName
         {
-            get => m_device.OutputName;
+            get => m_outputName ?? m_model?.OutputName ?? "";
             set
             {
-                m_device.OutputName = value;
-                m_changed = true;
-                OnPropertyChanged(nameof(Changed));
+                m_outputName = value;
                 OnPropertyChanged();
             }
         }
 
         /// <summary>
-        /// A Flag indicating if this Device was selected as an Output
+        /// The number of Input Signals associated with this Device
         /// </summary>
-        public bool SelectedOutput 
-        { 
-            get => m_outputFlag;
-            set
-            {
-                m_changed = true;
-                m_outputFlag = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(Changed));
-            } 
-        }
+        public int NInputSignals => Signals.Count(i => !i.Removed);
 
+      
         /// <summary>
-        /// The number of Signals associated with this Device
+        /// The number of Analytic Output Signals associated with this Device
         /// </summary>
-        public int NSignals => Signals.Count(i => !i.Removed);
-
-        /// <summary>
-        /// A Flag indicating if this device has been Removed by the User
-        /// </summary>
-        public bool Removed => m_removed;
-
+        public int NAnalyticSignals => AnalyticSignals.Count(i => !i.Removed);
 
         /// <summary>
         /// A Flag indicating if this device is visible in the Input List
         /// </summary>
-        public bool VisibleInput => !m_removed && m_device.IsInput;
-
-        /// <summary>
-        /// A Flag indicating if this device is visible in the Input List
-        /// </summary>
-        public bool VisibleOutput => !m_removed;
-
-        /// <summary>
-        /// A Flag indicating whether this Device or any of the associated signals have changed.
-        /// This is also true if the Device was Removed.
-        /// </summary>
-        public bool Changed => m_changed || m_removed || Signals.Where(item => item.Changed).Any();
+        public bool VisibleInput => !m_removed;
 
         /// <summary>
         /// ViewModels for all <see cref="TemplateInputSignal"/> associated with this <see cref="TemplateInputDevice"/>
         /// </summary>
         public ObservableCollection<InputSignalVM> Signals { get; private set; }
+
+        /// <summary>
+        /// ViewModels for all <see cref="AnalyticOutputVM"/> associated with this <see cref="TemplateInputDevice"/>
+        /// </summary>
+        public ObservableCollection<AnalyticOutputVM> AnalyticSignals { get; private set; }
 
         /// <summary>
         /// <see cref="ICommand"/> associated with the remove Button if applicable.
@@ -147,10 +124,18 @@ namespace Adapt.ViewModels
         public ICommand AddSignal { get; }
 
         /// <summary>
-        /// The Template View Model
+        /// The ID of the associated Model.
+        /// Note that this will be <see cref="Nullable"/> and is NULL if it's a new Model
         /// </summary>
-        public TemplateVM TemplateViewModel => m_templateViewModel;
-      
+        public int? ID => m_model?.ID ?? null;
+
+        public TemplateVM TemplateVM => m_parentVM;
+
+        /// <summary>
+        /// Required for WPF Property Change Notifications. This comes from <see cref="ViewModelBase"/>
+        /// </summary>
+        public event PropertyChangedEventHandler SignalPropertyChanged;
+
         #endregion
 
         #region [ Constructor ]
@@ -161,13 +146,42 @@ namespace Adapt.ViewModels
         /// <param name="device"> The <see cref="TemplateInputDevice"/> associated with this ViewModel</param>
         public InputDeviceVM(TemplateVM templateViewModel, TemplateInputDevice device)
         {
-            m_device = device;
+            m_model = device;
             Signals = new ObservableCollection<InputSignalVM>();
+            AnalyticSignals = new ObservableCollection<AnalyticOutputVM>();
             m_removed = false;
-            Remove = new RelayCommand(Delete, () => true);
+            Remove = new RelayCommand(Removal, () => m_parentVM.Devices.Where(d => !d.Removed).Count() > 1);
             AddSignal = new RelayCommand(AddNewSignal, () => true);
-            m_changed = !(device.ID > 0);
-            m_templateViewModel = templateViewModel;
+            m_parentVM = templateViewModel;
+
+            LoadSignals();
+
+            if (templateViewModel.Devices.Sum(d => d.NInputSignals) == 0)
+                AddNewSignal();
+
+            m_isInput = m_model?.IsInput ?? true;
+            m_name = m_model?.Name ?? "PMU 1";
+            m_outputName = m_model?.OutputName ?? m_name;
+        }
+        public InputDeviceVM(TemplateVM templateViewModel): this(templateViewModel, null)
+        {
+            string name = "PMU 1";
+            int i = 1;
+            while (templateViewModel.Devices.Where(d => !d.Removed && d.Name == name).Any())
+            {
+                i++;
+                name = "PMU " + i.ToString();
+            }
+
+            m_name = name;
+            m_outputName = name;
+
+            if (templateViewModel.Devices.Sum(d => d.NInputSignals) == 0)
+                AddNewSignal();
+
+            OnPropertyChanged(nameof(Name));
+            OnPropertyChanged(nameof(OutputName));
+
         }
 
         #endregion
@@ -175,152 +189,169 @@ namespace Adapt.ViewModels
         #region [ Methods ]
 
         public void Save()
-        {           
-            if (m_removed)
-                Signals.ToList().ForEach(s => s.Save());
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", m_templateViewModel.Name).Id;
-                m_device.TemplateID = templateId;
-                if (m_removed)
-                        new TableOperations<TemplateInputDevice>(connection).DeleteRecord(m_device);
-                else
-                {
-                    if (m_device.ID < 0)
-                        new TableOperations<TemplateInputDevice>(connection).AddNewRecord(m_device);
-                    else
-                        new TableOperations<TemplateInputDevice>(connection).UpdateRecord(m_device);
-                }
-                       
-            }
-            if (!m_removed)
-                Signals.ToList().ForEach(s => s.Save());
-
-
-        }
-
-        public void SaveOutputs()
         {
-            List<AnalyticOutputVM> analyticOutputs = m_templateViewModel.Sections.Where(item => !item.Removed)
-                .SelectMany(item => item.Analytics.Where(item => !item.Removed)
-                .SelectMany(a => a.Outputs)).Where(item => item.DeviceID == ID).ToList();
 
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+            if (m_removed)
+                return;
+
+            if (m_model is null)
             {
-                foreach (AnalyticOutputVM analyticSignal in analyticOutputs)
+                m_model = new TemplateInputDevice()
                 {
-                    if (m_removed || !SelectedOutput )
-                        continue;
+                    IsInput = m_isInput,
+                    Name = m_name,
+                    OutputName = m_outputName,
+                    TemplateID = m_parentVM.ID
+                };
 
-                    int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", TemplateViewModel.Name).Id;
-                    int deviceID = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND templateID = {1}", Name, templateId).ID;
-                    string signalName = analyticSignal.Name;
-
-                    int signalID = new TableOperations<AnalyticOutputSignal>(connection).QueryRecordWhere("Name = {0} AND DeviceID = {1}", signalName, deviceID)?.ID ?? -1;
-
-                        new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
-                        {
-                            IsInputSignal = false,
-                            SignalID = signalID,
-                            Name = analyticSignal.Name,
-                            Phase = (int)Phase.NONE,
-                            Type = (int)MeasurementType.Other,
-                            TemplateID = m_templateViewModel.ID
-                        });
-                }
-
-                foreach (InputSignalVM inputSignal in Signals)
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 {
-
-                    if (m_removed || !SelectedOutput)
-                        continue;
-                        
-                    int templateId = new TableOperations<Template>(connection).QueryRecordWhere("Name = {0}", TemplateViewModel.Name).Id;
-                    int deviceID = new TableOperations<TemplateInputDevice>(connection).QueryRecordWhere("Name = {0} AND templateID = {1}", Name, templateId).ID;
-                    string signalName = inputSignal.Name;
-
-                    int signalID = new TableOperations<TemplateInputSignal>(connection).QueryRecordWhere("Name = {0} AND DeviceID = {1}", signalName, deviceID)?.ID ?? -1;
-
-                    new TableOperations<TemplateOutputSignal>(connection).AddNewRecord(new TemplateOutputSignal()
-                        {
-                            IsInputSignal = true,
-                            SignalID = signalID,
-                            Name = inputSignal.Name,
-                            Phase = (int)Phase.NONE,
-                            Type = (int)MeasurementType.Other,
-                            TemplateID = m_templateViewModel.ID
-                        });
+                    new TableOperations<TemplateInputDevice>(connection).AddNewRecord(m_model);
+                    m_model.ID = connection.ExecuteScalar<int>("select seq from sqlite_sequence where name = {0}", "TemplateInputDevice");
                 }
 
             }
-            
+            else
+            {
+                //IsInput is depreciated. It is still in the Database, but not used anywhere
+                m_model.IsInput = true;
+                m_model.Name = m_name;
+                m_model.OutputName = m_outputName;
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    new TableOperations<TemplateInputDevice>(connection).UpdateRecord(m_model);
+            }
+
+            foreach (InputSignalVM signal in Signals)
+                signal.Save();
         }
+
+        // <summary>
+        /// Delete any unused models form the Database.
+        /// </summary>
         public void Delete()
         {
+
+            foreach (InputSignalVM signal in Signals)
+                signal.Delete();
+
+            if (!m_removed && !m_parentVM.Removed)
+                return;
+
+            if (m_model is null)
+                return;
+
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                new TableOperations<TemplateInputDevice>(connection).DeleteRecord(m_model.ID);
+        }
+
+        public void Removal()
+        {
             m_removed = true;
-            Signals.ToList().ForEach(item => item.Delete());
+            foreach (InputSignalVM s in Signals)
+                s.Removal();
+
             OnPropertyChanged(nameof(Removed));
-            OnPropertyChanged(nameof(Changed));
+        }
+
+        public void RegisterAnalyticOutput(AnalyticOutputVM output)
+        {
+            output.PropertyChanged += SignalChanged;
+            AnalyticSignals.Add(output);
+            OnPropertyChanged(nameof(AnalyticSignals));
+            OnPropertyChanged(nameof(NAnalyticSignals));
+        }
+
+        public void DeRegisterAnalyticOutput(AnalyticOutputVM output)
+        {
+            output.PropertyChanged -= SignalChanged;
+            AnalyticSignals.Remove(output);
+            OnPropertyChanged(nameof(AnalyticSignals));
+            OnPropertyChanged(nameof(NAnalyticSignals));
+        }
+
+        private void SignalChanged (object sender, PropertyChangedEventArgs args) 
+        {
+            if (SignalPropertyChanged != null)
+                SignalPropertyChanged.Invoke(sender, args);
         }
 
         public void LoadSignals() 
         {
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                Signals = new ObservableCollection<InputSignalVM>(new TableOperations<TemplateInputSignal>(connection)
-                        .QueryRecordsWhere("DeviceId = {0}", m_device.ID)
-                        .Select(d => new InputSignalVM(this,d)));
+            if (m_model is null)
+                return;
 
-            OnPropertyChanged(nameof(Signals));
-            OnPropertyChanged(nameof(NSignals));
-            Signals.ToList().ForEach(s => s.PropertyChanged += SignalChanged);
-            m_outputFlag = false;
+            List<TemplateInputSignal> signals;
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                signals =new TableOperations<TemplateInputSignal>(connection).QueryRecordsWhere("DeviceId = {0}", m_model.ID).ToList();
+
+            foreach (InputSignalVM vm in signals.Select(item => new InputSignalVM(this,item)))
             {
-                int Ninputs = 0;
-                if (Signals.Count > 0)
-                    Ninputs = new TableOperations<TemplateOutputSignal>(connection).QueryRecordCountWhere($"IsInputSignal = 1 AND SignalID IN ({string.Join(',', Signals.Select(item => item.ID))})");
-                int Noutputs = new TableOperations<TemplateOutputSignal>(connection).QueryRecordCountWhere("IsInputSignal = 0 AND SignalID IN (SELECT ID FROM AnalyticOutputSignal WHERE DeviceID = {0})", m_device.ID);
-
-                m_outputFlag = (Ninputs + Noutputs) > 0;
-
+                vm.PropertyChanged += SignalChanged;
+                Signals.Add(vm);
             }
-            OnPropertyChanged(nameof(SelectedOutput));
-        }
-
-        private void SignalChanged(object sender, PropertyChangedEventArgs arg)
-        {
-            if (arg.PropertyName == "Changed")
-                OnPropertyChanged(nameof(Changed));
-            if (arg.PropertyName == "Removed")
-                OnPropertyChanged(nameof(NSignals));
-
         }
 
         private void AddNewSignal()
         {
-            string name = "Signal 1";
-            int i = 1;
-            while (Signals.Where(d => d.Name == name).Any())
-            {
-                i++;
-                name = "Signal " + i.ToString();
-            }
 
-            Signals.Add(new InputSignalVM(this, new TemplateInputSignal()
-            {
-                Name = name,
-                DeviceID = m_device.ID,
-                MeasurmentType = MeasurementType.VoltageMagnitude,
-                Phase = Phase.A,
-                ID = m_templateViewModel.CreateInputSignalID()
-            }));
+            InputSignalVM signal = new InputSignalVM(this);
+            signal.PropertyChanged += SignalChanged;
 
-            Signals.Last().PropertyChanged += SignalChanged;
+            Signals.Add(signal);
+            
             OnPropertyChanged(nameof(Signals));
-            OnPropertyChanged(nameof(Changed));
-            OnPropertyChanged(nameof(NSignals));
+            OnPropertyChanged(nameof(NInputSignals));
         }
 
+        /// <summary>
+        /// Determines Whether the Device has Changed
+        /// </summary>
+        /// <returns></returns>
+        public bool HasChanged()
+        {
+            if (m_model == null)
+                return true;
+
+            bool changed = m_model.Name != m_name;
+            changed = changed || m_model.IsInput != m_isInput;
+            changed = changed || m_model.OutputName != m_outputName;
+
+            changed = changed || Signals.Any(s => s.HasChanged());
+            return changed;
+           
+        }
+
+        /// <summary>
+        /// Lists any Issues preventing thisDevice from being Saved
+        /// </summary>
+        /// <returns></returns>
+        public List<string> Validate()
+        {
+            List<string> issues = new List<string>();
+
+            if (m_removed)
+                return issues;
+
+            if (string.IsNullOrEmpty(m_name))
+                issues.Add($"A name is required for every PMU.");
+
+            int nDev = m_parentVM.Devices.Where(item => item.Name == m_name).Count();
+            if (nDev > 1)
+                issues.Add($"A PMU with name {m_name} already exists.");
+
+            if (string.IsNullOrEmpty(m_outputName))
+                issues.Add($"{m_outputName} is not a valid output name.");
+
+            issues.AddRange(Signals.SelectMany(d => d.Validate()));
+
+            return issues;
+        }
+
+        /// <summary>
+        /// Indicates whether the Device can be saved.
+        /// </summary>
+        /// <returns> <see cref="true"/> If the device can be saved</returns>
+        public bool isValid() => Validate().Count() == 0;
         #endregion
 
         #region [ Static ]
