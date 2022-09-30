@@ -6,6 +6,7 @@
              xmlns:local="clr-namespace:Adapt.View.Template"
             xmlns:model="clr-namespace:Adapt.Models;assembly=Adapt.Models"
             xmlns:System="clr-namespace:System;assembly=System.Runtime"
+            xmlns:localcv="clr-namespace:Adapt.Converter"
              mc:Ignorable="d" Width="456" Height="150" >
     <Window.Resources>
         <ObjectDataProvider x:Key="TypeOptions" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
@@ -13,6 +14,8 @@
                 <x:Type TypeName="model:AnalyticSection"/>
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
+        <localcv:EnumToDescription x:Key="EnumToDescription" />
+        <localcv:EnumToDisplayName x:Key="EnumToDisplayName" />
     </Window.Resources>
     <StackPanel Orientation="Vertical">
         <WrapPanel>
@@ -26,14 +29,14 @@
                     <CollectionViewSource Source="{Binding Path=TypeOptions}" x:Key="EnumValues" />
                 </StackPanel.Resources>
                 <Label Margin="0,2" Width="60" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Type:"/>
-                <ComboBox Margin="0,2" Width="300" VerticalAlignment="Center" HorizontalAlignment="Center" ItemsSource="{Binding Source={StaticResource TypeOptions}}" SelectedIndex="{Binding Mode=TwoWay, Path=AnalyticSection}">
+                <ComboBox Margin="0,2" Width="300" VerticalAlignment="Center" HorizontalAlignment="Center" ItemsSource="{Binding Source={StaticResource TypeOptions}}" SelectedValue="{Binding Mode=TwoWay, Path=AnalyticSection}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <Border Padding="5">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontWeight="Bold" Text="{Binding Path=.}" Margin="0" />
+                                    <TextBlock FontWeight="Bold" Text="{Binding Path=., Converter={StaticResource EnumToDisplayName}}" Margin="0" />
                                     <TextBlock Text=": " Margin="0" />
-                                    <TextBlock Text="{Binding Path=.}" Margin="0" />
+                                    <TextBlock Text="{Binding Path=., Converter={StaticResource EnumToDescription}}" Margin="0" />
                                 </StackPanel>
                             </Border>
                         </DataTemplate>
