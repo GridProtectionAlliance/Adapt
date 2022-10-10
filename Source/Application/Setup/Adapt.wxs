@@ -257,8 +257,14 @@
       <Component Id="System.ServiceModel.Primitives">
         <File Id="System.ServiceModel.Primitives.dll" Name="System.ServiceModel.Primitives.dll" Source="$(var.Adapt.TargetDir)System.ServiceModel.Primitives.dll" />
       </Component>
-      
 
+
+      <Component Id="Serilog">
+        <File Id="Serilog.dll" Name="Serilog.dll" Source="$(var.Adapt.TargetDir)Serilog.dll" />
+      </Component>
+      <Component Id="Serilog.Sinks.File">
+        <File Id="Serilog.Sinks.File.dll" Name="Serilog.Sinks.File.dll" Source="$(var.Adapt.TargetDir)Serilog.Sinks.File.dll" />
+      </Component>
     </ComponentGroup>
 
     <!-- AFSDKHost Dependencies-->
