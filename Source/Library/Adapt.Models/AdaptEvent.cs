@@ -26,6 +26,7 @@ using Gemstone;
 using GemstoneCommon;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Adapt.Models
 {
@@ -100,6 +101,11 @@ namespace Adapt.Models
             m_Time = Time;
             m_Value = Length;
             m_parameters = new Dictionary<string, double>();
+        }
+
+        public ITimeSeriesValue Clone(string guid)
+        {
+            return new AdaptEvent(guid, m_Time, m_Value, m_parameters.ToArray());
         }
 
     }

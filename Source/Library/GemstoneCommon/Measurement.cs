@@ -197,6 +197,8 @@ namespace GemstoneCommon
 
         string IMeasurement.Key => throw new NotImplementedException();
 
+
+
         #endregion
 
         #region [ Methods ]
@@ -280,6 +282,22 @@ namespace GemstoneCommon
         public override int GetHashCode()
         {
             return Key.GetHashCode();
+        }
+
+
+        /// <summary>
+        /// Creates a copy of the specified measurement.
+        /// </summary>
+        /// <param name="measurementToClone">Specified measurement to clone.</param>
+        /// <returns>A copy of the <see cref="Measurement"/> object.</returns>
+        public ITimeSeriesValue Clone(string ID)
+        {
+            return new Measurement
+            {
+                Value = this.Value,
+                Timestamp = this.Timestamp,
+                StateFlags = this.StateFlags
+            };
         }
 
         #endregion
@@ -367,6 +385,8 @@ namespace GemstoneCommon
         };
 
         // Static Methods
+
+
 
         /// <summary>
         /// Creates a copy of the specified measurement.

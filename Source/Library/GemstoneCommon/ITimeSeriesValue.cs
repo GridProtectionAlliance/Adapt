@@ -72,5 +72,12 @@ namespace GemstoneCommon
         /// </summary>
         bool IsEvent { get; }
 
+        /// <summary>
+        /// Clones the <see cref="ITimeSeriesValue"/> in a new <see cref="ITimeSeriesValue"/> with a different <see cref="ID"/>
+        /// </summary>
+        /// <param name="ID">The new ID</param>
+        /// <returns>The cloned <see cref="ITimeSeriesValue"/></returns>
+        public ITimeSeriesValue Clone(string ID);
+
     }
 }

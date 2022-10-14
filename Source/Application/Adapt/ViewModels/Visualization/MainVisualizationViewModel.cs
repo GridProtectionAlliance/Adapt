@@ -122,6 +122,10 @@ namespace Adapt.ViewModels.Vizsalization
         public bool HasWidgets => m_widgets.Count > 0;
 
         /// <summary>
+        /// <see cref="IDevice"/> as produced by the Task.
+        /// </summary>
+        public Dictionary<string,IDevice> Devices { get; private set; }
+        /// <summary>
         /// List of Widgets available for use
         /// </summary>
         public List<string> AvailableWidgets
@@ -131,12 +135,14 @@ namespace Adapt.ViewModels.Vizsalization
         #endregion
 
         #region[ Constructor]
-        public MainVisualizationVM(DateTime start, DateTime end)
+        public MainVisualizationVM(AdaptTask task, TaskProcessor processor)
         {
-            m_startAvailable = start;
-            m_endAvailable = end;
-            m_startVisualization = start;
-            m_endVisualization = end;
+            m_startAvailable = task.Start;
+            m_endAvailable = task.End;
+            m_startVisualization = task.Start;
+            m_endVisualization = task.End;
+
+            Devices = processor.Devices.ToDictionary((d) => d.ID);
 
             m_loadedWigets = new Dictionary<string, Type>();
             LoadWidgets();
@@ -152,8 +158,8 @@ namespace Adapt.ViewModels.Vizsalization
             // meant for testing and development only.
             if (m_reader.Count > 0)
                 m_widgets = new ObservableCollection<WidgetVM>() {
-                    new WidgetVM(this, new LineChartVM(),m_startAvailable, m_endAvailable, m_reader),
-                    new WidgetVM (this, new StatisticsTableVM(), m_startAvailable, m_endAvailable,m_reader)
+                    new WidgetVM(this, new LineChartVM(),m_startAvailable, m_endAvailable, m_reader,Devices),
+                    new WidgetVM (this, new StatisticsTableVM(), m_startAvailable, m_endAvailable,m_reader,Devices)
                 };
             else
                 m_widgets = new ObservableCollection<WidgetVM>();
@@ -205,7 +211,7 @@ namespace Adapt.ViewModels.Vizsalization
                 string desc = (string)Description;
                 if (m_loadedWigets.ContainsKey(desc))
                 {
-                    m_widgets.Add(new WidgetVM(this, (IDisplayWidget)Activator.CreateInstance(m_loadedWigets[desc]), m_startVisualization, m_endVisualization, m_reader));
+                    m_widgets.Add(new WidgetVM(this, (IDisplayWidget)Activator.CreateInstance(m_loadedWigets[desc]), m_startVisualization, m_endVisualization, m_reader, Devices));
                     m_widgets.Last().ChangedWindow += ChangedWindow;
                     OnPropertyChanged(nameof(Widgets));
                     OnPropertyChanged(nameof(HasWidgets));

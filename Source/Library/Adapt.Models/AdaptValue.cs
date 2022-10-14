@@ -56,6 +56,11 @@ namespace Adapt.Models
             m_Value = Value;
 
         }
+
+        public ITimeSeriesValue Clone(string guid)
+        {
+            return new AdaptValue(guid, this.m_Value, this.m_Time);
+        }
       
         public static AdaptValue operator +(AdaptValue a, double b) => new AdaptValue(a.ID,a.Value+b,a.Timestamp);
 

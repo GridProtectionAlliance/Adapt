@@ -31,6 +31,7 @@ using Gemstone.Data.Model;
 using Gemstone.IO;
 using GemstoneCommon;
 using GemstoneWPF;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -247,35 +248,50 @@ namespace Adapt.ViewModels
         public void OpenVisualize()
         {
 
-            DateSelectWindow dateSelection = new DateSelectWindow();
+            m_TimeSelectionWindow = new DateSelectWindow();
             DateSelectindowVM dateSelectionVM = new DateSelectindowVM(GetData);
-            dateSelection.DataContext = dateSelectionVM;
-            dateSelection.Show();
+            m_TimeSelectionWindow.DataContext = dateSelectionVM;
+            m_TimeSelectionWindow.ShowDialog();
         }
 
         private void GetData(DateTime start, DateTime end)
         {
+            m_TimeSelectionWindow.Close();
+
             DataSource ds;
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 ds = new TableOperations<DataSource>(connection).QueryRecordWhere("ID = {0}", m_dataSourceID);
 
-            TaskProcessor taskProcessor = new TaskProcessor(new List<AdaptSignal>() { m_signal }, ds, start, end);
+            AdaptSignal signal = new AdaptSignal(m_signal.ID,m_Name, m_signal.Device, m_signal.FramesPerSecond);
+            signal.Phase = m_phase;
+            signal.Type = m_type;
+
+            AdaptTask task = new AdaptTask() {
+                DataSourceModel = ds,
+                TemplateModel = null,
+                SignalMappings = new List<Dictionary<int, AdaptSignal>>() {
+                    new Dictionary<int, AdaptSignal> { { 0, signal }, }
+                },
+                Start = start,
+                End = end
+            };
+
+            TaskProcessor taskProcessor = new TaskProcessor(task);
             
             ProcessNotificationWindow progress = new ProcessNotificationWindow();
             ProcessNotificationWindowVM progressVM = new ProcessNotificationWindowVM();
             progress.DataContext = progressVM;
-            progress.Show();
-
-            taskProcessor.ReportProgress += (object e, ProgressArgs arg) => {  
-                if(arg.Complete)
+           
+            taskProcessor.ReportProgress += (object e, ProgressArgs arg) => {
+                Log.Logger.Information($"{arg.Message} - {arg.Progress} %");
+                if (arg.Complete)
                 {
                     progress.Dispatcher.Invoke(DispatcherPriority.Normal, new ThreadStart(() =>
                     {
                         progress.Close();
                         VisualizationWindow visWindow = new VisualizationWindow();
-                        visWindow.DataContext = new VisualizationWindowVM(start, end);
-
-                        visWindow.Show();
+                        visWindow.DataContext = new VisualizationWindowVM(task,taskProcessor);
+                        visWindow.ShowDialog();
                     }));
                 }
                 else
@@ -284,23 +300,26 @@ namespace Adapt.ViewModels
 
             taskProcessor.MessageRecieved += (object e, MessageArgs arg) =>
             {
+                Log.Logger.Information(arg.Message);
                 progress.Dispatcher.Invoke(DispatcherPriority.Normal, new ThreadStart(() =>
                 {
                     progressVM.MessageRecieved(arg);
                 }));
                 
+                if (!(arg.ex is null))
+                    Log.Logger.Error(arg.ex, $"Processing Exception: {arg.ex.Message} StackTrace: {arg.ex.StackTrace}");
             };
 
-
             taskProcessor.StartTask();
-
-
+            progress.ShowDialog();
         }
 
 
         #endregion
 
         #region [ Static ]
+
+        private static DateSelectWindow m_TimeSelectionWindow = null;
 
         private static readonly string ConnectionString = $"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{Path.DirectorySeparatorChar}Adapt{Path.DirectorySeparatorChar}DataBase.db; Version=3; Foreign Keys=True; FailIfMissing=True";
         private static readonly string DataProviderString = "AssemblyName={System.Data.SQLite, Version=1.0.109.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139}; ConnectionType=System.Data.SQLite.SQLiteConnection; AdapterType=System.Data.SQLite.SQLiteDataAdapter";

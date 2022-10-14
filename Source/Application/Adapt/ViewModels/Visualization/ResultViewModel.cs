@@ -94,19 +94,18 @@ namespace Adapt.ViewModels
         /// <summary>
         /// Starts Processing of a Task and shows the Process Bar.
         /// </summary>
-        public async void ProcessTask(TaskVM Task)
+        public async void ProcessTask(AdaptTask task)
         {
-            m_processor = new TaskProcessor(GenerateTask(Task));
+            m_processor = new TaskProcessor(task);
 
             ResultStatus = ResultState.Processing;
             m_progress = new ProcessNotificationVM();
-            m_viewer = new MainVisualizationVM(DateTime.Now, DateTime.Now.AddSeconds(-1));
+            //m_viewer = new MainVisualizationVM(DateTime.Now, DateTime.Now.AddSeconds(-1));
 
             m_processor.ReportProgress += (object e, ProgressArgs arg) => {
                 if (arg.Complete)
                 {
                     ResultStatus = ResultState.View;
-                    OnPropertyChanged(nameof(VisualizationVM));
                 }
                 else
                     m_progress.Update(arg);
@@ -119,143 +118,8 @@ namespace Adapt.ViewModels
 
             OnPropertyChanged(nameof(ProgressVM));
             await m_processor.StartTask();
-            m_viewer = new MainVisualizationVM(Task.TimeSelectionViewModel.Start, Task.TimeSelectionViewModel.End);
-        }
-
-        private AdaptTask GenerateTask(TaskVM viewModel)
-        {
-            AdaptTask result = new AdaptTask();
-            result.DataSource = viewModel.DataSources[viewModel.SelectedDataSourceIndex];
-            result.Start = viewModel.TimeSelectionViewModel.Start;
-            result.End = viewModel.TimeSelectionViewModel.End;
-            result.Sections = new List<TaskSection>();
-
-            Dictionary<int, AnalyticOutputDescriptor> tempSignals = new Dictionary<int, AnalyticOutputDescriptor>();
-            Dictionary<int, string> inputSignals = new Dictionary<int, string>();
-
-            inputSignals = viewModel.MappingViewModel.DeviceMappings.SelectMany(m => m.ChannelMappings).ToDictionary(x=>x.Key, x=> x.Value);
-
-
-            
-
-            Template template = viewModel.Templates[viewModel.SelectedTemplateIndex];
-
-            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-            {
-                List<TemplateInputDevice> devices = new TableOperations<TemplateInputDevice>(connection)
-                    .QueryRecordsWhere("TemplateID={0}", template.Id).ToList();
-
-                // Update Output Signal Naming Convention
-                result.VariableReplacements = viewModel.MappingViewModel.DeviceMappings.ToDictionary(
-                    item => item.TargetDeviceName,
-                    item => new Tuple<string, string>[] {
-                    new Tuple<string, string>("", item.TargetDeviceName),
-                    new Tuple<string, string>("NAME", item.SourceDeviceName)
-                        });
-
-
-                List<TemplateSection> sections = new TableOperations<TemplateSection>(connection)
-                    .QueryRecordsWhere("TemplateID={0}", template.Id).OrderBy(item => item.Order).ToList();
-
-                foreach (TemplateSection section in sections)
-                {
-                    List<Models.Analytic> analytics = (new TableOperations<Models.Analytic>(connection))
-                        .QueryRecordsWhere("TemplateID={0} AND SectionID={1}", template.Id, section.ID).ToList();
-                    result.Sections.Add(new TaskSection() { Analytics = new List<AdaptLogic.Analytic>() });
-                    foreach (Models.Analytic analytic in analytics)
-                    {
-                        // We Need to Generate an instance here
-                        IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(analytic.ConnectionString).Build();
-                        Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(analytic.AssemblyName));
-                        Type type = assembly.GetType(analytic.TypeName);
-
-                        IAnalytic instance = (IAnalytic)Activator.CreateInstance(type);
-                        instance.Configure(config);
-                        List<AnalyticOutputDescriptor> outputDescriptions = instance.Outputs().ToList();
-                         
-                        // Check Output Signals and add them to temp Signals
-                        List<int> analyticOutputs = new TableOperations<AnalyticOutputSignal>(connection).QueryRecordsWhere("AnalyticID={0}",analytic.ID)
-                            .OrderBy(s => s.OutputIndex)
-                            .Select(i => i.ID).ToList();
-
-                      
-                        int i = 0;
-                        while (i < analyticOutputs.Count())
-                        {
-                            int id = analyticOutputs[i];
-                            if (!tempSignals.ContainsKey(id))
-                                tempSignals.Add(id, new AnalyticOutputDescriptor() {
-                                    Name = Guid.NewGuid().ToString(),
-                                    Type = (i < outputDescriptions.Count()? outputDescriptions[i].Type : MeasurementType.Other),
-                                    Phase = (i < outputDescriptions.Count() ? outputDescriptions[i].Phase : Phase.NONE),
-                                });
-                            i++;
-                        }
-
-                        List<AnalyticInput> analyticInputs = new TableOperations<AnalyticInput>(connection).QueryRecordsWhere("AnalyticID={0}", analytic.ID)
-                            .OrderBy(s => s.InputIndex).ToList();
-
-                        // Setup Analytic
-                        result.Sections.Last().Analytics.Add(new AdaptLogic.Analytic()
-                        {
-                            AdapterType = type,
-                            Configuration = config,
-                            Outputs = analyticOutputs.Select(id => tempSignals[id]).ToList(),
-                            Inputs = analyticInputs.Select(inp =>
-                            {
-                                if (inp.IsInputSignal)
-                                    return inputSignals[inp.SignalID];
-                                return tempSignals[inp.SignalID].Name;
-                            }).ToList()
-                        });
-                        
-
-                    }
-                }
-
-                List<TemplateOutputSignal> outputs = new TableOperations<TemplateOutputSignal>(connection)
-                    .QueryRecordsWhere("TemplateID={0}", template.Id).ToList();
-
-                result.OutputSignals = outputs.Select(s =>
-                {
-                    int deviceID = 0;
-                    if (s.IsInputSignal)
-                        deviceID = connection.ExecuteScalar<int>("SELECT DeviceID FROM TemplateInputSignal WHERE ID = {0}", s.SignalID);
-                    else
-                        deviceID = connection.ExecuteScalar<int>("SELECT DeviceID FROM AnalyticOutputSignal WHERE ID = {0}", s.SignalID);
-                    TemplateInputDevice dev = devices.Find(item => item.ID == deviceID);
-
-                    if (result.VariableReplacements.ContainsKey(dev.Name))
-                        result.VariableReplacements[dev.Name][0] = new Tuple<string, string>("", dev.OutputName);
-
-                    if (s.IsInputSignal)
-                        return new AdaptSignal(inputSignals[s.SignalID], s.Name, dev.Name,0);
-                    else
-                        return new AdaptSignal(tempSignals[s.SignalID].Name, s.Name, dev.Name, 0)
-                        {
-                            Type = tempSignals[s.SignalID].Type,
-                            Phase = tempSignals[s.SignalID].Phase
-                        };
-                }).ToList();
-
-
-            }
-
-            result.OutputSignals = result.OutputSignals.GroupBy(c => c.ID, (key, c) => c.FirstOrDefault()).ToList();
-            result.InputSignalIds = inputSignals.Select(item => item.Value).Distinct().ToList();
-
-            
-            return result;
-        }
-
-        private TaskRouter GenerateTaskRouter(TaskVM viewModel)
-        {
-            DataSource ds = viewModel.DataSources[viewModel.SelectedDataSourceIndex];
-            DateTime start = viewModel.TimeSelectionViewModel.Start;
-            DateTime end = viewModel.TimeSelectionViewModel.End;
-            return null;
-            //return new TaskRouter(ds, start, end);
-
+            m_viewer = new MainVisualizationVM(task,m_processor);
+            OnPropertyChanged(nameof(VisualizationVM));
         }
 
         #endregion

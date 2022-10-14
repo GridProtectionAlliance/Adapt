@@ -65,7 +65,11 @@ namespace Adapt.Models
             set { m_Name = value; }
         }
 
-        public string Device => m_DeviceKey;
+        public string Device
+        {
+            get => m_DeviceKey;
+            set { m_DeviceKey = value; }
+        }
 
         public Phase Phase
         {
@@ -82,20 +86,6 @@ namespace Adapt.Models
             get => m_description;
             set => m_description = value;
 
-        }
-
-        public void ReplaceVars(Tuple<string, string>[] vars)
-        {
-            string subs = m_DeviceKey;
-
-            // Full Name replacement for ""
-            if (vars.Length > 0 && vars[0].Item1.Length == 0)
-                subs = vars[0].Item2;
-
-            foreach (Tuple<string, string> var in vars)
-                subs = subs.Replace("{" + var.Item1 + "}", var.Item2);
-
-            m_DeviceKey = subs;
         }
 
         #endregion
@@ -131,6 +121,23 @@ namespace Adapt.Models
             m_description = "";
             m_fps = framesPerSecond;
         }
+
+        /// <summary>
+        /// Creates a new <see cref="AdaptSignal"/> attached to a Device.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="original">a <see cref="AdaptSignal"/> to be cloned</param>
+        public AdaptSignal(string key, AdaptSignal original)
+        {
+            m_Key = key;
+            m_fps = original.FramesPerSecond;
+            m_Name = original.Name;
+            m_DeviceKey = original.Device;
+            m_phase = original.Phase;
+            m_measurmentType = original.Type;
+            m_description = original.Description;
+        }
+
         #endregion
 
         #region[ Statics ]

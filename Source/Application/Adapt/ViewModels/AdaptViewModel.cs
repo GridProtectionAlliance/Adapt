@@ -21,6 +21,7 @@
 //
 // ******************************************************************************************************
 using Adapt.Models;
+using AdaptLogic;
 using GemstoneWPF;
 using System;
 using System.ComponentModel;
@@ -204,10 +205,11 @@ namespace Adapt.ViewModels
         /// <summary>
         /// Start Processing a Task 
         /// </summary>
-        public void ProcessTask()
+        /// <param name="task"> The <see cref="AdaptTask"/> to be processed. </param>
+        public void ProcessTask(AdaptTask task)
         {
             ActiveExpander = SelectedExpander.Visualization;
-            m_results.ProcessTask(m_task);
+            m_results.ProcessTask(task);
         }
         
         #endregion

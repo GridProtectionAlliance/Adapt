@@ -69,9 +69,6 @@ namespace AdaptLogic
             m_signal = Signal;
             m_queue = Channel.CreateUnbounded<ITimeSeriesValue>();
 
-            if (Variables.ContainsKey(m_signal.Device))
-                m_signal.ReplaceVars(Variables[m_signal.Device]);
-
             GenerateRoot();
             WriteGeneralFile();
 

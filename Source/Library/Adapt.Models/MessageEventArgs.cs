@@ -43,6 +43,8 @@ namespace Adapt.Models
         /// </summary>
         public string Message { get; }
 
+        public Exception ex { get; }
+
         /// <summary>
         /// Creates a new <see cref="ProgressArgs"/>
         /// </summary>
@@ -51,6 +53,20 @@ namespace Adapt.Models
         public MessageArgs(string Message, MessageLevel Level)
         {
             this.Message = Message;
+            this.ex = null;
         }
+
+        /// <summary>
+        /// Creates a new <see cref="ProgressArgs"/>
+        /// </summary>
+        /// <param name="Message">The Message to be displayed.</param>
+        /// <param name="ex">The Exception to be Logged.</param>
+        /// <param name="Level"> The Level of this Message.</param>
+        public MessageArgs(string Message, Exception ex, MessageLevel Level)
+        {
+            this.Message = Message;
+            this.ex = ex;
+        }
+
     }
 }

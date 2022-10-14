@@ -136,14 +136,14 @@ namespace Adapt.ViewModels.Vizsalization
         #endregion
 
         #region[ Constructor]
-        public WidgetVM(MainVisualizationVM parent, IDisplayWidget widget, DateTime start, DateTime end, Dictionary<string,List<SignalReader>> dataReader)
+        public WidgetVM(MainVisualizationVM parent, IDisplayWidget widget, DateTime start, DateTime end, Dictionary<string,List<SignalReader>> dataReader, Dictionary<string, IDevice> Devices)
         {
             m_widget = widget;
             m_parent = parent;
             m_widget.Zoom(start, end);
             m_widget.ChangedWindow += WindowChanged;
 
-            CreateContextMenue(dataReader);
+            CreateContextMenue(dataReader, Devices);
 
         }
 
@@ -159,7 +159,7 @@ namespace Adapt.ViewModels.Vizsalization
 
         private void WindowChanged(object sender, ZoomEventArgs args) => ChangedWindow.Invoke(sender, args);
        
-        private void CreateContextMenue(Dictionary<string, List<SignalReader>> readers)
+        private void CreateContextMenue(Dictionary<string, List<SignalReader>> readers, Dictionary<string, IDevice> Devices)
         {
             bool isInitial = true;
             List<ContextMenueVM> menue = new List<ContextMenueVM>();
@@ -168,7 +168,7 @@ namespace Adapt.ViewModels.Vizsalization
             {
                 if (!readers[device].Any(s => m_widget.AllowSignal(s.Signal)))
                     continue;
-                menue.Add(new ContextMenueVM(device, readers[device].Where(s => m_widget.AllowSignal(s.Signal))
+                menue.Add(new ContextMenueVM(Devices[device].Name, readers[device].Where(s => m_widget.AllowSignal(s.Signal))
                     .Select(s => new ContextMenueVM(s.Signal.Name,isInitial,(bool selected) => { if (selected) m_widget.AddReader(s); else m_widget.RemoveReader(s); }))));
                 if (isInitial)
                     readers[device].Where(s => m_widget.AllowSignal(s.Signal)).Select(s => { m_widget.AddReader(s); return 1; }).ToList();

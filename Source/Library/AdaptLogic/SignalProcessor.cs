@@ -1,5 +1,5 @@
 ﻿// ******************************************************************************************************
-//  SignalProcessor.tsx - Gbtc
+//  SectionProcessor.tsx - Gbtc
 //
 //  Copyright © 2021, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -34,13 +34,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using static AdaptLogic.AdaptTask;
 
 namespace AdaptLogic
 {
     /// <summary>
     /// Processes an Adapt Signal through a Section of Analytics
     /// </summary>
-    public class SignalProcessor
+    public class SectionProcessor
     {
         #region [ Internal Classes ]
 
@@ -61,17 +62,26 @@ namespace AdaptLogic
 
         #region [ Constructor ]
 
-        public SignalProcessor(Channel<IFrame> input, Channel<IFrame> output, TaskSection section, Dictionary<string,int> framesPerSecond)
+        /// <summary>
+        /// Generates a new <see cref="SectionProcessor"/> to process an instance of a <see cref="TaskSection"/>
+        /// </summary>
+        /// <param name="inputQueue"> The Queue to Dequeue frames from</param>
+        /// <param name="outputQueue"> The queue to Queue frames onto </param>
+        /// <param name="templateMappingID"> The String identifier used for identifying Signals</param>
+        /// <param name="section"> The <see cref="TaskSection"/> to be processed </param>
+        /// <param name="template">The <see cref="AdaptTask"/> containing the <paramref name="section"/></param>
+        /// <param name="signalMapping">The mapping used for InputSignals.</param>
+        public SectionProcessor(Channel<IFrame> inputQueue, Channel<IFrame> outputQueue, string templateMappingID, TaskSection section, AdaptTask template, Dictionary<int,AdaptSignal> signalMapping, Dictionary<string,int> framesPerSecond  )
         {
-            m_queueInput = input;
-            m_queueOutput = output;
-            m_analyticProcesors = section.Analytics.Select(item => new AnalyticProcessor(item, framesPerSecond)).ToList();
+            m_queueInput = inputQueue;
+            m_queueOutput = outputQueue;
+            m_analyticProcesors = section.Analytics.Select(item => new AnalyticProcessor(item,template,templateMappingID,signalMapping, framesPerSecond)).ToList();
             m_futureFrameBufferSize = m_analyticProcesors.Max(a => a.NFutureFrames);
             m_futureFrameBuffer = new Queue<IFrame>(m_futureFrameBufferSize);
-            FramesPerSecond = TimeAlignment.Combine(m_analyticProcesors.Select(item => item.FramesPerSecond).Where(fps => fps >0).ToArray());
+            FramesPerSecond = TimeAlignment.Combine(m_analyticProcesors.Select(item => item.FramesPerSecond).Where(fps => fps > 0).ToArray());
             m_lastProcessedTS = Ticks.MinValue;
+
         }
-        
         #endregion
 
         #region [ Properties]
@@ -207,8 +217,6 @@ namespace AdaptLogic
 
             Task<ITimeSeriesValue[]>[] analytics = m_analyticProcesors.Select(p => p.Run(point, m_futureFrameBuffer.ToArray())).ToArray();
 
-            
-            
             await Task.WhenAll(analytics).ConfigureAwait(false);
 
             int i = 0;

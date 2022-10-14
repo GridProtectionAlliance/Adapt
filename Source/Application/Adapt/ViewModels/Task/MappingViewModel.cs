@@ -54,6 +54,8 @@ namespace Adapt.ViewModels
 
         private Template m_Template;
 
+        private TaskVM m_parent;
+
         public class Mapping
         {
             public Mapping(TemplateInputDevice device, MappingVM parent)
@@ -65,34 +67,48 @@ namespace Adapt.ViewModels
                 ChangeDevice = new RelayCommand(() => parent.SelectDevice(this), () => true);
                 FixChannel = new RelayCommand(() => parent.FixDuplicates(this), () => true);
 
-                ChannelMappings = new Dictionary<int, string>();
+                ChannelMappings = new Dictionary<int, AdaptSignal>();
             }
             public int TargetDeviceID { get; set; }
-            public string SourceDeviceID { get; set; }
+            public IDevice SourceDevice { get; set; }
             public string TargetDeviceName { get; set; }
-            public string SourceDeviceName { get; set; }
+
+            public string SourceDeviceName => SourceDevice?.Name ?? "";
             public ICommand ChangeDevice { get; }
             public ICommand FixChannel { get; }
-            public Dictionary<int,string> ChannelMappings { get; set; }
+            public Dictionary<int,AdaptSignal> ChannelMappings { get; set; }
             public bool IsValid { get; set; }
             public bool IsSelected { get; set; }
         }
+
+        /// <summary>
+        /// The Map of Devices to <see cref="TemplateInputDevice.ID"/>.
+        /// </summary>
+        public Dictionary<int, IDevice> DeviceMap => DeviceMappings.ToDictionary((d) => d.TargetDeviceID, (d) => d.SourceDevice);
+
+        /// <summary>
+        /// The Map of Channels to <see cref="TemplateInputSignal.ID"/>.
+        /// </summary>
+        public Dictionary<int, AdaptSignal> SignalMap => DeviceMappings.SelectMany((d) => d.ChannelMappings.AsEnumerable()).ToDictionary((d) => d.Key, (d) => d.Value);
 
         #endregion
 
         #region[ Properties ]
 
-        
+
         /// <summary>
-        /// The index of the DataSource Selected.
+        /// The Instace of the <see cref="Datasource"/>.
         /// </summary>
-        public IDataSource DataSource 
+        public IDataSource DataSourceInstance 
         { 
             get;
             set;
         }
 
-        public DataSource DataSourceModel { get; set; }
+        /// <summary>
+        /// The Datasource used for this Mapping
+        /// </summary>
+        public DataSource DataSource { get; set; }
         public ObservableCollection<Mapping> DeviceMappings { get; set; }
 
         /// <summary>
@@ -100,6 +116,10 @@ namespace Adapt.ViewModels
         /// </summary>
         public bool Valid => !DeviceMappings.Any(d => !(d.IsValid && d.IsSelected));
 
+        /// <summary>
+        /// 
+        /// </summary>
+        public ICommand Remove { get; set; }
         #endregion
 
         #region [ Constructor ]
@@ -108,10 +128,14 @@ namespace Adapt.ViewModels
         /// Creates a New <see cref="MappingVM"/>
         /// </summary>
         /// <param name="template"> The corresponding <see cref="Template"/></param>
-        public MappingVM(Template template)
+        public MappingVM(Template template, TaskVM Task)
         {
             m_Template = template;
+            m_parent = Task;
+            
             LoadTargetDevices();
+
+            Remove = new RelayCommand(() => { m_parent.RemoveMapping(this); }, () => m_parent.MappingViewModels.Count() > 1);
         }
 
         #endregion
@@ -127,7 +151,7 @@ namespace Adapt.ViewModels
 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
                 DeviceMappings = new ObservableCollection<Mapping>(
-                    new TableOperations<TemplateInputDevice>(connection).QueryRecordsWhere("TemplateID = {0} AND IsInput = 1", m_Template.Id)
+                    new TableOperations<TemplateInputDevice>(connection).QueryRecordsWhere("TemplateID = {0} AND (SELECT COUNT(ID) FROM TemplateInputSignal WHERE DeviceID = TemplateInputDevice.ID) > 0", m_Template.Id)
                     .Select(d=> new Mapping(d, this)).ToList()
                     );
 
@@ -140,12 +164,13 @@ namespace Adapt.ViewModels
         /// </summary>
         private void SelectDevice(Mapping mapping)
         {
-            SelectSignal deviceSelection = new SelectSignal();
-            SelectSignalMappingVM<AdaptDevice> deviceSelectionVM = new SelectSignalMappingVM<AdaptDevice>((d) => {
-                mapping.SourceDeviceID = d.ID;
-                mapping.SourceDeviceName = d.Name;
 
-                mapping.ChannelMappings = new Dictionary<int, string>();
+            SelectSignal selectionWindow = new SelectSignal();
+
+            SelectMappingVM<AdaptDevice> deviceSelectionVM = new SelectMappingVM<AdaptDevice>((d) => {
+                mapping.SourceDevice = d;
+
+                mapping.ChannelMappings = new Dictionary<int, AdaptSignal>();
 
                 // Validate Signals on that device
                 List<TemplateInputSignal> targetSignals;
@@ -153,7 +178,7 @@ namespace Adapt.ViewModels
                     targetSignals = new TableOperations<TemplateInputSignal>(connection)
                         .QueryRecordsWhere("DeviceID = {0}", mapping.TargetDeviceID).ToList();
                     
-                List<AdaptSignal> sourceSignals = AdaptSignal.Get(DataSource, DataSourceModel.ID, ConnectionString, DataProviderString)
+                List<AdaptSignal> sourceSignals = AdaptSignal.Get(DataSourceInstance, DataSource.ID, ConnectionString, DataProviderString)
                     .Where(s => s.Device == d.ID).ToList();
 
                 mapping.IsValid = sourceSignals.Count() >= targetSignals.Count();
@@ -162,19 +187,22 @@ namespace Adapt.ViewModels
                 {
                     int index = sourceSignals.FindIndex(item => item.Phase == targetSignals[i].Phase && item.Type == targetSignals[i].MeasurmentType);
                     if (index == -1)
-                        mapping.ChannelMappings.Add(targetSignals[i].ID, ""); 
+                        mapping.ChannelMappings.Add(targetSignals[i].ID, null); 
                     else
-                        mapping.ChannelMappings.Add(targetSignals[i].ID, sourceSignals[index].ID);
+                        mapping.ChannelMappings.Add(targetSignals[i].ID, sourceSignals[index]);
                 }
-                mapping.IsValid = !mapping.ChannelMappings.Any(item => string.IsNullOrEmpty(item.Value));
+                mapping.IsValid = !mapping.ChannelMappings.Any(item => item.Value is null);
                 mapping.IsSelected = true;
+
                 DeviceMappings = new ObservableCollection<Mapping>(DeviceMappings);
+
                 OnPropertyChanged(nameof(DeviceMappings));
                 OnPropertyChanged(nameof(Valid));
 
-            },(d,s) => d.Name.ToLower().Contains(s.ToLower()),(d) => d.Name,AdaptDevice.Get(DataSource,DataSourceModel.ID,ConnectionString,DataProviderString));
-            deviceSelection.DataContext = deviceSelectionVM;
-            deviceSelection.Show();
+                selectionWindow.Close();
+            },(d,s) => d.Name.ToLower().Contains(s.ToLower()),(d) => d.Name,AdaptDevice.Get(DataSourceInstance,DataSource.ID,ConnectionString,DataProviderString));
+            selectionWindow.DataContext = deviceSelectionVM;
+            selectionWindow.ShowDialog();
         }
 
         /// <summary>
@@ -182,6 +210,7 @@ namespace Adapt.ViewModels
         /// </summary>
         public void FixDuplicates(Mapping mapping)
         {
+            /*
             if (mapping.ChannelMappings.Count() == 0 || !mapping.ChannelMappings.ContainsValue(""))
                 return;
 
@@ -204,6 +233,7 @@ namespace Adapt.ViewModels
             .Where(s => s.ID == mapping.SourceDeviceID && s.Phase == targetSignal .Phase && s.Type == targetSignal.MeasurmentType), title);
             signalSelection.DataContext = dateSelectionVM;
             signalSelection.Show();
+            */
             
         }
         /// <summary>
@@ -213,11 +243,11 @@ namespace Adapt.ViewModels
         /// <param name="model"></param>
         public void UpdateDataSource(IDataSource instance, DataSource model)
         {
-            DataSource = instance;
-            DataSourceModel = model;
+            DataSourceInstance = instance;
+            DataSource = model;
 
             OnPropertyChanged(nameof(DataSource));
-            OnPropertyChanged(nameof(DataSourceModel));
+            OnPropertyChanged(nameof(DataSourceInstance));
         }
 
         

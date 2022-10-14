@@ -114,6 +114,18 @@
                         <TextBlock Text="Template Outputs" Background="Gray"  FontWeight="bold" FontSize="24"/>
                     </Expander.Header>
                     <StackPanel Orientation="Vertical" Height="auto" Background="LightGray">
+                        <TextBlock  Margin="10"> The output name determines the name of the Signals and Devices used for results. <LineBreak/>
+                            The following Key words can be used for Template Inputs Devices wjen put in brackets ({}): <LineBreak/>
+                            <Bold>{Name}</Bold> - This will be substituted with the name of the original PMU as provided by the Datasource.
+                            <LineBreak/>
+                            <LineBreak/>
+                            The following key words can be used for Template Input Signals: <LineBreak/>
+                            <Bold>{Name}</Bold> - This will be substituted with the name of the original Signal as provided by the Datasource. <LineBreak/>
+                            <Bold>{DeviceName}</Bold> - This will be substituted with the name of the PMU the original Signal was attached to as provided by the Datasource. <LineBreak/> <LineBreak/>
+                            In order to allow flexibility for results, the following keys words can also be used in any Device or Signal:<LineBreak/>
+                            <Bold>{InputPMU.Name}</Bold> - where InputPMU is the name of a Template Input.  <LineBreak/> This will be substituted with the name of the original PMU as provided by the Datasource.<LineBreak/>
+                            <Bold>{InputPMU.InputSignal.Name}</Bold> - where InputPMU is the name of a Template Input and InputSignal is the name of a Template Input Signal. <LineBreak/> This will be substituted with the name of the original PMU as provided by the Datasource.<LineBreak/>
+                        </TextBlock>
                         <TreeView ItemsSource="{Binding OutputDevices}" BorderThickness="0" Grid.Row="1" Margin="10" Width="800">
                             <TreeView.ItemTemplate>
                                 <HierarchicalDataTemplate DataType="{x:Type localvm:TemplateOutputDeviceWrapper}" ItemsSource="{Binding Signals}">

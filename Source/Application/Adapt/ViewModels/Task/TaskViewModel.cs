@@ -23,6 +23,7 @@
 using Adapt.Models;
 using Adapt.View.Template;
 using Adapt.ViewModels.Common;
+using AdaptLogic;
 using Gemstone.Data;
 using Gemstone.Data.Model;
 using Gemstone.IO;
@@ -30,6 +31,7 @@ using Gemstone.StringExtensions;
 using GemstoneCommon;
 using GemstoneWPF;
 using Microsoft.Extensions.Configuration;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -38,6 +40,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Threading;
 using System.Transactions;
 using System.Windows;
@@ -52,8 +55,9 @@ namespace Adapt.ViewModels
     public class TaskVM : AdaptTabViewModelBase
     {
         #region [ Members ]
-        private int m_SelectedTemplateIndex;
-        private int m_SelectedDataSourceIndex;
+        private Template m_SelectedTemplate;
+        private DataSource m_SelectedDataSource;
+        private AdaptViewModel m_parent;
         #endregion
 
         #region[ Properties ]
@@ -67,51 +71,59 @@ namespace Adapt.ViewModels
         /// Represents a List of all available Templates.
         /// </summary>
         public ObservableCollection<Template> Templates { get; set; }
+
+        /// <summary>
+        /// The <see cref="DataSource"/> selected.
+        /// </summary>
+        public DataSource DataSource {
+            get => m_SelectedDataSource;
+            set 
+            {
+                m_SelectedDataSource = value;
+                ValidateDataSource();
+                OnPropertyChanged();
+            } 
+        }
+
         public DateSelectVM TimeSelectionViewModel { get; }
 
         /// <summary>
-        /// The index of the DataSource Selected.
+        /// a Flag indicating if the DataSource has failed the Test. 
+        /// This will prevent the User from continuing and display a DataSource Warning Message
         /// </summary>
-        public int SelectedDataSourceIndex { 
-            get => m_SelectedDataSourceIndex; 
+        public bool ShowDataSourceWarning { get; private set; }
+
+        /// <summary>
+        /// The Template Selected
+        /// </summary>
+        public Template Template
+        {
+            get => m_SelectedTemplate;
             set
             {
-                if (value > -1)
-                    m_SelectedDataSourceIndex = value;
-                else
-                    m_SelectedDataSourceIndex = 0;
-
-                ValidateDataSource();
-                OnPropertyChanged();
+                m_SelectedTemplate = value;
+                ValidateTemplate();
+                OnPropertyChanged();                
             }
         }
 
         /// <summary>
-        /// The index of the Template Selected.
+        /// The VMs containing the mapping between Template Devices and DataSource Devices
         /// </summary>
-        public int SelectedTemplateIndex
-        { 
-            get => m_SelectedTemplateIndex;
-            set
-            {
-                if (value > -1)
-                    m_SelectedTemplateIndex = value;
-                else
-                    m_SelectedTemplateIndex = 0;
-                MappingViewModel = new MappingVM(Templates[m_SelectedTemplateIndex]);
-                OnPropertyChanged(nameof(MappingViewModel));
-                ValidateDataSource();
-                
-                OnPropertyChanged();
-            }
-        }
-     
-        /// <summary>
-        /// The Viewmodel containing the mapping between Template Devices and DataSourceDevices
-        /// </summary>
-        public MappingVM MappingViewModel { get; set; }
+        public ObservableCollection<MappingVM> MappingViewModels { get; set; }
 
         public ICommand RunTask { get; set; }
+
+        public ICommand AddMapping { get; set; }
+
+        public ICommand AutoMapping { get; set; }
+
+        public bool AllowAutoMapping
+        {
+            get;
+            private set; 
+        }
+
         #endregion
 
         #region [ Constructor ]
@@ -123,18 +135,21 @@ namespace Adapt.ViewModels
         /// <param name="ParentVM"> The parent <see cref="AdaptViewModel"/> used to trigger processing of a Task. </param>
         public TaskVM(AdaptViewModel ParentVM)
         {
-            
+            m_parent = ParentVM;
+            MappingViewModels = new ObservableCollection<MappingVM>();
             LoadDataSources();
-            SelectedDataSourceIndex = 0;
-
             LoadTemplates();
-            m_SelectedTemplateIndex = 0;
             TimeSelectionViewModel = new DateSelectVM();
 
-            MappingViewModel = new MappingVM(Templates[SelectedTemplateIndex]);
+           
             ValidateDataSource();
+            AddMappingVM();
+            AllowAutoMapping = false;
 
-            RunTask = new RelayCommand(() => ParentVM.ProcessTask(), () => MappingViewModel.Valid);
+            AddMapping = new RelayCommand(AddMappingVM, () => false);
+            AutoMapping = new RelayCommand(() => { }, () => AllowAutoMapping);
+
+            RunTask = new RelayCommand(ProcessTask, () => !ShowDataSourceWarning);
         }
 
         #endregion
@@ -154,6 +169,11 @@ namespace Adapt.ViewModels
                     );
 
             OnPropertyChanged(nameof(Templates));
+            Template = Templates.Where(d => d.Id == (Template?.Id ?? -1)).FirstOrDefault();
+
+            if (Template is null && Templates.Count > 0)
+                Template = Templates.First();
+
         }
 
         /// <summary>
@@ -169,28 +189,132 @@ namespace Adapt.ViewModels
                     );
             
             OnPropertyChanged(nameof(DataSources));
+            DataSource = DataSources.Where(d => d.ID == (DataSource?.ID ?? -1)).FirstOrDefault();
+
+            if (DataSource is null && DataSources.Count > 0)
+                DataSource = DataSources.First();
         }
 
         private void ValidateDataSource()
         {
-            try 
+            
+            if (DataSource is null)
             {
-                IDataSource Instance = (IDataSource)Activator.CreateInstance(DataSources[m_SelectedDataSourceIndex].AssemblyName,DataSources[m_SelectedDataSourceIndex].TypeName).Unwrap();
-                IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(DataSources[m_SelectedDataSourceIndex].ConnectionString).Build();
+                ShowDataSourceWarning = true;
+                OnPropertyChanged(nameof(ShowDataSourceWarning));
+                return;
+            }
+
+            try
+            {
+                IDataSource Instance = (IDataSource)Activator.CreateInstance(DataSource.AssemblyName, DataSource.TypeName).Unwrap();
+                IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(DataSource.ConnectionString).Build();
                 Instance.Configure(config);
 
-                if (MappingViewModel != null)
-                    MappingViewModel.UpdateDataSource(Instance, DataSources[m_SelectedDataSourceIndex]);
+                ShowDataSourceWarning = !Instance.Test();
 
-                OnPropertyChanged(nameof(MappingVM));
+                foreach (MappingVM mapping in MappingViewModels)
+                    mapping.UpdateDataSource(Instance, DataSource);
+
+                OnPropertyChanged(nameof(MappingViewModels));
             }
             catch (Exception ex)
             {
-                Popup($"The Datasource could not be loaded: {ex.Message}","An Error Occurred", MessageBoxImage.Error);
-
+                Log.Logger.Error(ex, $"Datasource {DataSource.ID} Test Failed Exception: {ex.Message} StackTrace: {ex.StackTrace}");
+                ShowDataSourceWarning = true;
+            }
+            finally
+            {
+                OnPropertyChanged(nameof(ShowDataSourceWarning));
             }
         }
 
+        private void ValidateTemplate()
+        {
+            MappingViewModels = new ObservableCollection<MappingVM>();
+            AddMappingVM();
+            // # TODO
+            // Check Number of InputDevices -> if 1 Activate Multiple PMU Button
+            if (Template is null)
+            {
+                return;
+            }
+
+            try
+            {
+               
+            }
+            catch (Exception ex)
+            {
+                
+            }
+
+            OnPropertyChanged(nameof(MappingViewModels));
+        }
+
+        private void AddMappingVM()
+        {
+            if (Template is null)
+                return;
+
+            MappingViewModels.Add(new MappingVM(Template, this));
+            ValidateDataSource();
+        }
+
+        public void RemoveMapping(MappingVM vm)
+        {
+            MappingViewModels.Remove(vm);
+        }
+
+        private void ProcessTask()
+        {
+            AdaptTask task = new AdaptTask()
+            {
+                DataSourceModel = DataSource,
+                TemplateModel = Template,
+                Start = TimeSelectionViewModel.Start,
+                End = TimeSelectionViewModel.End
+            };
+
+            //Load Information from Database
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString,DataProviderString))
+            {
+                TableOperations<Analytic> analyticTbl = new TableOperations<Analytic>(connection);
+                TableOperations<AnalyticInput> inputTbl = new TableOperations<AnalyticInput>(connection);
+                TableOperations<AnalyticOutputSignal> outputTbl = new TableOperations<AnalyticOutputSignal>(connection);
+
+
+                task.Sections = new TableOperations<TemplateSection>(connection).QueryRecordsWhere("TemplateID = {0}", Template.Id).OrderBy(s => s.Order).Select(s => new AdaptTask.TaskSection() { 
+                    Model = s,
+                    Analytics = analyticTbl.QueryRecordsWhere("SectionID = {0}",s.ID).Select(analytic => {
+                        IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(analytic.ConnectionString).Build();
+                        Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(analytic.AssemblyName));
+                        Type type = assembly.GetType(analytic.TypeName);
+
+                        return new AdaptTask.TaskAnalytic()
+                        {
+                            Model = analytic,
+                            InputModel = inputTbl.QueryRecordsWhere("AnalyticID = {0}", analytic.ID).ToList(),
+                            OutputModel = outputTbl.QueryRecordsWhere("AnalyticID = {0}", analytic.ID).ToList(),
+                            AnalyticType = type,
+                            Configuration = config,
+                        };
+                    }).ToList()
+                }).ToList();
+
+                task.DevicesModels = new TableOperations<TemplateInputDevice>(connection).QueryRecordsWhere("TemplateID={0}", Template.Id).ToList();
+                task.OutputSignalModels = new TableOperations<TemplateOutputSignal>(connection).QueryRecordsWhere("TemplateID={0}", Template.Id).ToList();
+                if (task.DevicesModels.Count > 0)
+                    task.SignalModels = new TableOperations<TemplateInputSignal>(connection).QueryRecordsWhere($"DeviceID IN ({string.Join(",", task.DevicesModels.Select(d => d.ID))})", Template.Id).ToList();
+                else
+                    task.SignalModels = new List<TemplateInputSignal>();
+            }
+
+            task.DeviceMappings = MappingViewModels.Select(item => item.DeviceMap).ToList();
+            task.SignalMappings = MappingViewModels.Select(item => item.SignalMap).ToList();
+
+            m_parent.ProcessTask(task);
+        }
         #endregion
 
         #region [ Static ]

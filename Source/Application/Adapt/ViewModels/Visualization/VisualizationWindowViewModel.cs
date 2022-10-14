@@ -55,9 +55,9 @@ namespace Adapt.ViewModels.Vizsalization
         #endregion
 
         #region[ Constructor]
-        public VisualizationWindowVM(DateTime start, DateTime end)
+        public VisualizationWindowVM(AdaptTask Task, TaskProcessor Processor)
         {
-            VisualizationVM = new MainVisualizationVM(start, end);
+            VisualizationVM = new MainVisualizationVM(Task, Processor);
         }
 
         #endregion

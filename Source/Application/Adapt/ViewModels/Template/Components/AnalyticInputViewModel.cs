@@ -127,11 +127,7 @@ namespace Adapt.ViewModels
 
                 m_SignalID = m_signal?.ID;
                 if (!(m_signal is null))
-                    m_signal.PropertyChanged += (object s, PropertyChangedEventArgs args) =>
-                    {
-                        if (args.PropertyName == nameof(m_signal.Name))
-                            OnPropertyChanged(nameof(Name));
-                    };
+                    m_signal.PropertyChanged += SignalChanged;
                 //m_device.PropertyChanged += DeviceChanged;
             }
 
@@ -171,11 +167,7 @@ namespace Adapt.ViewModels
             m_isInputSignal = m_signal?.IsInput ?? true;
 
             if (!(m_signal is null))
-                m_signal.PropertyChanged += (object s, PropertyChangedEventArgs args) =>
-                {
-                    if (args.PropertyName == nameof(m_signal.Name))
-                        OnPropertyChanged(nameof(Name));
-                };
+                m_signal.PropertyChanged += SignalChanged;
 
             OnPropertyChanged(nameof(Name));
             m_selectWindow.Close();
@@ -254,9 +246,25 @@ namespace Adapt.ViewModels
             {
                 m_signal = null;
                 m_SignalID = null;
-                OnPropertyChanged(Name);
+                OnPropertyChanged(nameof(Name));
             }
         }
+
+        private void SignalChanged(object sender, PropertyChangedEventArgs arg)
+        {
+
+            if (arg.PropertyName == nameof(m_signal.Name))
+                OnPropertyChanged(nameof(Name));
+
+            if (arg.PropertyName == nameof(m_signal.Removed) && m_signal.Removed)
+            {
+                m_signal.PropertyChanged -= SignalChanged;
+                m_signal = null;
+                m_SignalID = null;
+                OnPropertyChanged(nameof(Name));
+            }
+        }
+
         /// <summary>
         /// Determines Whether the Device has Changed
         /// </summary>

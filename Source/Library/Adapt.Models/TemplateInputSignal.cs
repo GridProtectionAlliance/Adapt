@@ -38,7 +38,6 @@ namespace Adapt.Models
     {
         [PrimaryKey(true)]
         public int ID { get; set; }
-
         public int DeviceID { get; set; }
 	    public string Name { get; set; }
         public Phase Phase { get; set; }

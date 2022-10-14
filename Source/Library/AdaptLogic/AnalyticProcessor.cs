@@ -32,6 +32,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using static AdaptLogic.AdaptTask;
 
 namespace AdaptLogic
 {
@@ -48,10 +49,9 @@ namespace AdaptLogic
 
         private Gemstone.Ticks m_nextTimeStamp;
         private IAnalytic m_instance;
-
-        private List<string> InputNames;
-      
-        private Analytic m_analytic;
+        private string m_mappingID;
+        private Dictionary<string, string> InputMappings;
+        private Dictionary<string, string> OutputMappings;
 
         private Queue<IFrame> m_pastPoints;
 
@@ -62,18 +62,31 @@ namespace AdaptLogic
         /// Returns the number of future Frames required for this Analytic
         /// </summary>
         public int NFutureFrames => m_instance?.FutureFrames ?? 0;
+
+        /// <summary>
+        /// Event that raises a Message from Processing this Analytic. 
+        /// </summary>
+        public event EventHandler<MessageArgs> MessageRecieved;
         #endregion
 
         #region [ Constructor ]
 
-        public AnalyticProcessor(Analytic analytic, Dictionary<string,int> framesPerSecond)
+        /// <summary>
+        /// Creates a new <see cref="AnalyticProcessor"/>
+        /// </summary>
+        /// <param name="analytic"> The <see cref="TaskAnalytic"/></param>
+        /// <param name="task"> The <see cref="AdaptTask"/> this analytic is included in </param>
+        /// <param name="TemplateSignalMapping">The Signal Mapping used for this instance </param>
+        /// <param name="templateMappingID"> The ID of the associated <paramref name="TemplateSignalMapping"/></param>
+        /// <param name="FramesPerSecond">set of the FPS of all Signals by ID</param>
+        public AnalyticProcessor(TaskAnalytic analytic, AdaptTask task, string templateMappingID, Dictionary<int, AdaptSignal> TemplateSignalMapping, Dictionary<string,int> FramesPerSecond)
         {
             m_nextTimeStamp = Gemstone.Ticks.MinValue;
+            m_mappingID = templateMappingID;
 
-            m_analytic = analytic;
-            m_instance = CreateAnalytic(m_analytic, framesPerSecond);
+            m_instance = CreateAnalytic(analytic, FramesPerSecond,TemplateSignalMapping);
 
-            InputNames = m_instance.InputNames().ToList();
+            GenerateRoutes(analytic, TemplateSignalMapping);
 
             m_pastPoints = new Queue<IFrame>(m_instance.PrevFrames);
             NProcessed = 0;
@@ -124,26 +137,27 @@ namespace AdaptLogic
                 Published = frame.Published,
 
                 Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(
-                            m_analytic.Inputs.Select(item => {
-                                if (frame.Measurements.ContainsKey(item))
-                                    return frame.Measurements[item];
-                                return new AdaptValue(item, double.NaN, frame.Timestamp);
-                            })
-                            .ToDictionary(item => InputNames[m_analytic.Inputs.FindIndex((s) => s == item.ID)], item => item)
-                            )
-            };
+                            m_instance.InputNames().Select(item => new
+                            {
+                                Name = item,
+                                Key = InputMappings[item]
+                            }).Select(s =>
+                            {
+                                if (frame.Measurements.ContainsKey(s.Key))
+                                    return AdjustSignal(frame.Measurements[s.Key], s.Name);
+                                return new AdaptValue(s.Name, double.NaN, frame.Timestamp);
+                            }).ToDictionary(item => item.ID, item => item))
+            };        
         }
 
         public void RouteOutput(IFrame frame, ITimeSeriesValue[] result)
         {
             foreach (ITimeSeriesValue val in result)
             {
-                int i = OutputDescriptions.FindIndex(item => item.Name == val.ID);
-                if (i < 0)
-                    continue;
-                frame.Measurements.AddOrUpdate(m_analytic.Outputs[i].Name, 
-                    (key) => AdjustSignal(val,key),
-                    (key, old) => val);
+                if (OutputMappings.ContainsKey(val.ID))
+                    frame.Measurements.AddOrUpdate(OutputMappings[val.ID], 
+                        (key) => AdjustSignal(val, OutputMappings[val.ID]),
+                        (key, old) => val);
             }
         }
 
@@ -173,26 +187,77 @@ namespace AdaptLogic
             }
             return new AdaptValue(key, original.Value, original.Timestamp);
         }
-        #endregion
 
-        #region [ Static ]
-
-        public static IAnalytic CreateAnalytic(Analytic analytic, Dictionary<string, int> framesPerSecond)
+        private IAnalytic CreateAnalytic(TaskAnalytic analytic, Dictionary<string, int> framesPerSecond, Dictionary<int, AdaptSignal> templateSignalMapping)
         {
             try
             {
-                IAnalytic Instance = (IAnalytic)Activator.CreateInstance(analytic.AdapterType);
+                IAnalytic Instance = (IAnalytic)Activator.CreateInstance(analytic.AnalyticType);
                 Instance.Configure(analytic.Configuration);
-                Instance.SetInputFPS(analytic.Inputs.Select(item => framesPerSecond[item]));
+                Instance.SetInputFPS(analytic.InputModel.Select(item => {
+                    if (item.IsInputSignal)
+                        return templateSignalMapping[item.SignalID].FramesPerSecond;
+                    string signalID = m_mappingID + "AnalyticOutput-" + item.SignalID;
+                    return framesPerSecond[signalID];
+                }));
 
-                analytic.Outputs.ForEach((item) => framesPerSecond.Add(item.Name, Instance.FramesPerSecond));
+                analytic.OutputModel.ForEach((item) => framesPerSecond.Add(m_mappingID + "AnalyticOutput-" + item.ID, Instance.FramesPerSecond));
                 return Instance;
             }
             catch (Exception ex)
             {
+                MessageRecieved.Invoke(this, new MessageArgs("Unable to generate or configure Analytic", ex, MessageArgs.MessageLevel.Error));
                 return null;
             }
         }
+
+        private void GenerateRoutes(TaskAnalytic analytic,  Dictionary<int, AdaptSignal> TemplateSignalMapping)
+        {
+            InputMappings = new Dictionary<string, string>();
+
+            int i = 0;
+            foreach (string inputName in m_instance.InputNames())
+            {
+                string key = "";
+                AnalyticInput input = analytic.InputModel.Where(item => item.InputIndex == i).FirstOrDefault();
+                if (input is null)
+                {
+                    i++;
+                    continue;
+                }
+
+                if (input.IsInputSignal)
+                    key = m_mappingID + "-" + TemplateSignalMapping[input.SignalID].ID;
+                else
+                    key = m_mappingID + "AnalyticOutput-" + input.SignalID;
+
+                InputMappings.Add(inputName, key);
+                i++;
+            }
+
+            OutputMappings = new Dictionary<string, string>();
+            i = 0;
+            foreach (AnalyticOutputDescriptor outputName in m_instance.Outputs())
+            {
+                string key = "";
+                AnalyticOutputSignal output = analytic.OutputModel.Where(item => item.OutputIndex == i).FirstOrDefault();
+                if (output is null)
+                {
+                    i++;
+                    continue;
+                }
+
+                key = m_mappingID + "AnalyticOutput-" + output.ID;
+
+                OutputMappings.Add(outputName.Name, key);
+                i++;
+            }
+        }
+        #endregion
+
+        #region [ Static ]
+
+
 
         #endregion
     }

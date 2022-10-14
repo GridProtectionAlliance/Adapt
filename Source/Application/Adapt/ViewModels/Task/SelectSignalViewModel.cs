@@ -48,7 +48,7 @@ namespace Adapt.ViewModels
     /// <summary>
     /// ViewModel for Task Window
     /// </summary>
-    public class SelectSignalMappingVM<T>: ViewModelBase 
+    public class SelectMappingVM<T>: ViewModelBase 
     {
         #region [ Members ]
 
@@ -95,12 +95,12 @@ namespace Adapt.ViewModels
         /// <param name="Search">Function that returns a flag whether the item should be shown with a given Search.</param>
         /// <param name="Display">Function that returns the <see cref="string"/> to be displayed.</param>
         /// <param name="Data">A <see cref="IEnumerable{T}"/> containing the full data</param>
-        public SelectSignalMappingVM(Action<T> Complete, Func<T,string,bool> Search, Func<T,string> Display, IEnumerable<T> Data, string Heading="Select a Device")
+        public SelectMappingVM(Action<T> Complete, Func<T,string,bool> Search, Func<T,string> Display, IEnumerable<T> Data, string Heading="Select a Device")
         {
             m_Search = "";
             
             m_Complete = Complete;
-            SelectCommand = new RelayCommand(Select, (obj) => m_ListedOptions.Count() > 0 && SelectedOption >= 0 && SelectedOption < m_ListedOptions.Count());
+            SelectCommand = new RelayCommand(Select, () => m_ListedOptions.Count() > 0 && SelectedOption >= 0 && SelectedOption < m_ListedOptions.Count());
             m_IncludeSearch = Search;
             m_TransformDisplay = Display;
 
@@ -134,9 +134,8 @@ namespace Adapt.ViewModels
         /// <summary>
         /// Closes the window after selecting the Device
         /// </summary>
-        private void Select(object window)
+        private void Select()
         {
-            ((SelectSignal)window).Close();
             m_Complete.Invoke(m_ListedOptions.ToList()[SelectedOption]);
         }
 

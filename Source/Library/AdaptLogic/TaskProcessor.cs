@@ -46,8 +46,14 @@ namespace AdaptLogic
         #region [ Members ]
         private IDataSource m_Source;
         private Channel<IFrame> m_sourceQueue;
+
+        private Dictionary<string, List<AdaptSignal>> m_TemplateInputs;
+        private Channel<IFrame> m_writeQueue;
+
+
         private ConcurrentDictionary<string, SignalWritter> m_writers;
-        private List<SignalProcessor> m_processors;
+        private Dictionary<string,List<SectionProcessor>> m_processors;
+
         private List<AdaptSignal> m_sourceSignals;
         private DateTime m_start;
         private DateTime m_end;
@@ -55,7 +61,7 @@ namespace AdaptLogic
 
         private int m_commonFrameRate;
 
-        private List<Channel<IFrame>> m_sectionQueue;
+        private Dictionary<string, List<Channel<IFrame>>> m_sectionQueue;
 
         private CancellationTokenSource m_cancelationSource;
         
@@ -75,31 +81,13 @@ namespace AdaptLogic
         /// </summary>
         public event EventHandler<MessageArgs> MessageRecieved;
 
+        /// <summary>
+        /// All Devices associated with the Outputs of this Task
+        /// </summary>
+        public IEnumerable<IDevice> Devices { get; private set; }
         #endregion
 
-        #region [ Constructor ]
-
-        /// <summary>
-        /// Create as new <see cref="TaskProcessor"/> that only grabs the data from the <see cref="IDataSource"/> and saves it.
-        /// No Processing is done in between.
-        /// </summary>
-        /// <param name="Signals"> A list of <see cref="AdaptSignal"/> to grab.</param>
-        /// <param name="Source"> The <see cref="DataSource"/> used to get the Data</param>
-        public TaskProcessor(List<AdaptSignal> Signals, DataSource Source, DateTime start, DateTime end)
-        {
-            SignalWritter.CleanAppData();
-            CreateSourceInstance(Source);
-            m_writers = new ConcurrentDictionary<string,SignalWritter>(Signals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
-            m_processors = new List<SignalProcessor>();
-            m_sourceQueue = Channel.CreateUnbounded<IFrame>();
-            m_sectionQueue = new List<Channel<IFrame>>();
-            m_start = start;
-            m_end = end;
-            m_sourceSignals = Signals;
-            m_cancelationSource = new CancellationTokenSource();
-            m_commonFrameRate = TimeAlignment.Combine(Signals.Select(item => item.FramesPerSecond).ToArray());
-        }
-
+        #region [ Constructor ]       
         /// <summary>
         /// Creates a new <see cref="TaskProcessor"/> based on a <see cref="Task"/>
         /// </summary>
@@ -108,48 +96,163 @@ namespace AdaptLogic
         public TaskProcessor(AdaptTask task)
         {
             SignalWritter.CleanAppData();
-            CreateSourceInstance(task.DataSource);
-            List<AdaptSignal> inputSignals = m_Source.GetSignals().Where(s => task.InputSignalIds.Contains(s.ID)).ToList();
-        
+            m_Source = CreateSourceInstance(task.DataSourceModel);
+
+            if (m_Source == null)
+                return;
+
+            List<AdaptSignal> inputSignals = task.SignalMappings.SelectMany(s => s.Values).GroupBy((a) => a.ID).Select(g => g.FirstOrDefault()).ToList();
+            List<AdaptSignal> sourceSignals = m_Source.GetSignals().ToList();
+
+            if (inputSignals.Select((s) => sourceSignals.FindIndex((ss) => ss.ID == s.ID)).Any(s => s < 0))
+            {
+                MessageRecieved?.Invoke(this, new MessageArgs($"The following Signals are not found in the datasource: {string.Join(",",inputSignals.Where((s) => sourceSignals.FindIndex((ss) => ss.ID == s.ID) < 0).Select(s => s.Name))}", 
+                    MessageArgs.MessageLevel.Error));
+            }
+
             m_sourceQueue = Channel.CreateUnbounded<IFrame>();
             m_start = task.Start;
             m_end = task.End;
             m_sourceSignals = inputSignals;
             m_cancelationSource = new CancellationTokenSource();
-            m_sectionQueue = task.Sections.Select(sec => Channel.CreateUnbounded<IFrame>()).ToList();
+            m_sectionQueue = new Dictionary<string, List<Channel<IFrame>>>();
+            m_writeQueue = Channel.CreateUnbounded<IFrame>();
+            m_TemplateInputs = new Dictionary<string, List<AdaptSignal>>();
+
+            m_processors = new Dictionary<string, List<SectionProcessor>>();
+
+            List<AdaptSignal> outputSignals = new List<AdaptSignal>();
+
+            //Frames Per Seconds are computed based on Input Signal FPS
             Dictionary<string, int> framesPerSecond = new Dictionary<string, int>(inputSignals.Select(item => new KeyValuePair<string, int>(item.ID, (int)item.FramesPerSecond)));
 
-            m_processors = task.Sections.Select((sec, i) => {
-                if (i == 0)
-                    return new SignalProcessor(m_sourceQueue, m_sectionQueue[0], sec, framesPerSecond);
-                return new SignalProcessor(m_sectionQueue[i-1], m_sectionQueue[i], sec, framesPerSecond);
-            }).ToList();
+            if (!(task.TemplateModel is null))
+            {
+                List<string> templateIDs = task.DeviceMappings.Select(d => Guid.NewGuid().ToString()).ToList();
+                m_sectionQueue = templateIDs.ToDictionary((c) => c, (c) => {
+                    List<Channel<IFrame>> queues = new List<Channel<IFrame>>();
+                    for (int i = 0; i < task.Sections.Count; i++)
+                        queues.Add(Channel.CreateUnbounded<IFrame>());
+                    return queues;
+                });
 
-            task.OutputSignals.ForEach(s => s.FramesPerSecond = framesPerSecond[s.ID]);
-            m_writers = new ConcurrentDictionary<string, SignalWritter>(task.OutputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal, task.VariableReplacements)));
+                Dictionary<Tuple<string, int>, string> deviceKeyMappings = new Dictionary<Tuple<string,int>, string>();
+                Dictionary<string, string> variableNames = new Dictionary<string, string>();
+                List<string> existingDeviceNames = new List<string>();
+                List<AdaptDevice> existingDevices = new List<AdaptDevice>();
 
-            if (m_processors.Where(item => item.FramesPerSecond > 0).Any())
-                m_commonFrameRate = TimeAlignment.Combine(m_processors.Select(item => item.FramesPerSecond).Where(fps => fps > 0).ToArray());
+                for (int i = 0; i < templateIDs.Count; i++)
+                {
+
+                    m_processors.Add(templateIDs[i], task.Sections.Select((s, j) =>
+                    {
+                        Channel<IFrame> inQueue = m_sectionQueue[templateIDs[i]][j];
+                        Channel<IFrame> outQueue;
+                        if (j < (task.Sections.Count - 1))
+                            outQueue = m_sectionQueue[templateIDs[i]][j + 1];
+                        else
+                            outQueue = m_writeQueue;
+                        return new SectionProcessor(inQueue, outQueue, templateIDs[i], s, task, task.SignalMappings[i], framesPerSecond);
+                    }).ToList());
+
+
+                    variableNames = task.DevicesModels.ToDictionary((d) => d.Name, (d) => task.DeviceMappings[i][d.ID].Name);
+                    task.DevicesModels.ForEach((d) =>
+                    {
+                        task.SignalModels.Where((s) => s.DeviceID == d.ID).ToList().ForEach((s) =>
+                        {
+                            if (s.DeviceID == d.ID)
+                                return;
+                            variableNames.Add(d.Name + "." + s.Name, task.SignalMappings[i][d.ID].Name);
+                        });
+                    });
+
+                    task.DevicesModels.ForEach((d) =>
+                    {
+                        bool isOut = task.OutputSignalModels.Any((o) => o.IsInputSignal && !(task.SignalModels.Find(s => s.ID == o.SignalID && d.ID == s.DeviceID) is null));
+                        isOut = isOut || task.OutputSignalModels.Any((o) => !o.IsInputSignal && task.Sections.SelectMany(sec => sec.Analytics.SelectMany(a => a.OutputModel).Where(s => s.DeviceID == d.ID)).Count() > 0);
+
+                        if (!isOut)
+                            return;
+
+                        string name = d.OutputName;
+                        if (!variableNames.TryAdd("Name", task.DeviceMappings[i][d.ID].Name))
+                            variableNames["Name"] = task.DeviceMappings[i][d.ID].Name;
+
+                        // Can probably improve Performance by using Dictionary
+                        if (name.Contains("{"))
+                            foreach (KeyValuePair<string, string> var in variableNames)
+                                name = name.Replace("{" + var.Key + "}", var.Value);
+
+
+                        if (existingDeviceNames.Contains(name))
+                        {
+                            deviceKeyMappings.Add(new Tuple<string, int>(templateIDs[i], d.ID), existingDevices.First(item => item.Name == name).ID);
+                            return;
+                        }
+
+                        existingDeviceNames.Add(name);
+                        string key = Guid.NewGuid().ToString();
+
+                        existingDevices.Add(new AdaptDevice(key, name));
+                        deviceKeyMappings.Add(new Tuple<string, int>(templateIDs[i], d.ID), key);
+
+                    });
+                    Devices = existingDevices;
+                }
+
+                outputSignals = templateIDs.SelectMany((id,i) => task.OutputSignalModels.Select(s => {
+                    AdaptSignal sig;
+                    int deviceID;
+                    if (s.IsInputSignal)
+                        deviceID = task.SignalModels.Find(sig => sig.ID == s.SignalID).DeviceID;
+                    else
+                        deviceID = task.Sections.SelectMany(sec => sec.Analytics.SelectMany(a => a.OutputModel).Where(si => si.ID == s.SignalID)).First().DeviceID;
+
+                    if (s.IsInputSignal)
+                        sig =  new AdaptSignal(id + "-" + task.SignalMappings[i][s.SignalID].ID, task.SignalMappings[i][s.SignalID]);
+                    else
+                    sig = new AdaptSignal(id + "AnalyticOutput-" + s.SignalID, s.Name, "", framesPerSecond[id + "AnalyticOutput-" + s.SignalID]);
+                    sig.Device = deviceKeyMappings[new Tuple<string,int>(id, deviceID)];
+                    return sig;
+                })).ToList();
+
+                m_TemplateInputs = templateIDs.Select((k,i) => new { Key=k, Val=task.SignalMappings[i].Values.ToList() }).ToDictionary((i) => i.Key,(i) => i.Val);
+
+            }
+            else
+            {
+                outputSignals = task.SignalMappings.SelectMany(s => s.Values).GroupBy((a) => a.ID).Select(g => g.FirstOrDefault()).ToList();
+                List<string> deviceIDs = outputSignals.Select(item => item.Device).Distinct().ToList();
+                Devices = m_Source.GetDevices().Where(d => deviceIDs.Contains(d.ID));
+            }
+
+            if (m_processors.SelectMany(item => item.Value).Where(item => item.FramesPerSecond > 0).Any())
+                m_commonFrameRate = TimeAlignment.Combine(m_processors.SelectMany(item => item.Value).Select(item => item.FramesPerSecond).Where(fps => fps > 0).ToArray());
             else
                 m_commonFrameRate = TimeAlignment.Combine(inputSignals.Select(item => item.FramesPerSecond).ToArray());
+
+            m_writers = new ConcurrentDictionary<string, SignalWritter>(outputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
+              
         }
         #endregion
 
         #region [ Methods ]
-        private bool CreateSourceInstance(DataSource source)
+        private IDataSource CreateSourceInstance(DataSource source)
         {
             try
             {
                 Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(source.AssemblyName));
                 Type type = assembly.GetType(source.TypeName);
-                m_Source = (IDataSource)Activator.CreateInstance(type);
+                IDataSource dataSource = (IDataSource)Activator.CreateInstance(type);
                 IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(source.ConnectionString).Build();
-                m_Source.Configure(config);
-                return true;
+                dataSource.Configure(config);
+                return dataSource;
             }
             catch (Exception ex)
             {
-                return false;
+                MessageRecieved?.Invoke(this, new MessageArgs("An error occurred creating the DataSource", ex, MessageArgs.MessageLevel.Error));
+                return null;
             }
 
         }
@@ -167,18 +270,20 @@ namespace AdaptLogic
             {
 
                 Task getData = Task.Run(() => GetData(m_cancelationSource.Token));
-                Task[] processTask = m_processors.Select(item => item.StartProcessor(m_cancelationSource.Token)).ToArray();
+                Task[] processTask = m_processors.SelectMany(item => item.Value.Select(p => p.StartProcessor(m_cancelationSource.Token))).ToArray();
 
                 Task writeData;
-                if (m_processors.Count == 0)
-                    writeData = Task.Run(() => WriteData(m_cancelationSource.Token,m_sourceQueue));
-                else
-                    writeData = Task.Run(() => WriteData(m_cancelationSource.Token, m_sectionQueue.Last()));
+                Task distributeData;
+
+               writeData = Task.Run(() => WriteData(m_cancelationSource.Token));
+               distributeData = Task.Run(() => DistributeTemplates(m_cancelationSource.Token));
 
                 Task[] writterTasks = m_writers.Select(item => item.Value.StartWritter(m_cancelationSource.Token)).ToArray();
 
                 getData.Wait();
+                distributeData.Wait();
                 Task.WaitAll(processTask);
+
                 writeData.Wait();
                 Task.WaitAll(writterTasks);
 
@@ -213,7 +318,7 @@ namespace AdaptLogic
             }
             catch (Exception ex)
             {
-                int t = 1;
+                MessageRecieved?.Invoke(this, new MessageArgs("An Error occurred when trying to load data.", ex, MessageArgs.MessageLevel.Error));
             }
             finally
             {
@@ -222,16 +327,69 @@ namespace AdaptLogic
             }
         }
 
-        private async void WriteData(CancellationToken cancelationToken, Channel<IFrame> sourceQueue)
+        private async void DistributeTemplates(CancellationToken cancellationToken)
+        {
+            int Nprocesssed = 0;
+            try
+            {
+                IFrame frame;
+                
+                while (await m_sourceQueue.Reader.WaitToReadAsync(cancellationToken))
+                {
+                    if (!m_sourceQueue.Reader.TryRead(out frame))
+                        continue;
+                    Nprocesssed++;
+
+                    if (m_sectionQueue.Count > 0)
+                        foreach (KeyValuePair<string,List<Channel<IFrame>>> template in m_sectionQueue)
+                        {
+                            List<string> signals = m_TemplateInputs[template.Key].Select(s => s.ID).ToList();
+                            IFrame templateFrame = new Frame() {
+                                Timestamp = frame.Timestamp,
+                                Published = frame.Published,
+                                Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>()
+                            };
+
+                            // This maps the signal into the corresponding Template queues... 
+                            foreach (KeyValuePair<string, ITimeSeriesValue> value in frame.Measurements)
+                            {
+                                if (!signals.Contains(value.Key))
+                                    continue;
+
+                                templateFrame.Measurements.AddOrUpdate(template.Key + "-" + value.Key, (id) => value.Value.Clone(id), (id, original) => value.Value.Clone(id));
+                            }
+
+                            template.Value[0].Writer.TryWrite(templateFrame);
+                        } 
+                    else
+                        m_writeQueue.Writer.TryWrite(frame);
+
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageRecieved?.Invoke(this, new MessageArgs("An Error occurred when routing Templates.", ex, MessageArgs.MessageLevel.Error));
+            }
+            finally
+            {
+                if (m_sectionQueue.Count > 0)
+                    foreach (KeyValuePair<string, List<Channel<IFrame>>> template in m_sectionQueue)
+                        template.Value[0].Writer.Complete();
+                else
+                    m_writeQueue.Writer.Complete();
+            }
+        }
+
+        private async void WriteData(CancellationToken cancelationToken)
         {
             try
             {
 
                 IFrame frame;
                 int Nprocesssed = 0;
-                while (await sourceQueue.Reader.WaitToReadAsync(cancelationToken))
+                while (await m_writeQueue.Reader.WaitToReadAsync(cancelationToken))
                 {
-                    if (!sourceQueue.Reader.TryRead(out frame))
+                    if (!m_writeQueue.Reader.TryRead(out frame))
                         continue;
                     Nprocesssed++;
                     foreach (KeyValuePair<string, ITimeSeriesValue> value in frame.Measurements)
@@ -245,7 +403,7 @@ namespace AdaptLogic
             }
             catch (Exception ex)
             {
-                MessageRecieved?.Invoke(this, new MessageArgs("An error occurred writing data to the temporary files", MessageArgs.MessageLevel.Error));
+                MessageRecieved?.Invoke(this, new MessageArgs("An error occurred writing data to the temporary files", ex, MessageArgs.MessageLevel.Error));
             }
             finally
             {

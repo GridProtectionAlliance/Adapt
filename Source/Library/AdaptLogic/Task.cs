@@ -43,20 +43,37 @@ namespace AdaptLogic
     public class AdaptTask
     {
         #region [ Members ]
+        public class TaskSection
+        {
+            public TemplateSection Model { get; set; }
+            public List<TaskAnalytic> Analytics { get; set; }
+        }
 
+        public class TaskAnalytic 
+        {
+            public Analytic Model { get; set; }
+            public List<AnalyticInput> InputModel { get; set; }
+            public List<AnalyticOutputSignal> OutputModel { get; set; }
+            public Type AnalyticType { get; set; }
+            public IConfiguration Configuration { get; set; }
+        }
         #endregion
 
         #region [ Properties ]
-        public DataSource DataSource { get; set; }
-        public List<string> InputSignalIds { get; set; }
+        public DataSource DataSourceModel { get; set; }
+        public Template TemplateModel { get; set; }
+        public List<TaskSection> Sections { get; set; }
+        public List<TemplateInputDevice> DevicesModels { get; set; }
+        public List<TemplateInputSignal> SignalModels { get; set; }
+        public List<TemplateOutputSignal> OutputSignalModels { get; set; }
 
-        public List<AdaptSignal> OutputSignals { get; set; }
+        public List<Dictionary<int, IDevice>> DeviceMappings { get; set; }
+        public List<Dictionary<int, AdaptSignal>> SignalMappings { get; set; }
 
         public DateTime Start { get; set; }
         public DateTime End { get; set; }
-        public List<TaskSection> Sections { get; set; }
 
-        public Dictionary<string, Tuple<string, string>[]> VariableReplacements { get; set; }
+        public int NTemplates => DeviceMappings?.Count() ?? 0;
         #endregion
 
         #region [ Constructor ]
@@ -68,19 +85,4 @@ namespace AdaptLogic
 
         #endregion
     }
-
-    public class TaskSection
-    {
-        public List<Analytic> Analytics { get; set; }
-    }
-
-    public class Analytic
-    {
-        public Type AdapterType { get; set; }
-        public List<string> Inputs { get; set; }
-        public List<AnalyticOutputDescriptor> Outputs { get; set; }
-        public IConfiguration Configuration { get; set; }
-        public int FramesPerSecond { get; set; }
-    }
-
 }
