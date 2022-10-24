@@ -23,16 +23,31 @@
             <ItemsControl ItemsSource="{Binding DeviceMappings}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <StackPanel Grid.Column="0" Orientation="Horizontal">
-                            <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding TargetDeviceName}"/>
-                            <Path Margin="1,0" VerticalAlignment="Center" Width="20" Fill="DarkRed" Stretch="Uniform" 
+                        <StackPanel  Grid.Column="0" Orientation="Vertical">
+                            <StackPanel Orientation="Horizontal">
+                                <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding TargetDeviceName}"/>
+                                <Path Margin="1,0" VerticalAlignment="Center" Width="20" Fill="DarkRed" Stretch="Uniform" 
                               HorizontalAlignment="Right" Data="F1M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" Visibility="{Binding Path=IsValid, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" />
-                            <TextBlock Margin="0" Width="150" VerticalAlignment="Center" HorizontalAlignment="Center" Text="Please Select a Device" Visibility="{Binding Path=IsSelected, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" />
-                            <TextBlock Text="{Binding Path=SourceDeviceName}"  Height="20" Width="150" Visibility="{Binding Path=IsSelected, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}"/>
-                            <Button Width="80" Height="18" Margin="2, 5" Command="{Binding ChangeDevice}" Visibility="{Binding Path=IsSelected, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}">Change PMU</Button>
-                            <Button Width="80" Height="18" Margin="2, 5" Command="{Binding ChangeDevice}" Visibility="{Binding Path=IsSelected, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}">Select a PMU</Button>
-                            <Button Width="100" Height="18" Margin="2, 5"  Visibility="{Binding Path=IsValid, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" 
-                                Command="{Binding FixChannel}">Assign Channels</Button>
+                                <TextBlock Margin="0" Width="150" VerticalAlignment="Center" HorizontalAlignment="Center" Text="Please Select a Device" Visibility="{Binding Path=IsSelected, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" />
+                                <TextBlock Text="{Binding Path=SourceDeviceName}"  Height="20" Width="150" Visibility="{Binding Path=IsSelected, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}"/>
+                                <Button Width="80" Height="18" Margin="2, 5" Command="{Binding ChangeDevice}" Visibility="{Binding Path=IsSelected, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}">Change PMU</Button>
+                                <Button Width="80" Height="18" Margin="2, 5" Command="{Binding ChangeDevice}" Visibility="{Binding Path=IsSelected, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}">Select a PMU</Button>
+                            </StackPanel>
+
+                            <ItemsControl ItemsSource="{Binding ChannelMappings}" Visibility="{Binding Path=IsSelected, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Label  Margin="10,0,0,0" Width="200" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding TargetChannelName}"/>
+                                            <Path Margin="1,0" VerticalAlignment="Center" Width="20" Fill="DarkRed" Stretch="Uniform" 
+                              HorizontalAlignment="Right" Data="F1M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" Visibility="{Binding Path=IsValid, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" />
+                                            <TextBlock Margin="0" Width="250" VerticalAlignment="Center" HorizontalAlignment="Center" Text="Unable to assign channel automatically" Visibility="{Binding Path=IsValid, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}" />
+                                            <TextBlock Text="{Binding Path=SourceChannelName}"  Height="20" Width="150" Visibility="{Binding Path=IsValid, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}"/>
+                                            <Button Width="100" Height="18" Margin="2, 5" Command="{Binding SelectChannel}" Visibility="{Binding Path=IsValid, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}">Assign Channel</Button>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

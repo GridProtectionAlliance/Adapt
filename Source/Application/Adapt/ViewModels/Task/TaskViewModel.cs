@@ -146,7 +146,7 @@ namespace Adapt.ViewModels
             AddMappingVM();
             AllowAutoMapping = false;
 
-            AddMapping = new RelayCommand(AddMappingVM, () => false);
+            AddMapping = new RelayCommand(AddMappingVM, () => true);
             AutoMapping = new RelayCommand(() => { }, () => AllowAutoMapping);
 
             RunTask = new RelayCommand(ProcessTask, () => !ShowDataSourceWarning);

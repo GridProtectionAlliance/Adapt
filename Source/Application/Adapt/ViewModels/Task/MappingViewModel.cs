@@ -42,6 +42,7 @@ using System.Transactions;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using static Adapt.ViewModels.DeviceMapping;
 
 namespace Adapt.ViewModels
 {
@@ -56,31 +57,6 @@ namespace Adapt.ViewModels
 
         private TaskVM m_parent;
 
-        public class Mapping
-        {
-            public Mapping(TemplateInputDevice device, MappingVM parent)
-            {
-                TargetDeviceID = device.ID;
-                TargetDeviceName = device.Name;
-                IsValid = true;
-                IsSelected = false;
-                ChangeDevice = new RelayCommand(() => parent.SelectDevice(this), () => true);
-                FixChannel = new RelayCommand(() => parent.FixDuplicates(this), () => true);
-
-                ChannelMappings = new Dictionary<int, AdaptSignal>();
-            }
-            public int TargetDeviceID { get; set; }
-            public IDevice SourceDevice { get; set; }
-            public string TargetDeviceName { get; set; }
-
-            public string SourceDeviceName => SourceDevice?.Name ?? "";
-            public ICommand ChangeDevice { get; }
-            public ICommand FixChannel { get; }
-            public Dictionary<int,AdaptSignal> ChannelMappings { get; set; }
-            public bool IsValid { get; set; }
-            public bool IsSelected { get; set; }
-        }
-
         /// <summary>
         /// The Map of Devices to <see cref="TemplateInputDevice.ID"/>.
         /// </summary>
@@ -89,7 +65,7 @@ namespace Adapt.ViewModels
         /// <summary>
         /// The Map of Channels to <see cref="TemplateInputSignal.ID"/>.
         /// </summary>
-        public Dictionary<int, AdaptSignal> SignalMap => DeviceMappings.SelectMany((d) => d.ChannelMappings.AsEnumerable()).ToDictionary((d) => d.Key, (d) => d.Value);
+        public Dictionary<int, AdaptSignal> SignalMap => DeviceMappings.SelectMany((d) => d.ChannelMappings.AsEnumerable()).ToDictionary((d) => d.TargetChannelID, (d) => d.SourceChannel);
 
         #endregion
 
@@ -109,7 +85,7 @@ namespace Adapt.ViewModels
         /// The Datasource used for this Mapping
         /// </summary>
         public DataSource DataSource { get; set; }
-        public ObservableCollection<Mapping> DeviceMappings { get; set; }
+        public ObservableCollection<DeviceMapping> DeviceMappings { get; set; }
 
         /// <summary>
         /// Indicates if the Mapping is valid an complete
@@ -147,12 +123,12 @@ namespace Adapt.ViewModels
         /// </summary>
         private void LoadTargetDevices()
         {
-            DeviceMappings = new ObservableCollection<Mapping>();
+            DeviceMappings = new ObservableCollection<DeviceMapping>();
 
             using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                DeviceMappings = new ObservableCollection<Mapping>(
+                DeviceMappings = new ObservableCollection<DeviceMapping>(
                     new TableOperations<TemplateInputDevice>(connection).QueryRecordsWhere("TemplateID = {0} AND (SELECT COUNT(ID) FROM TemplateInputSignal WHERE DeviceID = TemplateInputDevice.ID) > 0", m_Template.Id)
-                    .Select(d=> new Mapping(d, this)).ToList()
+                    .Select(d=> new DeviceMapping(d, this)).ToList()
                     );
 
             OnPropertyChanged(nameof(DeviceMappings));
@@ -160,55 +136,18 @@ namespace Adapt.ViewModels
         }
 
         /// <summary>
-        /// Opens the Select Device Window
+        /// Callback when any of the selected Devices changed.
         /// </summary>
-        private void SelectDevice(Mapping mapping)
+        public void DeviceChangedCallback()
         {
-
-            SelectSignal selectionWindow = new SelectSignal();
-
-            SelectMappingVM<AdaptDevice> deviceSelectionVM = new SelectMappingVM<AdaptDevice>((d) => {
-                mapping.SourceDevice = d;
-
-                mapping.ChannelMappings = new Dictionary<int, AdaptSignal>();
-
-                // Validate Signals on that device
-                List<TemplateInputSignal> targetSignals;
-                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    targetSignals = new TableOperations<TemplateInputSignal>(connection)
-                        .QueryRecordsWhere("DeviceID = {0}", mapping.TargetDeviceID).ToList();
-                    
-                List<AdaptSignal> sourceSignals = AdaptSignal.Get(DataSourceInstance, DataSource.ID, ConnectionString, DataProviderString)
-                    .Where(s => s.Device == d.ID).ToList();
-
-                mapping.IsValid = sourceSignals.Count() >= targetSignals.Count();
-
-                for (int i = 0; i < targetSignals.Count(); i++)
-                {
-                    int index = sourceSignals.FindIndex(item => item.Phase == targetSignals[i].Phase && item.Type == targetSignals[i].MeasurmentType);
-                    if (index == -1)
-                        mapping.ChannelMappings.Add(targetSignals[i].ID, null); 
-                    else
-                        mapping.ChannelMappings.Add(targetSignals[i].ID, sourceSignals[index]);
-                }
-                mapping.IsValid = !mapping.ChannelMappings.Any(item => item.Value is null);
-                mapping.IsSelected = true;
-
-                DeviceMappings = new ObservableCollection<Mapping>(DeviceMappings);
-
-                OnPropertyChanged(nameof(DeviceMappings));
-                OnPropertyChanged(nameof(Valid));
-
-                selectionWindow.Close();
-            },(d,s) => d.Name.ToLower().Contains(s.ToLower()),(d) => d.Name,AdaptDevice.Get(DataSourceInstance,DataSource.ID,ConnectionString,DataProviderString));
-            selectionWindow.DataContext = deviceSelectionVM;
-            selectionWindow.ShowDialog();
+            OnPropertyChanged(nameof(DeviceMappings));
+            OnPropertyChanged(nameof(Valid));
         }
 
         /// <summary>
         /// Opens Window to select signals from a device.
         /// </summary>
-        public void FixDuplicates(Mapping mapping)
+        public void FixDuplicates()
         {
             /*
             if (mapping.ChannelMappings.Count() == 0 || !mapping.ChannelMappings.ContainsValue(""))

@@ -141,6 +141,13 @@ namespace AdaptLogic
                 List<string> existingDeviceNames = new List<string>();
                 List<AdaptDevice> existingDevices = new List<AdaptDevice>();
 
+                Func<string, string> processVars = (string text) => {
+                    if (text.Contains("{"))
+                        foreach (KeyValuePair<string, string> var in variableNames)
+                            text = text.Replace("{" + var.Key + "}", var.Value);
+                    return text;
+                };
+
                 for (int i = 0; i < templateIDs.Count; i++)
                 {
 
@@ -179,11 +186,7 @@ namespace AdaptLogic
                         if (!variableNames.TryAdd("Name", task.DeviceMappings[i][d.ID].Name))
                             variableNames["Name"] = task.DeviceMappings[i][d.ID].Name;
 
-                        // Can probably improve Performance by using Dictionary
-                        if (name.Contains("{"))
-                            foreach (KeyValuePair<string, string> var in variableNames)
-                                name = name.Replace("{" + var.Key + "}", var.Value);
-
+                        name = processVars(name);
 
                         if (existingDeviceNames.Contains(name))
                         {
@@ -212,8 +215,17 @@ namespace AdaptLogic
                     if (s.IsInputSignal)
                         sig =  new AdaptSignal(id + "-" + task.SignalMappings[i][s.SignalID].ID, task.SignalMappings[i][s.SignalID]);
                     else
-                    sig = new AdaptSignal(id + "AnalyticOutput-" + s.SignalID, s.Name, "", framesPerSecond[id + "AnalyticOutput-" + s.SignalID]);
+                        sig = new AdaptSignal(id + "AnalyticOutput-" + s.SignalID, s.Name, "", framesPerSecond[id + "AnalyticOutput-" + s.SignalID]);
                     sig.Device = deviceKeyMappings[new Tuple<string,int>(id, deviceID)];
+
+                    if (!variableNames.TryAdd("Name", sig.Name))
+                        variableNames["Name"] = sig.Name;
+
+                    if (!variableNames.TryAdd("DeviceName", task.DeviceMappings[i][deviceID].Name))
+                        variableNames["DeviceName"] = task.DeviceMappings[i][deviceID].Name;
+
+                    sig.Name = processVars(s.Name);
+
                     return sig;
                 })).ToList();
 
@@ -398,6 +410,7 @@ namespace AdaptLogic
                         if (m_writers.TryGetValue(value.Key, out writer))
                             writer.AddPoint(value.Value);
                     }
+
                    
                 }
             }
