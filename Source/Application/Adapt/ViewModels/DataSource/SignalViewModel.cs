@@ -202,7 +202,7 @@ namespace Adapt.ViewModels
                 if (isCustom && hasCustom)
                     connection.ExecuteNonQuery($"UPDATE SignalMetaData SET Value = '{m_type}' WHERE DataSourceID={m_dataSourceID} AND SignalID='{m_signal.ID}' AND Field='Type'");
                 if (!isCustom && hasCustom)
-                    connection.ExecuteNonQuery($"DELETE SignalMetaData WHERE DataSourceID={m_dataSourceID} AND SignalID='{m_signal.ID}' AND Field='Type' ");
+                    connection.ExecuteNonQuery($"DELETE FROM SignalMetaData WHERE DataSourceID={m_dataSourceID} AND SignalID='{m_signal.ID}' AND Field='Type' ");
             }
         }
 
