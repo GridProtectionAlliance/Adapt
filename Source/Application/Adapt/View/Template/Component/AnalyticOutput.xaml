@@ -12,9 +12,6 @@
         <System:Boolean x:Key="TrueValue">True</System:Boolean>
     </UserControl.Resources>
     <StackPanel Orientation="Horizontal" Height="auto" Background="LightGray" Visibility="{Binding Path=Removed, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}">
-        <StackPanel.Resources>
-            <CollectionViewSource Source="{Binding Path=AllDevices}" x:Key="DeviceNames" />
-        </StackPanel.Resources>
         <TextBlock Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Label}" />
         <TextBox Margin="0,2" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Name}" />
         <Label Margin="0,2" Width="60" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Device:"/>
