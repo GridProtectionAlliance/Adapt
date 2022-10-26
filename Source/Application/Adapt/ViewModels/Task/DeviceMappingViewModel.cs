@@ -81,11 +81,14 @@ namespace Adapt.ViewModels
                 string title = "Select a Signal for " + TargetChannelName ?? "";
 
                 SelectSignal signalSelection = new SelectSignal();
+
                 SelectMappingVM<AdaptSignal> selectionVM = new SelectMappingVM<AdaptSignal>((d) => {
-                    SourceChannel = d;
+                    SourceChannel = d.FirstOrDefault();
+
                     m_parent.SignalChangedCallback();
-                }, (d, s) => d.Name.ToLower().Contains(s.ToLower()), (d) => d.Name, AdaptSignal.Get(m_parent.Parent.DataSourceInstance, m_parent.Parent.DataSource.ID, ConnectionString, DataProviderString)
-               .Where(s => s.ID == m_parent.SourceDevice.ID && s.Phase == m_targetSignal.Phase && s.Type == m_targetSignal.MeasurmentType), title);
+                    signalSelection.Close();
+                }, (d, s) => d.Name.ToLower().Contains(s.ToLower()), (d) => d.Name, AdaptSignal.Get(m_parent.Parent.Parent.DataSourceInstance, m_parent.Parent.DataSource.ID, ConnectionString, DataProviderString)
+               .Where(s => s.Device == m_parent.SourceDevice.ID && s.Phase == m_targetSignal.Phase && s.Type == m_targetSignal.MeasurmentType), title);
                 signalSelection.DataContext = selectionVM;
                 signalSelection.ShowDialog();
             }
@@ -131,49 +134,54 @@ namespace Adapt.ViewModels
             SelectSignal selectionWindow = new SelectSignal();
 
             SelectMappingVM<AdaptDevice> deviceSelectionVM = new SelectMappingVM<AdaptDevice>((d) => {
-                SourceDevice = d;
-                ChannelMappings = new ObservableCollection<SignalMapping>();
-
-                // Validate Signals on that device
-                List<TemplateInputSignal> targetSignals;
-                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
-                    targetSignals = new TableOperations<TemplateInputSignal>(connection)
-                        .QueryRecordsWhere("DeviceID = {0}", TargetDeviceID).ToList();
-
-                List<AdaptSignal> sourceSignals = AdaptSignal.Get(m_parent.DataSourceInstance, m_parent.DataSource.ID, ConnectionString, DataProviderString)
-                    .Where(s => s.Device == d.ID).ToList();
-
-                for (int i = 0; i < targetSignals.Count(); i++)
-                {
-                    int c = sourceSignals.Count(item => item.Phase == targetSignals[i].Phase && item.Type == targetSignals[i].MeasurmentType);
-
-                    if (c != 1)
-                        ChannelMappings.Add(new SignalMapping(this, targetSignals[i], null));
-                    else
-                        ChannelMappings.Add(new SignalMapping(this, targetSignals[i], sourceSignals.Find(item => item.Phase == targetSignals[i].Phase && item.Type == targetSignals[i].MeasurmentType)));
-                }
-
-              
-                IsSelected = true;
-
-                m_parent.DeviceMappings = new ObservableCollection<DeviceMapping>(m_parent.DeviceMappings);
-
-                m_parent.DeviceChangedCallback();
-                OnPropertyChanged(nameof(ChannelMappings));
-                OnPropertyChanged(nameof(IsValid));
+                AssignDevice(d.FirstOrDefault());
                 selectionWindow.Close();
-            }, (d, s) => d.Name.ToLower().Contains(s.ToLower()), (d) => d.Name, AdaptDevice.Get(m_parent.DataSourceInstance, m_parent.DataSource.ID, ConnectionString, DataProviderString));;
+            }, (d, s) => d.Name.ToLower().Contains(s.ToLower()), (d) => d.Name, AdaptDevice.Get(m_parent.Parent.DataSourceInstance, m_parent.DataSource.ID, ConnectionString, DataProviderString));;
             selectionWindow.DataContext = deviceSelectionVM;
             selectionWindow.ShowDialog();
         }
 
         public void SignalChangedCallback()
         {
+            ChannelMappings = new ObservableCollection<SignalMapping>(ChannelMappings);
             OnPropertyChanged(nameof(ChannelMappings));
             OnPropertyChanged(nameof(IsValid));
             m_parent.DeviceChangedCallback();
         }
       
+        public void AssignDevice(AdaptDevice device)
+        {
+            SourceDevice = device;
+            ChannelMappings = new ObservableCollection<SignalMapping>();
+
+            // Validate Signals on that device
+            List<TemplateInputSignal> targetSignals;
+            using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                targetSignals = new TableOperations<TemplateInputSignal>(connection)
+                    .QueryRecordsWhere("DeviceID = {0}", TargetDeviceID).ToList();
+
+            List<AdaptSignal> sourceSignals = AdaptSignal.Get(m_parent.Parent.DataSourceInstance, m_parent.Parent.DataSource.ID, ConnectionString, DataProviderString)
+                .Where(s => s.Device == SourceDevice.ID).ToList();
+
+            for (int i = 0; i < targetSignals.Count(); i++)
+            {
+                int c = sourceSignals.Count(item => item.Phase == targetSignals[i].Phase && item.Type == targetSignals[i].MeasurmentType);
+
+                if (c != 1)
+                    ChannelMappings.Add(new SignalMapping(this, targetSignals[i], null));
+                else
+                    ChannelMappings.Add(new SignalMapping(this, targetSignals[i], sourceSignals.Find(item => item.Phase == targetSignals[i].Phase && item.Type == targetSignals[i].MeasurmentType)));
+            }
+
+
+            IsSelected = true;
+
+            m_parent.DeviceMappings = new ObservableCollection<DeviceMapping>(m_parent.DeviceMappings);
+
+            m_parent.DeviceChangedCallback();
+            OnPropertyChanged(nameof(ChannelMappings));
+            OnPropertyChanged(nameof(IsValid));
+        }
         #endregion
 
         #region [ Static ]

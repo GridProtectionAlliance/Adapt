@@ -6,25 +6,45 @@
         xmlns:local="clr-namespace:Adapt.ViewModels"
         xmlns:localcv="clr-namespace:Adapt.Converter"
         mc:Ignorable="d" Name="SelectionWindow"
-        Title="{Binding Title}" Width="260">
+        xmlns:System="clr-namespace:System;assembly=System.Runtime"
+        Title="{Binding Title}" Width="400">
     <Window.Resources>
         <localcv:ObjectToVisibility x:Key="ObjectToVisibility" />
+        <System:Boolean x:Key="FalseValue">False</System:Boolean>
+        <System:Boolean x:Key="TrueValue">True</System:Boolean>
     </Window.Resources>
     <StackPanel Orientation="Vertical">
         <StackPanel Orientation="Horizontal">
             <Label Content="Search:"></Label>
             <TextBox Width="200" Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+            <StackPanel Margin="5,0,0,0" Orientation="Horizontal" Visibility="{Binding MultiSelect, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}">
+                <Button  Command="{Binding SelectAll}">
+                    Select All
+                </Button>
+            </StackPanel>
         </StackPanel>
-        <TextBlock TextWrapping="Wrap" Text="No Signals are available that match the requirements. Please select a different PMU." Visibility="{Binding Path=ShowError, Converter={StaticResource ObjectToVisibility}}" FontSize="20" Foreground="red"/>
-        <ListBox ItemsSource="{Binding DisplayList}" SelectedIndex="{Binding SelectedOption, UpdateSourceTrigger=PropertyChanged, Mode=OneWayToSource}" Height="500" >
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding .}" />
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-        <Button Command="{Binding SelectCommand}" CommandParameter="{Binding ElementName=SelectionWindow}">Select</Button>
+        <TextBlock TextWrapping="Wrap" Text="No Signals are available that match the requirements. Please select a different PMU."
+                   Visibility="{Binding Path=ShowError, Converter={StaticResource ObjectToVisibility}}" FontSize="20" Foreground="red"/>
+
+
+        <ScrollViewer Height="500">
+            <ItemsControl ItemsSource="{Binding DisplayList}" >
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Visibility="{Binding Visible, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}" Background="{Binding Color}">
+                            <StackPanel.InputBindings>
+                                <MouseBinding 
+                                MouseAction="LeftClick" 
+                                Command="{Binding Select}"
+                            ></MouseBinding>
+                            </StackPanel.InputBindings>
+                            <CheckBox Margin="0, 6,0,0" IsChecked="{Binding Selected}" Visibility="{Binding ShowCheckBox, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}"/>
+                            <Label Margin="0" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Display}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+        <Button Command="{Binding SelectCommand}" CommandParameter="{Binding ElementName=SelectionWindow}">Continue</Button>
     </StackPanel>
 </Window>

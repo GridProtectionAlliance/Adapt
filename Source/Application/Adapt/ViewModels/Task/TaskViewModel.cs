@@ -46,6 +46,7 @@ using System.Transactions;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using static Adapt.ViewModels.DeviceMapping;
 
 namespace Adapt.ViewModels
 {
@@ -124,6 +125,7 @@ namespace Adapt.ViewModels
             private set; 
         }
 
+        public IDataSource DataSourceInstance { get; private set; }
         #endregion
 
         #region [ Constructor ]
@@ -147,7 +149,7 @@ namespace Adapt.ViewModels
             AllowAutoMapping = false;
 
             AddMapping = new RelayCommand(AddMappingVM, () => true);
-            AutoMapping = new RelayCommand(() => { }, () => AllowAutoMapping);
+            AutoMapping = new RelayCommand(GenerateAutoMapping, () => AllowAutoMapping);
 
             RunTask = new RelayCommand(ProcessTask, () => !ShowDataSourceWarning);
         }
@@ -207,14 +209,14 @@ namespace Adapt.ViewModels
 
             try
             {
-                IDataSource Instance = (IDataSource)Activator.CreateInstance(DataSource.AssemblyName, DataSource.TypeName).Unwrap();
+                DataSourceInstance = (IDataSource)Activator.CreateInstance(DataSource.AssemblyName, DataSource.TypeName).Unwrap();
                 IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(DataSource.ConnectionString).Build();
-                Instance.Configure(config);
+                DataSourceInstance.Configure(config);
 
-                ShowDataSourceWarning = !Instance.Test();
+                ShowDataSourceWarning = !DataSourceInstance.Test();
 
                 foreach (MappingVM mapping in MappingViewModels)
-                    mapping.UpdateDataSource(Instance, DataSource);
+                    mapping.UpdateDataSource(DataSource);
 
                 OnPropertyChanged(nameof(MappingViewModels));
             }
@@ -233,23 +235,17 @@ namespace Adapt.ViewModels
         {
             MappingViewModels = new ObservableCollection<MappingVM>();
             AddMappingVM();
-            // # TODO
-            // Check Number of InputDevices -> if 1 Activate Multiple PMU Button
-            if (Template is null)
-            {
-                return;
-            }
 
-            try
-            {
-               
-            }
-            catch (Exception ex)
-            {
-                
-            }
+            int NDevices = 0;
 
+            if (!(Template is null))
+                using (AdoDataConnection connection = new AdoDataConnection(ConnectionString, DataProviderString))
+                    NDevices = new TableOperations<TemplateInputDevice>(connection).QueryRecordCountWhere("TemplateID = {0} AND (SELECT COUNT(ID) FROM TemplateInputSignal WHERE DeviceID = TemplateInputDevice.ID) > 0", Template.Id);
+
+            AllowAutoMapping = NDevices == 1;
+            
             OnPropertyChanged(nameof(MappingViewModels));
+            OnPropertyChanged(nameof(AllowAutoMapping));
         }
 
         private void AddMappingVM()
@@ -314,6 +310,32 @@ namespace Adapt.ViewModels
             task.SignalMappings = MappingViewModels.Select(item => item.SignalMap).ToList();
 
             m_parent.ProcessTask(task);
+        }
+
+        private void GenerateAutoMapping()
+        {
+            ValidateDataSource();
+
+
+            // Start by opening the Device List to select Devcies....
+            SelectSignal selectionWindow = new SelectSignal();
+
+            SelectMappingVM<AdaptDevice> deviceSelectionVM = new SelectMappingVM<AdaptDevice>((devices) => {
+
+                MappingViewModels = new ObservableCollection<MappingVM>();
+
+                foreach (AdaptDevice d in devices)
+                {
+                    MappingVM mapping = new MappingVM(Template, this);
+                    mapping.UpdateDataSource(DataSource);
+                    mapping.AssignDevice(d);
+                    MappingViewModels.Add(mapping);
+                }
+                selectionWindow.Close();
+                OnPropertyChanged(nameof(MappingViewModels));
+            }, (d, s) => d.Name.ToLower().Contains(s.ToLower()), (d) => d.Name, AdaptDevice.Get(DataSourceInstance, DataSource.ID, ConnectionString, DataProviderString),"Select Devices To Include",true); ;
+            selectionWindow.DataContext = deviceSelectionVM;
+            selectionWindow.ShowDialog();
         }
         #endregion
 

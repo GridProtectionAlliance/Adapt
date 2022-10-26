@@ -40,8 +40,11 @@ using System.Linq;
 using System.Threading;
 using System.Transactions;
 using System.Windows;
+using System.Windows.Forms.VisualStyles;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Windows;
+using System.Windows.Media;
 
 namespace Adapt.ViewModels
 {
@@ -52,11 +55,54 @@ namespace Adapt.ViewModels
     {
         #region [ Members ]
 
-        private IEnumerable<T> m_AllOptions;
-        private IEnumerable<T> m_ListedOptions;
+        public class ItemWrapper<T>: ViewModelBase
+        {
+            private bool m_selected;
+            private bool m_visible;
+            private Action<ItemWrapper<T>> m_singleSelect;
+            public ItemWrapper(T item, Func<T, string> display, bool showCheckBox, Action<ItemWrapper<T>> singleSelect)
+            {
+                Display = display(item);
+                m_selected = false;
+                Item = item;
+                m_visible = true;
+                ShowCheckBox = showCheckBox;
+                Select = new RelayCommand(() => { Selected = !Selected; }, () => true);
+                m_singleSelect = singleSelect;
+            }
+            public string Display { get; }
+            public T Item { get; }
+            public bool Selected
+            { 
+                get => m_selected; 
+                set {
+                    if (!ShowCheckBox && value)
+                        m_singleSelect.Invoke(this);
+                    m_selected = value; 
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(Visible));
+                    OnPropertyChanged(nameof(Color));
+                }
+            }
+            
+            public bool Visible 
+            {
+                get => m_selected || m_visible; 
+                set {
+                    m_visible = value; 
+                    OnPropertyChanged();
+                } 
+            }
+
+            public bool ShowCheckBox { get; }
+
+            public Brush Color => (m_selected ? SystemColors.HighlightBrush : SystemColors.WindowBrush);
+
+            public ICommand Select { get; }
+        }
+
         private string m_Search;
-        private Action<T> m_Complete;
-        private Func<T, string> m_TransformDisplay;
+        private Action<List<T>> m_Complete;
         private Func<T,string, bool> m_IncludeSearch;
         #endregion
 
@@ -80,10 +126,14 @@ namespace Adapt.ViewModels
         public string Title { get; }
         public ICommand SelectCommand { get; }
 
-        public int SelectedOption { get; set; }
-        public ObservableCollection<string> DisplayList { get; set; }
+        public ICommand SelectAll { get; }
+
+        public ObservableCollection<ItemWrapper<T>> DisplayList { get; set; }
 
         public bool ShowError { get; set; }
+
+        public bool MultiSelect { get; }
+
         #endregion
 
         #region [ Constructor ]
@@ -95,20 +145,26 @@ namespace Adapt.ViewModels
         /// <param name="Search">Function that returns a flag whether the item should be shown with a given Search.</param>
         /// <param name="Display">Function that returns the <see cref="string"/> to be displayed.</param>
         /// <param name="Data">A <see cref="IEnumerable{T}"/> containing the full data</param>
-        public SelectMappingVM(Action<T> Complete, Func<T,string,bool> Search, Func<T,string> Display, IEnumerable<T> Data, string Heading="Select a Device")
+        /// <param name="Heading">The Heading shown in the window</param>
+        /// <param name="allowMultiSelect"> If <see cref="true"/> the window will allow selection of multiple Items. </param>
+        public SelectMappingVM(Action<List<T>> Complete, Func<T,string,bool> Search, Func<T,string> Display, IEnumerable<T> Data, string Heading="Select a Device", bool allowMultiSelect=false)
         {
             m_Search = "";
             
             m_Complete = Complete;
-            SelectCommand = new RelayCommand(Select, () => m_ListedOptions.Count() > 0 && SelectedOption >= 0 && SelectedOption < m_ListedOptions.Count());
+            SelectCommand = new RelayCommand(Select, () => DisplayList.Count(item => item.Selected) > 0);
             m_IncludeSearch = Search;
-            m_TransformDisplay = Display;
-
-            m_AllOptions = new ObservableCollection<T>(Data);
-            m_ListedOptions = m_AllOptions;
-            DisplayList = new ObservableCollection<string>(m_ListedOptions.Select(item => Display.Invoke(item)));
+            
+            DisplayList = new ObservableCollection<ItemWrapper<T>>(Data.Select(item => new ItemWrapper<T>(item,Display, allowMultiSelect, SingleSelect)));
             Title = Heading;
-            ShowError = m_AllOptions.Count() == 0;
+            ShowError = Data.Count() == 0;
+            MultiSelect = allowMultiSelect;
+            if (MultiSelect)
+                SelectAll = new RelayCommand(() => { 
+                    DisplayList.ToList().ForEach(d => d.Selected = true);
+                }, () => true);
+            else
+                SelectAll = new RelayCommand(() => { }, () => true);
         }
 
         #endregion
@@ -122,12 +178,11 @@ namespace Adapt.ViewModels
         /// </summary>
         private void Search()
         {
-            if (m_Search == "" && m_AllOptions.Count() != m_ListedOptions.Count())
-                m_ListedOptions = new ObservableCollection<T>(m_AllOptions);
+            if (m_Search == "" && DisplayList.Any(d => !d.Visible))
+                DisplayList.ToList().ForEach(d => d.Visible = true);
             if (m_Search.Length > 0)
-                m_ListedOptions = new ObservableCollection<T>(m_AllOptions.Where(d => m_IncludeSearch.Invoke(d,m_Search)));
+                DisplayList.ToList().ForEach(d => d.Visible = m_IncludeSearch.Invoke(d.Item,m_Search));
 
-            DisplayList = new ObservableCollection<string>(m_ListedOptions.Select(item => m_TransformDisplay.Invoke(item)));
             OnPropertyChanged(nameof(DisplayList));
         }
 
@@ -136,9 +191,15 @@ namespace Adapt.ViewModels
         /// </summary>
         private void Select()
         {
-            m_Complete.Invoke(m_ListedOptions.ToList()[SelectedOption]);
+            m_Complete.Invoke(DisplayList.Where(d => d.Selected).Select( d => d.Item).ToList());
         }
 
+        private void SingleSelect(ItemWrapper<T> item)
+        {
+            foreach (ItemWrapper<T> i in DisplayList)
+                if (i != item)
+                    i.Selected = false;
+        }
         #endregion
 
         #region [ Static ]

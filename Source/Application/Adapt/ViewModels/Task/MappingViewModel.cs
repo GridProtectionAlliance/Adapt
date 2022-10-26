@@ -72,14 +72,6 @@ namespace Adapt.ViewModels
         #region[ Properties ]
 
 
-        /// <summary>
-        /// The Instace of the <see cref="Datasource"/>.
-        /// </summary>
-        public IDataSource DataSourceInstance 
-        { 
-            get;
-            set;
-        }
 
         /// <summary>
         /// The Datasource used for this Mapping
@@ -96,6 +88,8 @@ namespace Adapt.ViewModels
         /// 
         /// </summary>
         public ICommand Remove { get; set; }
+
+        public TaskVM Parent => m_parent;
         #endregion
 
         #region [ Constructor ]
@@ -180,15 +174,20 @@ namespace Adapt.ViewModels
         /// </summary>
         /// <param name="instance"></param>
         /// <param name="model"></param>
-        public void UpdateDataSource(IDataSource instance, DataSource model)
+        public void UpdateDataSource(DataSource model)
         {
-            DataSourceInstance = instance;
             DataSource = model;
-
             OnPropertyChanged(nameof(DataSource));
-            OnPropertyChanged(nameof(DataSourceInstance));
         }
 
+        public void AssignDevice(AdaptDevice device)
+        {
+            if (DeviceMappings.Count() != 1)
+                return;
+
+            foreach (DeviceMapping d in DeviceMappings)
+                d.AssignDevice(device);
+        }
         
         #endregion
 
