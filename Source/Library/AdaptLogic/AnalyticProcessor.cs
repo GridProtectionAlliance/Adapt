@@ -79,12 +79,12 @@ namespace AdaptLogic
         /// <param name="TemplateSignalMapping">The Signal Mapping used for this instance </param>
         /// <param name="templateMappingID"> The ID of the associated <paramref name="TemplateSignalMapping"/></param>
         /// <param name="FramesPerSecond">set of the FPS of all Signals by ID</param>
-        public AnalyticProcessor(TaskAnalytic analytic, AdaptTask task, string templateMappingID, Dictionary<int, AdaptSignal> TemplateSignalMapping, Dictionary<string,int> FramesPerSecond)
+        public AnalyticProcessor(TaskAnalytic analytic, AdaptTask task, string templateMappingID, Dictionary<int, AdaptSignal> TemplateSignalMapping, Dictionary<string, InternalSigDescriptor> InternalSigDescriptor)
         {
             m_nextTimeStamp = Gemstone.Ticks.MinValue;
             m_mappingID = templateMappingID;
 
-            m_instance = CreateAnalytic(analytic, FramesPerSecond,TemplateSignalMapping);
+            m_instance = CreateAnalytic(analytic, InternalSigDescriptor, TemplateSignalMapping);
 
             GenerateRoutes(analytic, TemplateSignalMapping);
 
@@ -188,21 +188,22 @@ namespace AdaptLogic
             return new AdaptValue(key, original.Value, original.Timestamp);
         }
 
-        private IAnalytic CreateAnalytic(TaskAnalytic analytic, Dictionary<string, int> framesPerSecond, Dictionary<int, AdaptSignal> templateSignalMapping)
+        private IAnalytic CreateAnalytic(TaskAnalytic analytic, Dictionary<string, InternalSigDescriptor> internalSigDesc, Dictionary<int, AdaptSignal> templateSignalMapping)
         {
             try
             {
-                IAnalytic Instance = (IAnalytic)Activator.CreateInstance(analytic.AnalyticType);
-                Instance.Configure(analytic.Configuration);
-                Instance.SetInputFPS(analytic.InputModel.Select(item => {
+                IAnalytic instance = (IAnalytic)Activator.CreateInstance(analytic.AnalyticType);
+                instance.Configure(analytic.Configuration);
+                instance.SetInputFPS(analytic.InputModel.Select(item => {
                     if (item.IsInputSignal)
                         return templateSignalMapping[item.SignalID].FramesPerSecond;
                     string signalID = m_mappingID + "AnalyticOutput-" + item.SignalID;
-                    return framesPerSecond[signalID];
+                    return internalSigDesc[signalID].FramesPerSecond;
                 }));
 
-                analytic.OutputModel.ForEach((item) => framesPerSecond.Add(m_mappingID + "AnalyticOutput-" + item.ID, Instance.FramesPerSecond));
-                return Instance;
+                List<AnalyticOutputDescriptor> outputs = instance.Outputs().ToList();
+                analytic.OutputModel.ForEach((item) => internalSigDesc.Add(m_mappingID + "AnalyticOutput-" + item.ID, new InternalSigDescriptor(instance.FramesPerSecond, outputs[item.OutputIndex].Phase, outputs[item.OutputIndex].Type)));
+                return instance;
             }
             catch (Exception ex)
             {

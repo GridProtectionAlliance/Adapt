@@ -150,12 +150,27 @@ namespace AdaptLogic
             if (year != m_activeFolder[0] || forceIndexGen)
                 GenerateIndex(0);
 
+            string[] originalActiveFolder = m_activeFolder.ToArray();
+
             m_activeFolder[0] = year;
             m_activeFolder[1] = month;
             m_activeFolder[2] = day;
             m_activeFolder[3] = hour;
             m_activeFolder[4] = minute;
 
+            // Special case for forced Index Gen  needs to be run twice to ensure all levels have summary files
+            if (forceIndexGen)
+            {
+                string path;
+                for (int i= 0; i < NLevels; i++)
+                {
+                    if (originalActiveFolder[i] != m_activeFolder[i])
+                    {
+                        path = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder.Take(i+1))}";
+                        WriteActiveSummary(m_activeSummary[i], path);
+                    }
+                }
+            }
 
             // File format version 1 is Summary -> Data (Ticks -> Value)
             EventSummary fileSummary = new EventSummary();
@@ -225,22 +240,25 @@ namespace AdaptLogic
 
             string path = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder.Take(activeFolderIndex + 1))}";
 
-            
+
             if (m_activeSummary[activeFolderIndex].Count > 0)
-            {
-                Directory.CreateDirectory(path);
-                //write to file
-                using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{path}{Path.DirectorySeparatorChar}summary.node")))
-                {
-                    writer.Write(m_activeSummary[activeFolderIndex].ToByte());
-                    writer.Flush();
-                    writer.Close();
-                }
-            }
+                WriteActiveSummary(m_activeSummary[activeFolderIndex], path);
             
             // reset lower level
             m_activeSummary[activeFolderIndex] = new EventSummary();
 
+        }
+
+        private void WriteActiveSummary(EventSummary summary, string folder)
+        {
+            Directory.CreateDirectory(folder);
+            //write to file
+            using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{folder}{Path.DirectorySeparatorChar}summary.node")))
+            {
+                writer.Write(summary.ToByte());
+                writer.Flush();
+                writer.Close();
+            }
         }
 
         private void updateIndexSummary(int activeFolderIndex)

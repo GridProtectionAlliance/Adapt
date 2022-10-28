@@ -55,7 +55,6 @@ namespace AdaptLogic
         private Channel<ITimeSeriesValue> m_queue;
 
         private AdaptSignal m_signal;
-        private bool m_isEvent;
         private List<string> m_eventParameters;
 
         #endregion
@@ -99,6 +98,8 @@ namespace AdaptLogic
 
         private void WriteGeneralFile()
         {
+            if (m_signal.Type == MeasurementType.EventFlag)
+                return;
             // Write .config file that just contains a bunch of Signal Information
             using (StreamWriter writer = new StreamWriter($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config"))
             {
@@ -114,6 +115,9 @@ namespace AdaptLogic
 
         private void WriteGeneralEventFile()
         {
+            if (m_signal.Type != MeasurementType.EventFlag)
+                return;
+
             // Write .config file that just contains a bunch of Signal Information
             using (StreamWriter writer = new StreamWriter($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config"))
             {
@@ -131,27 +135,12 @@ namespace AdaptLogic
             }
         }
 
-        private void CleanupEvent(ITimeSeriesValue Value) 
+        private void GenerateEventParameters(ITimeSeriesValue Value) 
         {
-            m_isEvent = false;
-            m_eventParameters = new List<string>();
             if (!Value.IsEvent)
                 return;
-            try
-            {
-                m_isEvent = true;
-                AdaptEvent evt = (AdaptEvent)Value;
-                m_eventParameters = evt.ParameterNames;
-
-                if (File.Exists($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config"))
-                    File.Delete($"{m_rootFolder}{Path.DirectorySeparatorChar}Root.config");
-               
-            }
-            catch (Exception ex)
-            {
-                m_isEvent = false;
-            }
-
+            AdaptEvent evt = (AdaptEvent)Value;
+            m_eventParameters = evt.ParameterNames;
         }
 
         /// <summary>
@@ -184,6 +173,7 @@ namespace AdaptLogic
                 try
                 {
                     ISignalWritter writer = new DataSignalWritter(m_rootFolder);
+                 
                     ITimeSeriesValue point;
                     bool processFirst = true;
                     while (await m_queue.Reader.WaitToReadAsync(cancellationToken))
@@ -191,12 +181,11 @@ namespace AdaptLogic
                         if (!m_queue.Reader.TryRead(out point))
                             continue;
 
-                        if (processFirst)
+                        if (processFirst && m_signal.Type == MeasurementType.EventFlag)
                         {
-                            CleanupEvent(point);
+                            GenerateEventParameters(point);
                             processFirst = false;
-                            if (m_isEvent)
-                                writer = new EventSignalWritter(m_rootFolder, m_eventParameters);
+                            writer = new EventSignalWritter(m_rootFolder, m_eventParameters);
                         }    
 
                         if (double.IsNaN(point.Value))
@@ -227,7 +216,7 @@ namespace AdaptLogic
                 {
                     int T = 1;
                 }
-                if (m_isEvent)
+                if (m_signal.Type == MeasurementType.EventFlag)
                     WriteGeneralEventFile();
             }, cancellationToken);
 

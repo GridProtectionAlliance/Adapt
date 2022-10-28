@@ -71,11 +71,12 @@ namespace AdaptLogic
         /// <param name="section"> The <see cref="TaskSection"/> to be processed </param>
         /// <param name="template">The <see cref="AdaptTask"/> containing the <paramref name="section"/></param>
         /// <param name="signalMapping">The mapping used for InputSignals.</param>
-        public SectionProcessor(Channel<IFrame> inputQueue, Channel<IFrame> outputQueue, string templateMappingID, TaskSection section, AdaptTask template, Dictionary<int,AdaptSignal> signalMapping, Dictionary<string,int> framesPerSecond  )
+        /// 
+        public SectionProcessor(Channel<IFrame> inputQueue, Channel<IFrame> outputQueue, string templateMappingID, TaskSection section, AdaptTask template, Dictionary<int,AdaptSignal> signalMapping, Dictionary<string, InternalSigDescriptor> internalSigDesc )
         {
             m_queueInput = inputQueue;
             m_queueOutput = outputQueue;
-            m_analyticProcesors = section.Analytics.Select(item => new AnalyticProcessor(item,template,templateMappingID,signalMapping, framesPerSecond)).ToList();
+            m_analyticProcesors = section.Analytics.Select(item => new AnalyticProcessor(item,template,templateMappingID,signalMapping, internalSigDesc)).ToList();
             m_futureFrameBufferSize = m_analyticProcesors.Max(a => a.NFutureFrames);
             m_futureFrameBuffer = new Queue<IFrame>(m_futureFrameBufferSize);
             FramesPerSecond = TimeAlignment.Combine(m_analyticProcesors.Select(item => item.FramesPerSecond).Where(fps => fps > 0).ToArray());

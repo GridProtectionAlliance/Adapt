@@ -106,7 +106,7 @@ namespace AdaptLogic
 
             if (inputSignals.Select((s) => sourceSignals.FindIndex((ss) => ss.ID == s.ID)).Any(s => s < 0))
             {
-                MessageRecieved?.Invoke(this, new MessageArgs($"The following Signals are not found in the datasource: {string.Join(",",inputSignals.Where((s) => sourceSignals.FindIndex((ss) => ss.ID == s.ID) < 0).Select(s => s.Name))}", 
+                MessageRecieved?.Invoke(this, new MessageArgs($"The following Signals are not found in the datasource: {string.Join(",", inputSignals.Where((s) => sourceSignals.FindIndex((ss) => ss.ID == s.ID) < 0).Select(s => s.Name))}",
                     MessageArgs.MessageLevel.Error));
             }
 
@@ -124,7 +124,8 @@ namespace AdaptLogic
             List<AdaptSignal> outputSignals = new List<AdaptSignal>();
 
             //Frames Per Seconds are computed based on Input Signal FPS
-            Dictionary<string, int> framesPerSecond = new Dictionary<string, int>(inputSignals.Select(item => new KeyValuePair<string, int>(item.ID, (int)item.FramesPerSecond)));
+            Dictionary<string, InternalSigDescriptor> signalDesc = new Dictionary<string, InternalSigDescriptor>(inputSignals.Select(item => new KeyValuePair<string, InternalSigDescriptor>(
+                item.ID, new InternalSigDescriptor(item.FramesPerSecond,item.Phase,item.Type))));
 
             if (!(task.TemplateModel is null))
             {
@@ -159,7 +160,7 @@ namespace AdaptLogic
                             outQueue = m_sectionQueue[templateIDs[i]][j + 1];
                         else
                             outQueue = m_writeQueue;
-                        return new SectionProcessor(inQueue, outQueue, templateIDs[i], s, task, task.SignalMappings[i], framesPerSecond);
+                        return new SectionProcessor(inQueue, outQueue, templateIDs[i], s, task, task.SignalMappings[i], signalDesc);
                     }).ToList());
 
 
@@ -215,7 +216,7 @@ namespace AdaptLogic
                     if (s.IsInputSignal)
                         sig =  new AdaptSignal(id + "-" + task.SignalMappings[i][s.SignalID].ID, task.SignalMappings[i][s.SignalID]);
                     else
-                        sig = new AdaptSignal(id + "AnalyticOutput-" + s.SignalID, s.Name, "", framesPerSecond[id + "AnalyticOutput-" + s.SignalID]);
+                        sig = new AdaptSignal(id + "AnalyticOutput-" + s.SignalID, s.Name, "", signalDesc[id + "AnalyticOutput-" + s.SignalID].FramesPerSecond);
                     sig.Device = deviceKeyMappings[new Tuple<string,int>(id, deviceID)];
 
                     if (!variableNames.TryAdd("Name", sig.Name))
@@ -225,6 +226,11 @@ namespace AdaptLogic
                         variableNames["DeviceName"] = task.DeviceMappings[i][deviceID].Name;
 
                     sig.Name = processVars(s.Name);
+                    if (!s.IsInputSignal)
+                    {
+                        sig.Type = signalDesc[id + "AnalyticOutput-" + s.SignalID].Type;
+                        sig.Phase = signalDesc[id + "AnalyticOutput-" + s.SignalID].Phase;
+                    }
 
                     return sig;
                 })).ToList();
