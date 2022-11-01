@@ -48,6 +48,7 @@ namespace AdaptLogic
 
         private string m_rootFolder;
         private string[] m_activeFolder;
+        private string m_lastFile;
         private EventSummary[] m_activeSummary;
         private List<string> m_parameters;
         private long m_spillOver;
@@ -63,6 +64,7 @@ namespace AdaptLogic
             m_parameters = Parameters;
 
             m_activeFolder = new string[NLevels] { "", "", "", "", "" };
+            m_lastFile = "";
             m_activeSummary = new EventSummary[(NLevels + 1)] { 
                 new EventSummary(),
                 new EventSummary(),
@@ -110,8 +112,123 @@ namespace AdaptLogic
             long activeSpill = data.Where(item => Math.Floor((item.Timestamp + (long)item.Value).ToSeconds()) > currentSecond)
                 .Sum(item => item.Timestamp + (long)item.Value - (currentSecondTicks + Gemstone.Ticks.PerSecond));
 
-            m_activeSummary[NLevels].Continuation = m_spillOver > 0;
 
+            // If there is spillover and this is not the next second, the additional Files need to be written
+            if (m_spillOver > 0)
+            {
+                DateTime currentTime = new DateTime(currentSecondTicks, DateTimeKind.Utc);
+                DateTime writeTime = m_activeSummary[NLevels].Tmax;
+                while (writeTime < currentTime && m_spillOver > 0)
+                {
+
+                    // write a new File....
+                    m_activeSummary[NLevels].Continuation = true;
+                    m_activeSummary[NLevels].Max = double.NaN;
+                    m_activeSummary[NLevels].Min = double.NaN;
+                    m_activeSummary[NLevels].Count = 0;
+                    m_activeSummary[NLevels].Sum = Math.Min(m_spillOver, Gemstone.Ticks.PerSecond);
+                    m_activeSummary[NLevels].Tmin = new DateTime(writeTime.Ticks);
+                    m_activeSummary[NLevels].Tmax = new DateTime(writeTime.Ticks + Gemstone.Ticks.PerSecond, DateTimeKind.Utc);
+                    m_spillOver -= Math.Min(m_spillOver, Gemstone.Ticks.PerSecond);
+
+                    string sec = writeTime.ToString("ss");
+                   
+
+                    // Generate Summary Files for previous dataset and reset any summary we write
+
+                    if (!CheckSummaryEqual(writeTime.ToString("yyyy"), writeTime.ToString("MM"), writeTime.ToString("dd"), writeTime.ToString("HH"), writeTime.ToString("mm")))
+                    {
+                        updateIndexSummary(4);
+                        GenerateIndex(4);
+                    }
+                    if (!CheckSummaryEqual(writeTime.ToString("yyyy"), writeTime.ToString("MM"), writeTime.ToString("dd"), writeTime.ToString("HH")))
+                    {
+                        updateIndexSummary(3);
+                        GenerateIndex(3);
+                    }
+                    if (!CheckSummaryEqual(writeTime.ToString("yyyy"), writeTime.ToString("MM"), writeTime.ToString("dd")))
+                    {
+                        updateIndexSummary(2);
+                        GenerateIndex(2);
+                    }
+                    if (!CheckSummaryEqual(writeTime.ToString("yyyy"), writeTime.ToString("MM")))
+                    {
+                        updateIndexSummary(1);
+                        GenerateIndex(1);
+                    }
+                    if (!CheckSummaryEqual(writeTime.ToString("yyyy")))
+                        GenerateIndex(0);
+
+                    m_activeFolder[0] = writeTime.ToString("yyyy");
+                    m_activeFolder[1] = writeTime.ToString("MM");
+                    m_activeFolder[2] = writeTime.ToString("dd");
+                    m_activeFolder[3] = writeTime.ToString("HH");
+                    m_activeFolder[4] = writeTime.ToString("mm");
+
+                    int nSummarySize = EventSummary.NSize;
+                    byte[] summaryData = new byte[nSummarySize];
+
+                    m_activeSummary[NLevels].ToByte().CopyTo(summaryData, 0);
+
+                    string summaryFolder = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder)}";
+                    Directory.CreateDirectory(summaryFolder);
+
+                    using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{summaryFolder}{Path.DirectorySeparatorChar}{sec}.bin")))
+                    {  // Writer raw data                
+                        writer.Write(summaryData);
+                        writer.Flush();
+                        writer.Close();
+                    }
+                    updateIndexSummary(5);
+                    writeTime = new DateTime(writeTime.Ticks + Gemstone.Ticks.PerSecond, DateTimeKind.Utc);
+                }
+            }
+
+            List<AdaptEvent> evtData = data.Select(item => processEvent(item)).ToList();
+
+            bool isInitial = m_activeFolder.Any(s => string.IsNullOrEmpty(s));
+
+            if (isInitial)
+            {
+                m_activeFolder[0] = year;
+                m_activeFolder[1] = month;
+                m_activeFolder[2] = day;
+                m_activeFolder[3] = hour;
+                m_activeFolder[4] = minute;
+                m_lastFile = second;
+            }
+            else
+            {
+
+                // Generate Summary Files for previous dataset and reset any summary we write
+                if (!CheckSummaryEqual(year, month, day, hour, minute))
+                {
+                    updateIndexSummary(4);
+                    GenerateIndex(4);
+                }
+                if (!CheckSummaryEqual(year, month, day, hour))
+                {
+                    updateIndexSummary(3);
+                    GenerateIndex(3);
+                }
+                if (!CheckSummaryEqual(year, month, day))
+                {
+                    updateIndexSummary(2);
+                    GenerateIndex(2);
+                }
+                if (!CheckSummaryEqual(year, month))
+                {
+                    updateIndexSummary(1);
+                    GenerateIndex(1);
+                }
+                if (!CheckSummaryEqual(year))
+                    GenerateIndex(0);
+            }
+
+
+            
+
+            m_activeSummary[NLevels].Continuation = m_spillOver > 0;
             m_activeSummary[NLevels].Max = max;
             m_activeSummary[NLevels].Min = min;
             m_activeSummary[NLevels].Count = data.Count;
@@ -119,56 +236,89 @@ namespace AdaptLogic
             m_activeSummary[NLevels].Tmax = new DateTime((currentSecondTicks + Gemstone.Ticks.PerSecond), DateTimeKind.Utc);
             m_activeSummary[NLevels].Tmin = new DateTime(currentSecondTicks, DateTimeKind.Utc);
 
-            List<AdaptEvent> evtData = data.Select(item => processEvent(item)).ToList();
-           
-
-            GenerateIndex(5);
-
-            if (string.IsNullOrEmpty(m_activeFolder[0]))
-                m_activeFolder[0] = year;
-
-            if (string.IsNullOrEmpty(m_activeFolder[1]))
-                m_activeFolder[1] = month;
-
-            if (string.IsNullOrEmpty(m_activeFolder[2]))
-                m_activeFolder[2] = day;
-
-            if (string.IsNullOrEmpty(m_activeFolder[3]))
-                m_activeFolder[3] = hour;
-
-            if (string.IsNullOrEmpty(m_activeFolder[4]))
-                m_activeFolder[4] = minute;
-
-            if (minute != m_activeFolder[4] || forceIndexGen)
-               GenerateIndex(4);
-            if (hour != m_activeFolder[3] || forceIndexGen)
-                GenerateIndex(3);
-            if (day != m_activeFolder[2] || forceIndexGen)
-                GenerateIndex(2);
-            if (month != m_activeFolder[1] || forceIndexGen)
-                GenerateIndex(1);
-            if (year != m_activeFolder[0] || forceIndexGen)
-                GenerateIndex(0);
-
-            string[] originalActiveFolder = m_activeFolder.ToArray();
-
             m_activeFolder[0] = year;
             m_activeFolder[1] = month;
             m_activeFolder[2] = day;
             m_activeFolder[3] = hour;
             m_activeFolder[4] = minute;
+            m_lastFile = second;
 
+            updateIndexSummary(5);
             // Special case for forced Index Gen  needs to be run twice to ensure all levels have summary files
             if (forceIndexGen)
             {
-                string path;
-                for (int i= 0; i < NLevels; i++)
+                // at this point we need to write any leftover spill
+                DateTime writeTime = m_activeSummary[NLevels].Tmax;
+                while (activeSpill > 0)
                 {
-                    if (originalActiveFolder[i] != m_activeFolder[i])
+                    m_activeSummary[NLevels].Continuation = true;
+                    m_activeSummary[NLevels].Max = double.NaN;
+                    m_activeSummary[NLevels].Min = double.NaN;
+                    m_activeSummary[NLevels].Count = 0;
+                    m_activeSummary[NLevels].Sum = Math.Min(activeSpill, Gemstone.Ticks.PerSecond);
+                    m_activeSummary[NLevels].Tmin = new DateTime(writeTime.Ticks);
+                    m_activeSummary[NLevels].Tmax = new DateTime(writeTime.Ticks + Gemstone.Ticks.PerSecond, DateTimeKind.Utc);
+                    activeSpill -= Math.Min(activeSpill, Gemstone.Ticks.PerSecond);
+
+                    string sec = writeTime.ToString("ss");
+
+
+                    // Generate Summary Files for previous dataset and reset any summary we write
+
+                    if (!CheckSummaryEqual(writeTime.ToString("yyyy"), writeTime.ToString("MM"), writeTime.ToString("dd"), writeTime.ToString("HH"), writeTime.ToString("mm")))
                     {
-                        path = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder.Take(i+1))}";
-                        WriteActiveSummary(m_activeSummary[i], path);
+                        updateIndexSummary(4);
+                        GenerateIndex(4);
                     }
+                    if (!CheckSummaryEqual(writeTime.ToString("yyyy"), writeTime.ToString("MM"), writeTime.ToString("dd"), writeTime.ToString("HH")))
+                    {
+                        updateIndexSummary(3);
+                        GenerateIndex(3);
+                    }
+                    if (!CheckSummaryEqual(writeTime.ToString("yyyy"), writeTime.ToString("MM"), writeTime.ToString("dd")))
+                    {
+                        updateIndexSummary(2);
+                        GenerateIndex(2);
+                    }
+                    if (!CheckSummaryEqual(writeTime.ToString("yyyy"), writeTime.ToString("MM")))
+                    {
+                        updateIndexSummary(1);
+                        GenerateIndex(1);
+                    }
+                    if (!CheckSummaryEqual(writeTime.ToString("yyyy")))
+                        GenerateIndex(0);
+
+                    m_activeFolder[0] = writeTime.ToString("yyyy");
+                    m_activeFolder[1] = writeTime.ToString("MM");
+                    m_activeFolder[2] = writeTime.ToString("dd");
+                    m_activeFolder[3] = writeTime.ToString("HH");
+                    m_activeFolder[4] = writeTime.ToString("mm");
+
+                    int nSummarySize = EventSummary.NSize;
+                    byte[] summaryData = new byte[nSummarySize];
+
+                    m_activeSummary[NLevels].ToByte().CopyTo(summaryData, 0);
+
+                    string summaryFolder = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder)}";
+                    Directory.CreateDirectory(summaryFolder);
+
+                    using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{summaryFolder}{Path.DirectorySeparatorChar}{sec}.bin")))
+                    {  // Writer raw data                
+                        writer.Write(summaryData);
+                        writer.Flush();
+                        writer.Close();
+                    }
+                    updateIndexSummary(5);
+                    writeTime = new DateTime(writeTime.Ticks + Gemstone.Ticks.PerSecond, DateTimeKind.Utc);
+                }
+
+                string path;
+                for (int i=(NLevels-1); i >=0; i--)
+                {
+                    path = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder.Take(i+1))}";
+                    if (i != 0)
+                        updateIndexSummary(i);
+                    WriteActiveSummary(m_activeSummary[i], path);
                 }
             }
 
@@ -229,22 +379,22 @@ namespace AdaptLogic
             }
 
         }
+
+        /// <summary>
+        /// Write the Index Files. This is called when either (a) a new Dataset came in [for the previous dataset] (b) if IndexGenForced is true
+        /// [to write current Dataset]
+        /// </summary>
+        /// <param name="activeFolderIndex"></param>
         private void GenerateIndex(int activeFolderIndex)
         {
-
-            if (activeFolderIndex > 0)
-                updateIndexSummary(activeFolderIndex);
-
             if (activeFolderIndex == NLevels)
                 return;
 
             string path = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder.Take(activeFolderIndex + 1))}";
 
-
-            if (m_activeSummary[activeFolderIndex].Count > 0)
+            if (m_activeSummary[activeFolderIndex].Sum > 0)
                 WriteActiveSummary(m_activeSummary[activeFolderIndex], path);
-            
-            // reset lower level
+
             m_activeSummary[activeFolderIndex] = new EventSummary();
 
         }
@@ -261,8 +411,15 @@ namespace AdaptLogic
             }
         }
 
+
+        /// <summary>
+        /// This will update the summary. Called when a new dataset comes in only
+        /// </summary>
+        /// <param name="activeFolderIndex"></param>
         private void updateIndexSummary(int activeFolderIndex)
         {
+
+
             if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].Min) || m_activeSummary[activeFolderIndex].Min < m_activeSummary[activeFolderIndex - 1].Min)
                 m_activeSummary[activeFolderIndex - 1].Min = m_activeSummary[activeFolderIndex].Min;
             if (double.IsNaN(m_activeSummary[activeFolderIndex - 1].Max) || m_activeSummary[activeFolderIndex].Max > m_activeSummary[activeFolderIndex - 1].Max)
@@ -275,8 +432,6 @@ namespace AdaptLogic
                 m_activeSummary[activeFolderIndex - 1].Count = 0;
 
 
-
-
             if (m_activeSummary[activeFolderIndex].Tmin < m_activeSummary[activeFolderIndex - 1].Tmin)
                 m_activeSummary[activeFolderIndex - 1].Tmin = m_activeSummary[activeFolderIndex].Tmin;
 
@@ -286,6 +441,27 @@ namespace AdaptLogic
             m_activeSummary[activeFolderIndex - 1].Count += m_activeSummary[activeFolderIndex].Count;
             m_activeSummary[activeFolderIndex - 1].Sum += m_activeSummary[activeFolderIndex].Sum;
 
+        }
+
+        private bool CheckSummaryEqual(string year)
+        {
+            return year == m_activeFolder[0];
+        }
+        private bool CheckSummaryEqual(string year, string month)
+        {
+            return CheckSummaryEqual(year) && month == m_activeFolder[1];
+        }
+        private bool CheckSummaryEqual(string year, string month, string day)
+        {
+            return CheckSummaryEqual(year, month) && day == m_activeFolder[2];
+        }
+        private bool CheckSummaryEqual(string year, string month, string day, string hour)
+        {
+            return CheckSummaryEqual(year, month, day) && hour == m_activeFolder[3];
+        }
+        private bool CheckSummaryEqual(string year, string month, string day, string hour, string minute)
+        {
+            return CheckSummaryEqual(year, month, day, hour) && minute == m_activeFolder[4];
         }
         #endregion
 
