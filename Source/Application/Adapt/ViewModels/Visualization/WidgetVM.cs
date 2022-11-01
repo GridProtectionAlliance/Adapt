@@ -36,6 +36,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Forms;
 using System.Windows.Input;
 
 namespace Adapt.ViewModels.Vizsalization
@@ -91,31 +92,47 @@ namespace Adapt.ViewModels.Vizsalization
             }
         }
 
-        public class ContextMenueVM: ViewModelBase
+        public class ContextMenueVM: ViewModelBase, IContextMenu
         {
             public string Text { get; }
 
             public bool Selected { get; set; }
 
-            public ObservableCollection<ContextMenueVM> SubMenue { get; }
+            public ObservableCollection<IContextMenu> SubMenue { get; }
 
             public ICommand Command { get; }
             public ContextMenueVM(string message, bool selected, Action<bool> onClick)
             {
                 Text = message;
                 Selected = selected;
-                SubMenue = new ObservableCollection<ContextMenueVM>();
+                SubMenue = new ObservableCollection<IContextMenu>();
                 Command = new RelayCommand(() => {
                     Selected = !Selected;  
                     onClick.Invoke(Selected);
                 });
             }
 
+            /// <summary>
+            /// A <see cref="ContextMenue"/> that is not selectecable, but triggers an Action
+            /// </summary>
+            /// <param name="message"></param>
+            /// <param name="onClick"></param>
+            public ContextMenueVM(string message, Action onClick)
+            {
+                Text = message;
+                Selected = false;
+                SubMenue = new ObservableCollection<IContextMenu>();
+                Command = new RelayCommand(() => {
+                    onClick.Invoke();
+                });
+            }
+
+
             public ContextMenueVM(string message, IEnumerable<ContextMenueVM> subMenues )
             {
                 Text = message;
                 Selected = false;
-                SubMenue = new ObservableCollection<ContextMenueVM>(subMenues);
+                SubMenue = new ObservableCollection<IContextMenu>(subMenues);
                 Command = new RelayCommand(() => { });
             }
         }
@@ -126,7 +143,7 @@ namespace Adapt.ViewModels.Vizsalization
         public IDisplayWidget Widget => m_widget;
         public UIElement UserControl => m_widget.UserControl;
 
-        public ObservableCollection<ContextMenueVM> ContextMenue { get; set; }
+        public ObservableCollection<IContextMenu> ContextMenue { get; set; }
 
         /// <summary>
         /// Event that gets triggered when the User changes the Window.
@@ -162,7 +179,7 @@ namespace Adapt.ViewModels.Vizsalization
         private void CreateContextMenue(Dictionary<string, List<SignalReader>> readers, Dictionary<string, IDevice> Devices)
         {
             bool isInitial = true;
-            List<ContextMenueVM> menue = new List<ContextMenueVM>();
+            List<IContextMenu> menue = new List<IContextMenu>();
 
             foreach (string device in readers.Keys)
             {
@@ -175,9 +192,10 @@ namespace Adapt.ViewModels.Vizsalization
 
                 isInitial = false;
             }
+            menue.AddRange(m_widget.Actions);
 
-            menue.Add(new ContextMenueVM("Remove Widget", false, (bool selected) => { RemoveWidget(); }));
-            ContextMenue = new ObservableCollection<ContextMenueVM>(menue);
+            menue.Add(new ContextMenueVM("Remove Widget", () => { RemoveWidget(); }));
+            ContextMenue = new ObservableCollection<IContextMenu>(menue);
             OnPropertyChanged(nameof(ContextMenue));
         }
 

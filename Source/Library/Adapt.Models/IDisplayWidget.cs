@@ -21,6 +21,7 @@
 //
 // ******************************************************************************************************
 using System;
+using System.Collections.Generic;
 using System.Windows;
 
 namespace Adapt.Models
@@ -67,6 +68,11 @@ namespace Adapt.Models
         /// <param name="signal"> The <see cref="AdaptSignal"/></param>
         /// <returns><see cref="true"/> if the Signal can be displayed.</returns>
         public bool AllowSignal(AdaptSignal signal);
+
+        /// <summary>
+        /// A List of <see cref="IContextMenu"/> to dsiplay on right click in addtion to any devices
+        /// </summary>
+        public List<IContextMenu> Actions { get; }
 
     }
 }

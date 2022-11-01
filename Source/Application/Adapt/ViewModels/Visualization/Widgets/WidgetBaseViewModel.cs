@@ -40,7 +40,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         #region [ Properties ]
         public abstract UIElement UserControl { get; }
         public event EventHandler<ZoomEventArgs> ChangedWindow;
-
+        public virtual List<IContextMenu> Actions { get; } = new List<IContextMenu>();
         #endregion
 
         #region [ constructor ]
@@ -90,7 +90,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         {
             ChangedWindow?.Invoke(this, e);
         }
-
+        
         #endregion
 
     }
