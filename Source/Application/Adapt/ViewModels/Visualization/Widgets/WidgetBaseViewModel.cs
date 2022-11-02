@@ -41,6 +41,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         public abstract UIElement UserControl { get; }
         public event EventHandler<ZoomEventArgs> ChangedWindow;
         public virtual List<IContextMenu> Actions { get; } = new List<IContextMenu>();
+        public virtual Func<string,string> GetDeviceDisplay { set { } }
         #endregion
 
         #region [ constructor ]

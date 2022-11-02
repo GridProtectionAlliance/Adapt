@@ -48,7 +48,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         #region [ Member ]
         private DataTable m_data;
         private UIElement m_xamlClass;
-
+        private Func<string, string> m_getDeviceName = null;
         #endregion
 
         #region [ Properties ]
@@ -58,8 +58,8 @@ namespace Adapt.ViewModels.Visualization.Widgets
         }
         public bool HasSignal => m_readers.Count() > 0;
         public override UIElement UserControl => m_xamlClass;
-
         public override List<IContextMenu> Actions => new List<IContextMenu>() { new WidgetVM.ContextMenueVM("Export to CSV", ExportEventData) };
+        public override Func<string, string> GetDeviceDisplay { set { m_getDeviceName = value; } }
         #endregion
 
         #region [ Constructor ]
@@ -101,6 +101,8 @@ namespace Adapt.ViewModels.Visualization.Widgets
         {
             m_data = new DataTable();
             m_data.Clear();
+            if (!(m_getDeviceName is null))
+                m_data.Columns.Add("PMU");
             m_data.Columns.Add("Event");
             m_data.Columns.Add("Date");
             m_data.Columns.Add("Start Time");
@@ -125,6 +127,8 @@ namespace Adapt.ViewModels.Visualization.Widgets
                 events[signal].ForEach((item) =>
                 {
                     DataRow r = m_data.NewRow();
+                    if (!(m_getDeviceName is null))
+                        r["PMU"] = m_getDeviceName(signal);
                     r["Event"] = signal;
                     r["Date"] = item.Timestamp.ToString("MM/dd/yyy");
                     r["Start Time"] = item.Timestamp.ToString("HH:mm:ss.fff");

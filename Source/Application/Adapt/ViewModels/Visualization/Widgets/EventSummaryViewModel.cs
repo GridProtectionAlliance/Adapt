@@ -48,7 +48,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         #region [ Member ]
         private DataTable m_data;
         private UIElement m_xamlClass;
-
+        private Func<string, string> m_getDeviceName = null;
         #endregion
 
         #region [ Properties ]
@@ -57,7 +57,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
             get { return m_data; }
         }
         public bool HasSignal => m_readers.Count() > 0;
-
+        public override Func<string, string> GetDeviceDisplay { set { m_getDeviceName = value; } }
         public override List<IContextMenu> Actions => new List<IContextMenu>() { new WidgetVM.ContextMenueVM("Export to CSV", ExportEventSummary) }; 
         public override UIElement UserControl => m_xamlClass;
         #endregion
@@ -101,7 +101,8 @@ namespace Adapt.ViewModels.Visualization.Widgets
         {
             m_data = new DataTable();
             m_data.Clear();
-            m_data.Columns.Add("PMU");
+            if (!(m_getDeviceName is null))
+                m_data.Columns.Add("PMU");
             m_data.Columns.Add("Event");
             m_data.Columns.Add("Number of Occurrences");
             m_data.Columns.Add("Total Active Time (s)");
@@ -113,7 +114,8 @@ namespace Adapt.ViewModels.Visualization.Widgets
                 EventSummary evtSummary = reader.GetEventSummary(m_start, m_end);
                 
                 DataRow r = m_data.NewRow();
-                r["Event"] = reader.Signal.Device;
+                if (!(m_getDeviceName is null))
+                    r["PMU"] = m_getDeviceName(reader.Signal.Device);
                 r["Event"] = reader.Signal.Name;
                 r["Number of Occurrences"] = evtSummary.Count;
                 r["Total Active Time (s)"] = evtSummary.Sum / Gemstone.Ticks.PerSecond;

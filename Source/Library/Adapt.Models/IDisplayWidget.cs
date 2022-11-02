@@ -74,5 +74,10 @@ namespace Adapt.Models
         /// </summary>
         public List<IContextMenu> Actions { get; }
 
+        /// <summary>
+        /// A Function that is called to get Display Names for PMUs
+        /// </summary>
+        public Func<string,string> GetDeviceDisplay { set; }
+
     }
 }

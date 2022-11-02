@@ -157,6 +157,12 @@ namespace Adapt.ViewModels.Vizsalization
         {
             m_widget = widget;
             m_parent = parent;
+            m_widget.GetDeviceDisplay = (key) => { 
+                IDevice dev; 
+                if (!Devices.TryGetValue(key, out dev))
+                    return "";
+                return dev.Name;
+            };
             m_widget.Zoom(start, end);
             m_widget.ChangedWindow += WindowChanged;
 
