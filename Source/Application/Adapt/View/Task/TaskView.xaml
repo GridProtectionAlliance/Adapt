@@ -29,7 +29,7 @@
                         <TextBlock Text="Source Data Settings" Background="Gray"  FontWeight="bold" FontSize="24"/>
                     </Expander.Header>
                     <StackPanel Background="LightGray" Orientation="Vertical">
-                        <Border BorderThickness="2" BorderBrush="Black" Padding="10" Margin="10" CornerRadius="5" Background="LightGray" Visibility="{Binding Path=ShowDataSourceWarning, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}">
+                        <Border BorderThickness="2" BorderBrush="Black" Padding="10" Margin="10" CornerRadius="5" Background="LightGray" Visibility="{Binding Path=ValidatedDataSource, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}">
                             <StackPanel Orientation="Horizontal" Margin="5,5,50,5">
                                 <TextBlock>An error occurred when connecting to this DataSource. Please select a different Data Source</TextBlock>
                             </StackPanel>
@@ -44,7 +44,7 @@
                         </WrapPanel>
                     </StackPanel>
                 </Expander>
-                <Expander ExpandDirection="Down" Grid.Row="0" Background="Gray">
+                <Expander ExpandDirection="Down" Grid.Row="0" Background="Gray" IsEnabled="{Binding Path=ValidatedDataSource}">
                     <Expander.Header>
                         <TextBlock Text="Analytic Template Settings" Background="Gray"  FontWeight="bold" FontSize="24"/>
                     </Expander.Header>

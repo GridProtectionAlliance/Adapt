@@ -92,7 +92,7 @@ namespace Adapt.ViewModels
         /// a Flag indicating if the DataSource has failed the Test. 
         /// This will prevent the User from continuing and display a DataSource Warning Message
         /// </summary>
-        public bool ShowDataSourceWarning { get; private set; }
+        public bool ValidatedDataSource { get; private set; }
 
         /// <summary>
         /// The Template Selected
@@ -151,7 +151,7 @@ namespace Adapt.ViewModels
             AddMapping = new RelayCommand(AddMappingVM, () => true);
             AutoMapping = new RelayCommand(GenerateAutoMapping, () => AllowAutoMapping);
 
-            RunTask = new RelayCommand(ProcessTask, () => !ShowDataSourceWarning);
+            RunTask = new RelayCommand(ProcessTask, () => ValidatedDataSource);
         }
 
         #endregion
@@ -202,8 +202,8 @@ namespace Adapt.ViewModels
             
             if (DataSource is null)
             {
-                ShowDataSourceWarning = true;
-                OnPropertyChanged(nameof(ShowDataSourceWarning));
+                ValidatedDataSource = false;
+                OnPropertyChanged(nameof(ValidatedDataSource));
                 return;
             }
 
@@ -213,7 +213,7 @@ namespace Adapt.ViewModels
                 IConfiguration config = new ConfigurationBuilder().AddGemstoneConnectionString(DataSource.ConnectionString).Build();
                 DataSourceInstance.Configure(config);
 
-                ShowDataSourceWarning = !DataSourceInstance.Test();
+                ValidatedDataSource = DataSourceInstance.Test();
 
                 foreach (MappingVM mapping in MappingViewModels)
                     mapping.UpdateDataSource(DataSource);
@@ -223,11 +223,11 @@ namespace Adapt.ViewModels
             catch (Exception ex)
             {
                 Log.Logger.Error(ex, $"Datasource {DataSource.ID} Test Failed Exception: {ex.Message} StackTrace: {ex.StackTrace}");
-                ShowDataSourceWarning = true;
+                ValidatedDataSource = false;
             }
             finally
             {
-                OnPropertyChanged(nameof(ShowDataSourceWarning));
+                OnPropertyChanged(nameof(ValidatedDataSource));
             }
         }
 
