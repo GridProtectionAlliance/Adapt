@@ -22,6 +22,7 @@
 // ******************************************************************************************************
 using Adapt.Models;
 using Adapt.View.Visualization.Widgets;
+using Adapt.ViewModels.Vizsalization;
 using AdaptLogic;
 using GemstoneCommon;
 using GemstoneWPF;
@@ -32,10 +33,12 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Forms;
 
 namespace Adapt.ViewModels.Visualization.Widgets
 {
@@ -55,6 +58,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         }
         public bool HasSignal => m_readers.Count() > 0;
 
+        public override List<IContextMenu> Actions => new List<IContextMenu>() { new WidgetVM.ContextMenueVM("Export to CSV", ExportEventSummary) }; 
         public override UIElement UserControl => m_xamlClass;
         #endregion
 
@@ -124,6 +128,27 @@ namespace Adapt.ViewModels.Visualization.Widgets
         }
         public override bool AllowSignal(AdaptSignal signal) => signal.Type == MeasurementType.EventFlag;
 
+        private void ExportEventSummary()
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            DialogResult result = saveFileDialog.ShowDialog();
+
+            if (result == DialogResult.OK)
+            {
+                StringBuilder sbbuilder = new StringBuilder();
+
+                IEnumerable<string> columnNames = m_data.Columns.Cast<DataColumn>().Select(column => column.ColumnName);
+                sbbuilder.AppendLine(string.Join(",", columnNames));
+
+                foreach (DataRow row in m_data.Rows)
+                {
+                    IEnumerable<string> fields = row.ItemArray.Select(field => field.ToString());
+                    sbbuilder.AppendLine(string.Join(",", fields));
+                }
+
+                File.WriteAllText(saveFileDialog.FileName, sbbuilder.ToString());
+            }
+        }
     }
 
         #endregion
