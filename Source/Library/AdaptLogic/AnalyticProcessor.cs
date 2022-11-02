@@ -207,7 +207,7 @@ namespace AdaptLogic
             }
             catch (Exception ex)
             {
-                MessageRecieved.Invoke(this, new MessageArgs("Unable to generate or configure Analytic", ex, MessageArgs.MessageLevel.Error));
+                MessageRecieved?.Invoke(this, new MessageArgs("Unable to generate or configure Analytic", ex, MessageArgs.MessageLevel.Error));
                 return null;
             }
         }
