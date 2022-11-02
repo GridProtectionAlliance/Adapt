@@ -23,6 +23,7 @@
 
 using Adapt.Models;
 using Gemstone;
+using Gemstone.Collections.CollectionExtensions;
 using GemstoneAnalytic;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
@@ -125,7 +126,7 @@ namespace AdaptLogic
 
             //Frames Per Seconds are computed based on Input Signal FPS
             Dictionary<string, InternalSigDescriptor> signalDesc = new Dictionary<string, InternalSigDescriptor>(inputSignals.Select(item => new KeyValuePair<string, InternalSigDescriptor>(
-                item.ID, new InternalSigDescriptor(item.FramesPerSecond,item.Phase,item.Type))));
+                item.ID, new InternalSigDescriptor(item.FramesPerSecond,item.Phase,item.Type))).DistinctBy(item => item.Key));
 
             if (!(task.TemplateModel is null))
             {
@@ -191,7 +192,7 @@ namespace AdaptLogic
 
                         if (existingDeviceNames.Contains(name))
                         {
-                            deviceKeyMappings.Add(new Tuple<string, int>(templateIDs[i], d.ID), existingDevices.First(item => item.Name == name).ID);
+                            deviceKeyMappings.TryAdd(new Tuple<string, int>(templateIDs[i], d.ID), existingDevices.First(item => item.Name == name).ID);
                             return;
                         }
 
@@ -199,7 +200,7 @@ namespace AdaptLogic
                         string key = Guid.NewGuid().ToString();
 
                         existingDevices.Add(new AdaptDevice(key, name));
-                        deviceKeyMappings.Add(new Tuple<string, int>(templateIDs[i], d.ID), key);
+                        deviceKeyMappings.TryAdd(new Tuple<string, int>(templateIDs[i], d.ID), key);
 
                     });
                     Devices = existingDevices;
@@ -235,7 +236,7 @@ namespace AdaptLogic
                     return sig;
                 })).ToList();
 
-                m_TemplateInputs = templateIDs.Select((k,i) => new { Key=k, Val=task.SignalMappings[i].Values.ToList() }).ToDictionary((i) => i.Key,(i) => i.Val);
+                m_TemplateInputs = templateIDs.Select((k,i) => new { Key=k, Val=task.SignalMappings[i].Values.ToList() }).DistinctBy(item => item.Key).ToDictionary((i) => i.Key,(i) => i.Val);
 
             }
             else
