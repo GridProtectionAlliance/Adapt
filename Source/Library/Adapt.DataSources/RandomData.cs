@@ -220,7 +220,7 @@ namespace Adapt.DataSources
 
         public bool Test()
         {
-            return true;
+            return !(m_pmu is null);
         }
     }
 }
