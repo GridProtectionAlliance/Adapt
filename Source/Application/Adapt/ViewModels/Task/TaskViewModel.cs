@@ -151,7 +151,7 @@ namespace Adapt.ViewModels
             AddMapping = new RelayCommand(AddMappingVM, () => true);
             AutoMapping = new RelayCommand(GenerateAutoMapping, () => AllowAutoMapping);
 
-            RunTask = new RelayCommand(ProcessTask, () => ValidatedDataSource);
+            RunTask = new RelayCommand(ProcessTask, () => (ValidatedDataSource && MappingViewModels.Count > 0 && MappingViewModels.All(m => m.Valid)));
         }
 
         #endregion
