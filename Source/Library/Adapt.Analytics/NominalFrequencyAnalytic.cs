@@ -40,7 +40,7 @@ namespace Adapt.DataSources
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Limits: Returns value if it is between max and min. Otherwhise the limit is returned.")]
+    [Description("Limits: Returns value if it is between max and min. Otherwise the value is removed.")]
     public class NominalFrequency: BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
@@ -74,12 +74,10 @@ namespace Adapt.DataSources
         {
             ITimeSeriesValue frequency = frame.Measurements["Original"];
             double v = frequency.Value;
-            if (v > m_settings.Max)
-                v = m_settings.Max;
-            if (v < m_settings.Min)
-                v = m_settings.Min;
-
-            return new AdaptValue[] { new AdaptValue("Filtered", v, frame.Timestamp) };
+            if (v < m_settings.Max && v > m_settings.Min)
+                return new AdaptValue[] { new AdaptValue("Filtered", v, frame.Timestamp) };
+           
+            return new AdaptValue[] {};
         }
 
         public void Configure(IConfiguration config)
