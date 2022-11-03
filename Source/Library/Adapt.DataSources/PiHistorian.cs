@@ -198,7 +198,7 @@ namespace Adapt.DataSources
         /// <returns> A List of all available Signals in the Pi Instance.</returns>
         public IEnumerable<AdaptSignal> GetSignals()
         {
-            return new List<AdaptSignal>() { new AdaptSignal(m_settings.PITag, "Signal", m_settings.InstanceName, 30)
+            return new List<AdaptSignal>() { new AdaptSignal(m_settings.PITag, "Signal", m_settings.InstanceName, m_settings.FrameRate)
             {
                 Phase = Phase.NONE,
                 Type = MeasurementType.Frequency

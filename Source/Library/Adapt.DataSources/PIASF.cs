@@ -184,9 +184,12 @@ namespace Adapt.DataSources
            
             foreach (AFElement pmu in LoadElements())
             {
+                int fps;
+                if (!int.TryParse(pmu.Attributes["FrameRate"].Value.ToString(), out fps))
+                    fps = 30;
                 try
                 {
-                    signals.Add(new AdaptSignal(pmu.Attributes["Frequency"].PIPoint.Name, "Frequency", pmu.UniqueID, 30)
+                    signals.Add(new AdaptSignal(pmu.Attributes["Frequency"].PIPoint.Name, "Frequency", pmu.UniqueID, fps)
                     {
                         Phase = Phase.NONE,
                         Type = MeasurementType.Frequency
@@ -198,7 +201,7 @@ namespace Adapt.DataSources
                 }
                 try
                 {
-                    signals.Add(new AdaptSignal(pmu.Attributes["DfDT"].PIPoint.Name, "ROCOF", pmu.UniqueID, 30)
+                    signals.Add(new AdaptSignal(pmu.Attributes["DfDT"].PIPoint.Name, "ROCOF", pmu.UniqueID, fps)
                     {
                         Phase = Phase.NONE,
                         Type = MeasurementType.DeltaFrequency
@@ -213,7 +216,7 @@ namespace Adapt.DataSources
                 {
                     try
                     {
-                        signals.Add(new AdaptSignal(phasor.Attributes["Magnitude"].PIPoint.Name, phasor.Name + " Magnitude", pmu.UniqueID, 30)
+                        signals.Add(new AdaptSignal(phasor.Attributes["Magnitude"].PIPoint.Name, phasor.Name + " Magnitude", pmu.UniqueID, fps )
                         {
                             Phase = ConvertPhase(phasor.Attributes["Phase"].Value.ToString()),
                             Type = ConvertType(phasor.Attributes["Type"].Value.ToString(), true)
@@ -225,7 +228,7 @@ namespace Adapt.DataSources
                     }
                     try
                     {
-                        signals.Add(new AdaptSignal(phasor.Attributes["Angle"].PIPoint.Name, phasor.Name + " Phase", pmu.UniqueID, 30)
+                        signals.Add(new AdaptSignal(phasor.Attributes["Angle"].PIPoint.Name, phasor.Name + " Phase", pmu.UniqueID, fps)
                         {
                             Phase = ConvertPhase(phasor.Attributes["Phase"].Value.ToString()),
                             Type = ConvertType(phasor.Attributes["Type"].Value.ToString(), false)

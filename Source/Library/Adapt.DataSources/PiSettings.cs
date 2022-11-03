@@ -39,6 +39,9 @@ namespace Adapt.DataSources
 
         [DefaultValue("TVA_SHELBY:ABBF")]
         public string PITag { get; set; }
+
+        [DefaultValue(30)]
+        public int FrameRate { get; set; }
         
     }
 }
