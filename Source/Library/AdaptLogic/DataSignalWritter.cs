@@ -99,39 +99,62 @@ namespace AdaptLogic
             m_activeSummary[NLevels].Tmax = new DateTime(data.Max(item => item.Timestamp), DateTimeKind.Utc);
             m_activeSummary[NLevels].Tmin = new DateTime(data.Min(item => item.Timestamp), DateTimeKind.Utc);
 
-            GenerateIndex(5);
+            bool isInitial = m_activeFolder.Any(s => string.IsNullOrEmpty(s));
 
-            if (string.IsNullOrEmpty(m_activeFolder[0]))
+            if (isInitial)
+            {
                 m_activeFolder[0] = year;
-
-            if (string.IsNullOrEmpty(m_activeFolder[1]))
                 m_activeFolder[1] = month;
-
-            if (string.IsNullOrEmpty(m_activeFolder[2]))
                 m_activeFolder[2] = day;
-
-            if (string.IsNullOrEmpty(m_activeFolder[3]))
                 m_activeFolder[3] = hour;
-
-            if (string.IsNullOrEmpty(m_activeFolder[4]))
                 m_activeFolder[4] = minute;
+            }
+            else
+            {
 
-            if (minute != m_activeFolder[4] || forceIndexGen)
-               GenerateIndex(4);
-            if (hour != m_activeFolder[3] || forceIndexGen)
-                GenerateIndex(3);
-            if (day != m_activeFolder[2] || forceIndexGen)
-                GenerateIndex(2);
-            if (month != m_activeFolder[1] || forceIndexGen)
-                GenerateIndex(1);
-            if (year != m_activeFolder[0] || forceIndexGen)
-                GenerateIndex(0);
+                // Generate Summary Files for previous dataset and reset any summary we write
+                if (!CheckSummaryEqual(year, month, day, hour, minute))
+                {
+                    updateIndexSummary(4);
+                    GenerateIndex(4);
+                }
+                if (!CheckSummaryEqual(year, month, day, hour))
+                {
+                    updateIndexSummary(3);
+                    GenerateIndex(3);
+                }
+                if (!CheckSummaryEqual(year, month, day))
+                {
+                    updateIndexSummary(2);
+                    GenerateIndex(2);
+                }
+                if (!CheckSummaryEqual(year, month))
+                {
+                    updateIndexSummary(1);
+                    GenerateIndex(1);
+                }
+                if (!CheckSummaryEqual(year))
+                    GenerateIndex(0);
+            }
 
             m_activeFolder[0] = year;
             m_activeFolder[1] = month;
             m_activeFolder[2] = day;
             m_activeFolder[3] = hour;
             m_activeFolder[4] = minute;
+            updateIndexSummary(5);
+
+            if (forceIndexGen)
+            {
+                string path;
+                for (int i = (NLevels - 1); i >= 0; i--)
+                {
+                    path = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder.Take(i + 1))}";
+                    if (i != 0)
+                        updateIndexSummary(i);
+                    WriteActiveSummary(m_activeSummary[i], path);
+                }
+            }
 
             int nSize = GraphPoint.NSize + (8 + 8) * data.Count;
             byte[] rawData = new byte[nSize];
@@ -182,23 +205,25 @@ namespace AdaptLogic
 
             string path = $"{m_rootFolder}{Path.DirectorySeparatorChar}{string.Join(Path.DirectorySeparatorChar, m_activeFolder.Take(activeFolderIndex + 1))}";
 
-            
+
             if (m_activeSummary[activeFolderIndex].N > 0)
-            {
-                Directory.CreateDirectory(path);
-                //write to file
-                using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{path}{Path.DirectorySeparatorChar}summary.node")))
-                {
-                    writer.Write(m_activeSummary[activeFolderIndex].ToByte());
-                    writer.Flush();
-                    writer.Close();
-                }
-            }
-            
+                WriteActiveSummary(m_activeSummary[activeFolderIndex], path);
 
             // reset lower level
             m_activeSummary[activeFolderIndex] = new GraphPoint();
 
+        }
+
+        private void WriteActiveSummary(GraphPoint summary, string folder)
+        {
+            Directory.CreateDirectory(folder);
+            //write to file
+            using (BinaryWriter writer = new BinaryWriter(File.OpenWrite($"{folder}{Path.DirectorySeparatorChar}summary.node")))
+            {
+                writer.Write(summary.ToByte());
+                writer.Flush();
+                writer.Close();
+            }
         }
 
         private void updateIndexSummary(int activeFolderIndex)
@@ -227,6 +252,27 @@ namespace AdaptLogic
 
             if (m_activeSummary[activeFolderIndex].Tmax > m_activeSummary[activeFolderIndex - 1].Tmax)
                 m_activeSummary[activeFolderIndex - 1].Tmax = m_activeSummary[activeFolderIndex].Tmax;
+        }
+
+        private bool CheckSummaryEqual(string year)
+        {
+            return year == m_activeFolder[0];
+        }
+        private bool CheckSummaryEqual(string year, string month)
+        {
+            return CheckSummaryEqual(year) && month == m_activeFolder[1];
+        }
+        private bool CheckSummaryEqual(string year, string month, string day)
+        {
+            return CheckSummaryEqual(year, month) && day == m_activeFolder[2];
+        }
+        private bool CheckSummaryEqual(string year, string month, string day, string hour)
+        {
+            return CheckSummaryEqual(year, month, day) && hour == m_activeFolder[3];
+        }
+        private bool CheckSummaryEqual(string year, string month, string day, string hour, string minute)
+        {
+            return CheckSummaryEqual(year, month, day, hour) && minute == m_activeFolder[4];
         }
         #endregion
 
