@@ -34,6 +34,7 @@ using Gemstone.TypeExtensions;
 using GemstoneCommon;
 using GemstoneWPF;
 using Microsoft.Extensions.Configuration;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -96,11 +97,12 @@ namespace Adapt.ViewModels
         /// </summary>
         public async void ProcessTask(AdaptTask task)
         {
-            m_processor = new TaskProcessor(task);
+           
 
             ResultStatus = ResultState.Processing;
             m_progress = new ProcessNotificationVM();
             //m_viewer = new MainVisualizationVM(DateTime.Now, DateTime.Now.AddSeconds(-1));
+            m_processor = new TaskProcessor(task);
 
             m_processor.ReportProgress += (object e, ProgressArgs arg) => {
                 if (arg.Complete)
@@ -109,11 +111,17 @@ namespace Adapt.ViewModels
                 }
                 else
                     m_progress.Update(arg);
+
+                Log.Logger.Debug($"Recieved Task Complete: {arg.Progress} (%)");
             };
 
             m_processor.MessageRecieved += (object e, MessageArgs arg) =>
             {
                 m_progress.RecievedMessage(arg);
+                if (arg.ex is null)
+                    Log.Logger.Information(arg.Message);
+                else
+                    Log.Logger.Error(arg.ex, arg.Message);
             };
 
             OnPropertyChanged(nameof(ProgressVM));

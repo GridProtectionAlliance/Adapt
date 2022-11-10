@@ -29,6 +29,7 @@ using AFSDKnetcore.AF;
 using AFSDKnetcore.AF.Asset;
 using AFSDKnetcore.AF.PI;
 using AFSDKnetcore.AF.Search;
+using Gemstone;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -103,6 +104,7 @@ namespace Adapt.DataSources
             };
 
             long currentTime = 0;
+            long nextReport = 0;
             Dictionary<string, ITimeSeriesValue> data = new Dictionary<string, ITimeSeriesValue>();
 
             await foreach (AFValue value in reader.ReadAsync())
@@ -112,6 +114,12 @@ namespace Adapt.DataSources
 
                 if (currentTime != value.Timestamp.UtcTime.Ticks)
                 {
+                    if (currentTime > nextReport)
+                    {
+                        LogInfo($"Completed reading data for {new DateTime(currentTime).ToLongTimeString()}");
+                        nextReport = currentTime + Ticks.PerMinute * 30;
+                    }
+
                     yield return new Frame()
                     {
                         Published = true,
@@ -160,6 +168,7 @@ namespace Adapt.DataSources
             }
             catch (Exception ex)
             {
+                LogError("Unable to retrieve PMUs from PI Server", ex);
                 return new List<AFElement>();
             }
         }
@@ -197,7 +206,7 @@ namespace Adapt.DataSources
                 }
                 catch (Exception ex)
                 {
-                    LogInfo($"Unable to get Frequency for PMU {pmu.Name}");
+                    LogInfo($"Unable to get Frequency for PMU {pmu.Name}", ex);
                 }
                 try
                 {
@@ -209,7 +218,7 @@ namespace Adapt.DataSources
                 }
                 catch (Exception ex)
                 {
-                    LogInfo($"Unable to get DfDT for PMU {pmu.Name}");
+                    LogInfo($"Unable to get DfDT for PMU {pmu.Name}", ex);
                 }
 
                 foreach (AFElement phasor in pmu.Elements)
@@ -224,7 +233,7 @@ namespace Adapt.DataSources
                     }
                     catch (Exception ex)
                     {
-                        LogInfo($"Unable to get Magnitude for PMU {pmu.Name} Phasor: ${phasor.Name}");
+                        LogInfo($"Unable to get Magnitude for PMU {pmu.Name} Phasor: ${phasor.Name}", ex);
                     }
                     try
                     {
@@ -236,7 +245,7 @@ namespace Adapt.DataSources
                     }
                     catch (Exception ex)
                     {
-                        LogInfo($"Unable to get Phase for PMU {pmu.Name} Phasor: ${phasor.Name}");
+                        LogInfo($"Unable to get Phase for PMU {pmu.Name} Phasor: ${phasor.Name}",ex);
                     }
                 }
             }
@@ -297,8 +306,9 @@ namespace Adapt.DataSources
                 ConnectPI();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                LogError("Unable to Connect to PI", ex);
                 return false;
             }
         }
@@ -321,14 +331,14 @@ namespace Adapt.DataSources
             }
         }
 
-        private void LogInfo(string message)
+        private void LogInfo(string message, Exception ex=null)
         {
-            MessageRecieved?.Invoke(this, new MessageArgs(message, MessageArgs.MessageLevel.Info));
+            MessageRecieved?.Invoke(this, new MessageArgs(message, ex, MessageArgs.MessageLevel.Info));
         }
 
-        private void LogError(string message)
+        private void LogError(string message, Exception ex)
         {
-            MessageRecieved?.Invoke(this, new MessageArgs(message, MessageArgs.MessageLevel.Error));
+            MessageRecieved?.Invoke(this, new MessageArgs(message, ex, MessageArgs.MessageLevel.Error));
         }
 
         /// <summary>
