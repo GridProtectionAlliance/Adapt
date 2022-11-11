@@ -15,7 +15,7 @@
             <TextBlock Text="Go to the TASK tab to set up and run a task." FontSize="16" />
         </StackPanel>
         <Grid Visibility="{Binding ResultStatus, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=1}">
-            <local1:ProcessNotification DataContext="{Binding ProgressVM}" HorizontalAlignment="Center"/>
+            <local1:ProcessNotification DataContext="{Binding ProgressVM}" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
         </Grid>
         <Grid Visibility="{Binding ResultStatus, Converter={StaticResource ExpanderToVisibility}, ConverterParameter=2}" VerticalAlignment="Stretch">
             <local:MainVisualization DataContext="{Binding VisualizationVM}" VerticalAlignment="Stretch"/>
