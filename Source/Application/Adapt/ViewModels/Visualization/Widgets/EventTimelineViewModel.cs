@@ -45,6 +45,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         private PlotModel m_plotModel;
         private UIElement m_xamlClass;
         private PlotController m_plotController;
+        private Func<string, string> m_getDeviceName = null;
         #endregion
 
         #region [ Properties ]
@@ -59,7 +60,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         }
         public bool HasSignal => m_readers.Count() > 0;
         public PlotController PlotController => m_plotController;
-   
+        public override Func<string, string> GetDeviceDisplay { set { m_getDeviceName = value; } }
         public override UIElement UserControl => m_xamlClass;
         #endregion
 
@@ -109,7 +110,10 @@ namespace Adapt.ViewModels.Visualization.Widgets
             {
                 IEnumerable<AdaptEvent> evt = reader.GetEvents(m_start, m_end);
 
-                categoryAxis.Labels.Add(reader.Signal.Device + " - " + reader.Signal.Name);
+                if (m_getDeviceName is null)
+                    categoryAxis.Labels.Add(reader.Signal.Name);
+                else
+                    categoryAxis.Labels.Add(m_getDeviceName(reader.Signal.Device) + " - " + reader.Signal.Name);
 
                 IntervalBarSeries s1 = new IntervalBarSeries();
                 s1.Items.AddRange(evt.Select(e => new IntervalBarItem {
