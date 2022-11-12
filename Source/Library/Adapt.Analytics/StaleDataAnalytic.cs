@@ -25,6 +25,7 @@
 
 
 using Adapt.Models;
+using Gemstone;
 using GemstoneCommon;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -40,7 +41,7 @@ namespace Adapt.DataSources
     /// </summary>
     
     [AnalyticSection(AnalyticSection.DataCleanup)]
-    [Description("Stale Data: Will remove any stale Datapoints")]
+    [Description("Stale Data: Will remove any stale or latched Datapoints")]
     public class StaleData: BaseAnalytic, IAnalytic
     {
         private Setting m_settings;
@@ -67,10 +68,10 @@ namespace Adapt.DataSources
         {
             double original = frame.Measurements["Original"].Value;
             double prevValue = previousFrames.FirstOrDefault()?.Measurements["Original"].Value ?? double.NaN;
-
-            if (original == prevValue)
-                return new AdaptValue[] { new AdaptValue("Stale", double.NaN, frame.Timestamp) };
-            return new AdaptValue[] { new AdaptValue("Stale", original, frame.Timestamp) };
+            Ticks originalTS = frame.Measurements["Original"].Timestamp;
+            if (original == prevValue && !double.IsNaN(prevValue))
+                return new AdaptValue[] { new AdaptValue("Stale", double.NaN, originalTS) };
+            return new AdaptValue[] { new AdaptValue("Stale", original, originalTS) };
         }
 
         public void Configure(IConfiguration config)
