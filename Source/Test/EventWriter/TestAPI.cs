@@ -74,6 +74,19 @@ namespace EventWriterTests
             ReadSummary();
             ReadSummaries(SignalReader.GetAvailableReader().First().SignalGuid, 2020, 1, 1, 0, 0);
         }
+
+        [TestMethod]
+        public void EmptyWriteTest()
+        {
+            SignalWritter.CleanAppData();
+            List<AdaptEvent> events = new List<AdaptEvent>()
+            {};
+
+            WriteEvents(events, new AdaptSignal("EmptyWriteTest", TestSignal));
+            ReadSummary();
+            ReadSummaries(SignalReader.GetAvailableReader().First().SignalGuid, 2020, 1, 1, 0, 0);
+        }
+
         private void WriteEvents(List<AdaptEvent> events, AdaptSignal signal)
         {
             CancellationTokenSource cancelationSource = new CancellationTokenSource();
@@ -132,6 +145,8 @@ namespace EventWriterTests
 
         private EventSummary ReadSummary(string folder)
         {
+            if (!File.Exists(folder + Path.DirectorySeparatorChar + "summary.node"))
+                return new EventSummary() { Tmin = DateTime.MinValue, Tmax = DateTime.MaxValue, Sum = 0, Count = 0, Continuation = false, Max = 0, Min = 0 };
             byte[] data = File.ReadAllBytes(folder + Path.DirectorySeparatorChar + "summary.node");
             return new EventSummary(data);
         }
