@@ -112,6 +112,9 @@ namespace Adapt.DataSources
                 if (value.Value is Exception ex)
                     throw ex;
 
+                if (currentTime == 0)
+                    currentTime = value.Timestamp.UtcTime.Ticks;
+
                 if (currentTime != value.Timestamp.UtcTime.Ticks)
                 {
                     if (currentTime > nextReport)
@@ -123,7 +126,7 @@ namespace Adapt.DataSources
                     yield return new Frame()
                     {
                         Published = true,
-                        Timestamp = value.Timestamp.UtcTime.Ticks,
+                        Timestamp = currentTime,
                         Measurements = new ConcurrentDictionary<string, ITimeSeriesValue>(data)
                     };
                     m_progress = (currentTime - startTicks) / totalTicks;
@@ -132,7 +135,7 @@ namespace Adapt.DataSources
                 }
                 if (data.ContainsKey(value.PIPoint.Name))
                     continue;
-                data.Add(value.PIPoint.Name, new AdaptValue(value.PIPoint.Name, Convert.ToDouble(value.Value), currentTime));
+                data.Add(value.PIPoint.Name, new AdaptValue(value.PIPoint.Name, Convert.ToDouble(value.Value), value.Timestamp.UtcTime.Ticks));
             }
                            
             m_progress = 1.0D;
