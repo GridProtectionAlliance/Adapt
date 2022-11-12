@@ -50,6 +50,9 @@ namespace AdaptLogic
         private long m_currentSecond;
         private string m_rootFolder;
 
+        private int NProcessed;
+        private int NTotalProcessed;
+
         private List<ITimeSeriesValue> m_data;
         private List<ITimeSeriesValue> m_BadTSData;
         private Channel<ITimeSeriesValue> m_queue;
@@ -76,6 +79,9 @@ namespace AdaptLogic
 
             m_currentSecond = 0;
             m_eventParameters = new List<string>();
+
+            NTotalProcessed = 0;
+            NProcessed = 0;
         }
 
         #endregion
@@ -85,6 +91,16 @@ namespace AdaptLogic
         /// Gets the number of Frames in queue to be written to the file.
         /// </summary>
         public int Backlog => m_queue?.Reader?.Count ?? 0;
+
+        /// <summary>
+        /// Logs Messages and exceptions
+        /// </summary>
+        public event EventHandler<MessageArgs> MessageRecieved;
+
+        /// <summary>
+        /// Tracks Progress every 1000 Points
+        /// </summary>
+        public event EventHandler<ProcessedEventArgs> ProcessedUpdate;
         #endregion
 
         #region [ Methods ]
@@ -181,6 +197,14 @@ namespace AdaptLogic
                         if (!m_queue.Reader.TryRead(out point))
                             continue;
 
+                        NTotalProcessed++;
+                        NProcessed++;
+
+                        if (NProcessed > 1000)
+                        {
+                            NProcessed = 0;
+                            ProcessedUpdate?.Invoke(this, new ProcessedEventArgs(NTotalProcessed, point.Timestamp));
+                        }
                         if (processFirst && m_signal.Type == MeasurementType.EventFlag)
                         {
                             GenerateEventParameters(point);
@@ -202,6 +226,7 @@ namespace AdaptLogic
 
                         if (second < m_currentSecond)
                         {
+                            MessageRecieved?.Invoke(this, new MessageArgs($"Identified out of order Timestamp: {point.Timestamp.ToString()}", MessageArgs.MessageLevel.Info));
                             m_BadTSData.Add(point);
                             continue;
                         }
@@ -214,7 +239,7 @@ namespace AdaptLogic
                 }
                 catch (Exception ex)
                 {
-                    int T = 1;
+                    MessageRecieved?.Invoke(this, new MessageArgs("Exception occured writting a Signal", ex, MessageArgs.MessageLevel.Error));
                 }
                 if (m_signal.Type == MeasurementType.EventFlag)
                     WriteGeneralEventFile();

@@ -55,6 +55,9 @@ namespace AdaptLogic
         private ConcurrentDictionary<string, SignalWritter> m_writers;
         private Dictionary<string,List<SectionProcessor>> m_processors;
 
+        private double m_dataSourceProgress;
+        private ConcurrentDictionary<string, DateTime> m_writterProgress;
+
         private List<AdaptSignal> m_sourceSignals;
         private DateTime m_start;
         private DateTime m_end;
@@ -98,6 +101,8 @@ namespace AdaptLogic
         {
             SignalWritter.CleanAppData();
             m_Source = CreateSourceInstance(task.DataSourceModel);
+
+            m_dataSourceProgress = 0;
 
             if (m_Source == null)
                 return;
@@ -251,8 +256,14 @@ namespace AdaptLogic
             else
                 m_commonFrameRate = TimeAlignment.Combine(inputSignals.Select(item => item.FramesPerSecond).ToArray());
 
-            m_writers = new ConcurrentDictionary<string, SignalWritter>(outputSignals.ToDictionary(signal => signal.ID, signal => new SignalWritter(signal)));
-              
+            m_writterProgress = new ConcurrentDictionary<string, DateTime>(outputSignals.ToDictionary(signal => signal.ID, signal => task.Start));
+            m_writers = new ConcurrentDictionary<string, SignalWritter>(outputSignals.ToDictionary(signal => signal.ID, (signal) => {
+                SignalWritter writter = new SignalWritter(signal);
+                writter.MessageRecieved += ProcessMessage;
+                writter.ProcessedUpdate += (object sender, ProcessedEventArgs arg) => ReportWriterProgress(signal.ID, arg);
+                return writter;
+                }
+            ));
         }
         #endregion
 
@@ -323,12 +334,13 @@ namespace AdaptLogic
                 if (!m_Source.SupportProgress)
                 {
                     ProgressArgs args = new ProgressArgs("This DataSource does not support Progress updates.", false, (int)50);
+                    m_dataSourceProgress = 1.0;
                     ReportProgress?.Invoke(this, args);
                 }
 
                 await foreach (IFrame frame in m_Source.GetData(m_sourceSignals, m_start, m_end))
                 {
-                    frame.Timestamp = Ticks.AlignToMicrosecondDistribution(frame.Timestamp, m_commonFrameRate);
+                    frame.Timestamp = Ticks.RoundToSubsecondDistribution(frame.Timestamp, m_commonFrameRate);
                     await m_sourceQueue.Writer.WriteAsync(frame, cancelationToken);
                     count++;
                     if (count % 1000 == 0 && m_Source.SupportProgress)
@@ -447,15 +459,14 @@ namespace AdaptLogic
 
         private void ReportDatasourceProgress(double dataSourceProgress)
         {
-            double totalProgress = dataSourceProgress* 0.5D;
-            double wFactor = 1.0D / (double)m_writers.Count()* 0.5D;
-            foreach (KeyValuePair<string,SignalWritter> writer in m_writers)
-            {
-                totalProgress += dataSourceProgress * wFactor * ((-1.0D / 10000.0D) * (double)writer.Value.Backlog + 1.0D);
-            }
+            m_dataSourceProgress = dataSourceProgress;
+            ReportTotalProgress();
+        }
 
-            ProgressArgs args = new ProgressArgs("Loading Data.", false, (int)totalProgress);
-            ReportProgress?.Invoke(this, args);
+        private void ReportWriterProgress(string key, ProcessedEventArgs arg)
+        {
+            m_writterProgress.AddOrUpdate(key, arg.TProcessed);
+            ReportTotalProgress();
         }
 
         private void ProcessMessage(object sender, MessageArgs args)
@@ -463,6 +474,18 @@ namespace AdaptLogic
             MessageRecieved?.Invoke(sender, args);
         }
             
+        private void ReportTotalProgress()
+        {
+            double totalProgress = m_dataSourceProgress * 0.5D;
+            double wFactor = 1.0D / (double)m_writers.Count() * 0.5D;
+            foreach (KeyValuePair<string, DateTime> writer in m_writterProgress)
+            {
+                totalProgress += m_dataSourceProgress * wFactor * ((double)(writer.Value - m_start).Ticks)/((double)(m_end - m_start).Ticks);
+            }
+
+            ProgressArgs args = new ProgressArgs("Processing Task", false, (int)totalProgress);
+            ReportProgress?.Invoke(this, args);
+        }
          #endregion
     }
 }
