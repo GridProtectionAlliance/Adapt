@@ -291,11 +291,12 @@ namespace Adapt.ViewModels
         public bool HasChanged()
         {
             if (m_model == null)
-                return true;
+                return !m_removed;
 
             bool changed = m_model.Name != m_name;
             changed = changed || m_model.Phase != m_phase;
             changed = changed || m_model.MeasurmentType != m_type;
+            changed = changed || m_removed;
             return changed;
 
         }

@@ -310,13 +310,14 @@ namespace Adapt.ViewModels
         public bool HasChanged()
         {
             if (m_model == null)
-                return true;
-
+                return !m_removed;
+            
             bool changed = m_model.Name != m_name;
             changed = changed || m_model.IsInput != m_isInput;
             changed = changed || m_model.OutputName != m_outputName;
 
             changed = changed || Signals.Any(s => s.HasChanged());
+            changed = changed || m_removed;
             return changed;
            
         }

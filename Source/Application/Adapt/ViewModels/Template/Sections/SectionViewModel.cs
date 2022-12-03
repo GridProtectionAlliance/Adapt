@@ -393,6 +393,7 @@ namespace Adapt.ViewModels
             changed = changed || m_model.Order != m_order;
             changed = changed || m_model.AnalyticTypeID != (int)m_typeID;
             changed = changed || m_analytics.Any(d => d.HasChanged());
+            changed = changed || m_removed;
 
             return changed;
 

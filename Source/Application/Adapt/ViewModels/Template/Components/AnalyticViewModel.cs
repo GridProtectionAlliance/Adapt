@@ -461,6 +461,7 @@ namespace Adapt.ViewModels
             changed = changed || (m_model.ConnectionString != m_connectionString);
             changed = changed || m_outputs.Any(o => o.HasChanged());
             changed = changed || m_inputs.Any(o => o.HasChanged());
+            changed = changed || m_removed;
 
             return changed;
 
