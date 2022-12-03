@@ -56,7 +56,7 @@ namespace Adapt.DataSources
     public class OpenHistorianSettings
     {
 
-        [DefaultValue("localhost:8180\\")]
+        [DefaultValue("http://localhost:8180")]
         public string Server { get; set; }
         public string User { get; set; }
 

@@ -210,6 +210,7 @@ namespace Adapt.DataSources
                 }
                 catch (Exception ex)
                 {
+                    LogError("Unable to retrieve data from openHistorian", ex);
                     yield break;
                 }
 
@@ -299,13 +300,9 @@ namespace Adapt.DataSources
                 List<string> acronyms = instances.Select(item => item["Acronym"].ToString()).ToList();
                 return acronyms.FindIndex(item => item == m_settings.Instance) > -1;
             }
-            catch (InvalidOperationException ex)
-            {
-                return false;
-
-            }
             catch (Exception ex)
             {
+                LogError("Unable to Connect to OpenHistorian", ex);
                 return false;
             }
             
@@ -452,12 +449,16 @@ namespace Adapt.DataSources
             }
         }
 
+        private void LogError(string message, Exception ex)
+        {
+            MessageRecieved?.Invoke(this, new MessageArgs(message, ex, MessageArgs.MessageLevel.Error));
+        }
 
-            private bool ServerCertificateCustomValidation(HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslErrors)
-            {
-                return sslErrors == SslPolicyErrors.None;
-            }
-            #endregion
+        private bool ServerCertificateCustomValidation(HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslErrors)
+        {
+            return sslErrors == SslPolicyErrors.None;
+        }
+        #endregion
 
             #region [ static ]
 
