@@ -101,30 +101,22 @@ namespace GemstoneWPF.Editors
 
         public DigitalFilterWindowViewModel(object currentValue, Action<object> completeAction)
         {
-            try 
+           
+            DigitalFilter flt = (DigitalFilter)currentValue;
+            if (flt is null)
             {
-                DigitalFilter flt = (DigitalFilter)currentValue;
-                if (flt is null)
-                {
-                    m_order = flt.Order;
-                    InputCoefficents = new ObservableCollection<CoefficentVM>(flt.InputCoefficents.Select((v, i) => new CoefficentVM(i, v)));
-                    OutputCoefficents = new ObservableCollection<CoefficentVM>(flt.OutputCoefficents.Select((v, i) => new CoefficentVM(i, v)));
-                }
-                else
-                {
-                    m_order = 1;
-                    OutputCoefficents = new ObservableCollection<CoefficentVM>() { new CoefficentVM(0), new CoefficentVM(1) };
-                    InputCoefficents = new ObservableCollection<CoefficentVM>() { new CoefficentVM(0), new CoefficentVM(1) };
-                }
 
-            }
-            catch
-            {
                 m_order = 1;
                 OutputCoefficents = new ObservableCollection<CoefficentVM>() { new CoefficentVM(0), new CoefficentVM(1) };
                 InputCoefficents = new ObservableCollection<CoefficentVM>() { new CoefficentVM(0), new CoefficentVM(1) };
             }
-            
+            else
+            {
+                m_order = flt.Order;
+                InputCoefficents = new ObservableCollection<CoefficentVM>(flt.InputCoefficents.Select((v, i) => new CoefficentVM(i, v)));
+                OutputCoefficents = new ObservableCollection<CoefficentVM>(flt.OutputCoefficents.Select((v, i) => new CoefficentVM(i, v)));
+            }
+
             CreateCommand = new RelayCommand(() => CreateFilter(), () => true);
             m_completeAction = completeAction;
         }
@@ -160,7 +152,7 @@ namespace GemstoneWPF.Editors
                 return;
             }
 
-            DigitalFilter filter = new DigitalFilter(OutputCoefficents.Select(o => o.Value).ToArray(), InputCoefficents.Select(i => i.Value).ToArray());
+            DigitalFilter filter = new DigitalFilter(InputCoefficents.Select(i => i.Value).ToArray(), OutputCoefficents.Select(o => o.Value).ToArray());
             m_completeAction(filter);
 
         }
