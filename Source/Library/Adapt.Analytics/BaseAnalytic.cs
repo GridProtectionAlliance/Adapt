@@ -20,9 +20,14 @@
 //       Generated original version of source code.
 // ******************************************************************************************************
 
+using Adapt.Models;
 using GemstoneCommon;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
 namespace Adapt.DataSources
@@ -59,5 +64,16 @@ namespace Adapt.DataSources
             m_fps = inputFramesPerSeconds.FirstOrDefault();
         }
 
+        public event EventHandler<MessageArgs> MessageRecieved;
+
+        protected void LogError(string message, Exception ex)
+        {
+            MessageRecieved?.Invoke(this, new MessageArgs(message, ex, MessageArgs.MessageLevel.Error));
+        }
+
+        protected void LogInfo(string message, Exception ex = null)
+        {
+            MessageRecieved?.Invoke(this, new MessageArgs(message, ex, MessageArgs.MessageLevel.Info));
+        }
     }
 }

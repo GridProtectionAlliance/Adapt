@@ -44,5 +44,10 @@ namespace Adapt.Models
         /// </summary>
         /// <param name="config">The <see cref="IConfiguration"/> object for this Adapter.</param>
         public void Configure(IConfiguration config);
+
+        /// <summary>
+        /// An Event that will pass a Message to the UI
+        /// </summary>
+        public event EventHandler<MessageArgs> MessageRecieved;
     }
 }

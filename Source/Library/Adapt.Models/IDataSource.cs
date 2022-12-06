@@ -72,10 +72,5 @@ namespace Adapt.Models
         /// </summary>
         public double GetProgress();
 
-        /// <summary>
-        /// An Event that will pass a Message to the UI
-        /// </summary>
-        public event EventHandler<MessageArgs> MessageRecieved;
-
     }
 }
