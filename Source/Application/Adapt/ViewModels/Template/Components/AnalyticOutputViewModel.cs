@@ -365,6 +365,9 @@ namespace Adapt.ViewModels
 
             bool changed = m_model.Name != m_name;
             changed = changed || (m_deviceID is null);
+            changed = changed || (m_outputModel is null && IsOutput);
+            changed = changed || (!(m_outputModel is null) && !IsOutput);
+            changed = changed || (IsOutput && OutputName != (m_outputModel?.Name ?? ""));
 
             return changed;
         }

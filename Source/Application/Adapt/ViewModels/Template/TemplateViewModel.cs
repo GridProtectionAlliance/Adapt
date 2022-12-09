@@ -429,7 +429,6 @@ namespace Adapt.ViewModels
             bool changed = m_model.Name != m_name;
             changed = changed || m_Devices.Any(d => d.HasChanged());
             changed = changed || m_Sections.Any(d => d.HasChanged());
-
             return changed;
         }
 

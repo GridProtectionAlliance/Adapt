@@ -297,6 +297,10 @@ namespace Adapt.ViewModels
             changed = changed || m_model.Phase != m_phase;
             changed = changed || m_model.MeasurmentType != m_type;
             changed = changed || m_removed;
+            changed = changed || (m_outputModel is null && IsOutput);
+            changed = changed || (!(m_outputModel is null) && !IsOutput);
+            changed = changed || (IsOutput && OutputName != (m_outputModel?.Name ?? ""));
+
             return changed;
 
         }

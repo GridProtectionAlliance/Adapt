@@ -318,6 +318,9 @@ namespace Adapt.ViewModels
 
             changed = changed || Signals.Any(s => s.HasChanged());
             changed = changed || m_removed;
+
+            int nOutSig = Signals.Where(s => s.IsOutput && !s.Removed).Count() + AnalyticSignals.Where(s => s.IsOutput && !s.Removed).Count();
+            changed = changed || (m_outputName != m_model.OutputName && nOutSig > 0);
             return changed;
            
         }
