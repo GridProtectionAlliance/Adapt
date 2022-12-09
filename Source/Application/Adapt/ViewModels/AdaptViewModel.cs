@@ -161,6 +161,7 @@ namespace Adapt.ViewModels
             {
                 if (m_dataSource.ID != m_dataSourceList.SelectedID)
                     m_dataSourceList.Load(m_dataSource.ID);
+                m_task.LoadDataSources();
             }
 
         }
@@ -186,6 +187,7 @@ namespace Adapt.ViewModels
             {
                 if (m_template.ID != m_templateList.SelectedID)
                     m_templateList.Load(m_template.ID);
+                m_task.LoadTemplates();
             }
         }
 
