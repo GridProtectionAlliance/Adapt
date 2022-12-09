@@ -133,7 +133,7 @@
                                         <CheckBox Margin="0, 6,0,0" IsChecked="{Binding Enabled}"/>
                                         <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Name}"/>
                                         <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Output Name:"/>
-                                        <TextBox Text="{Binding Path=OutputName}"  Height="20" Width="150"/>
+                                        <TextBox Text="{Binding Path=OutputName}" IsEnabled="{Binding Enabled}" Height="20" Width="150"/>
                                     </StackPanel>
 
                                     <HierarchicalDataTemplate.ItemTemplate>
@@ -142,7 +142,7 @@
                                                 <CheckBox Margin="0, 6,0,0" IsChecked="{Binding IsOutput}"/>
                                                 <Label  Margin="0" Width="250" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{Binding Name}"/>
                                                 <Label  Margin="0" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Output Name:"/>
-                                                <TextBox Text="{Binding Path=OutputName}"  Height="20" Width="150"/>
+                                                <TextBox Text="{Binding Path=OutputName}" IsEnabled="{Binding IsOutput}" Height="20" Width="150"/>
                                             </StackPanel>
                                         </DataTemplate>
                                     </HierarchicalDataTemplate.ItemTemplate>
