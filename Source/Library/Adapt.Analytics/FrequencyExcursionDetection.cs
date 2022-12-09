@@ -157,7 +157,7 @@ namespace Adapt.DataSources
                 // On High
                 if (value > m_settings.upper && !m_isHigh)
                 {
-                    m_differenceLower = frame.Timestamp;
+                    m_lastNormal = frame.Timestamp;
                     m_differenceUpper = value - m_settings.upper;
                     m_isHigh = true;
                 }
