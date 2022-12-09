@@ -22,6 +22,7 @@
 // ******************************************************************************************************
 
 using Adapt.Models;
+using Gemstone.Data.Model;
 using GemstoneCommon;
 using System;
 using System.Collections;
@@ -168,7 +169,12 @@ namespace AdaptLogic
                     if ((pt.Tmin >= start && pt.Tmax <= end) && depth == NLevels)
                         results.Add(pt);
                     else if (depth == NLevels)
-                        results.Add(Aggregate(GetSummaryPoints(file, NLevels + 1, NLevels + 1, start, end)));
+                    {
+                        EventSummary agg = Aggregate(GetSummaryPoints(file, NLevels + 1, NLevels + 1, start, end));
+                        if (!(agg is null))
+                            results.Add(agg);
+                    }
+                        
                     else
                         results.AddRange(GetSummaryPoints(file, depth, currentLevel + 1, start, end));
                 }
@@ -204,7 +210,12 @@ namespace AdaptLogic
                 if ((pt.Tmin >= start && pt.Tmax <= end) && currentLevel == depth)
                     results.Add(pt);
                 else if (currentLevel >= depth)
-                    results.Add(Aggregate(GetSummaryPoints(folder, NLevels + 1, nextLevel, start, end)));
+                {
+                    EventSummary agg = Aggregate(GetSummaryPoints(folder, NLevels + 1, nextLevel, start, end));
+                    if (!(agg is null))
+                        results.Add(agg);
+                }
+
                 else
                     results.AddRange(GetSummaryPoints(folder, depth, nextLevel, start, end));
             }
@@ -261,15 +272,19 @@ namespace AdaptLogic
         {
             EventSummary pt = new EventSummary();
             pt.Count = points.Sum(item => item.Count);
+
+            if (points.Count() == 0)
+                return null;
+           
             pt.Min = points.Min(item => item.Min);
             pt.Max = points.Max(item => item.Max);
             pt.Sum = points.Sum(item => item.Sum);
-           
+
             pt.Tmax = points.Max(item => item.Tmax);
             pt.Tmin = points.Min(item => item.Tmin);
 
             pt.Continuation = points.Where(item => item.Tmin == pt.Tmin).FirstOrDefault()?.Continuation ?? false;
-
+            
             return pt;
         }
         #endregion

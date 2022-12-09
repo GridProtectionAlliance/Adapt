@@ -81,6 +81,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         public override void Zoom(DateTime start, DateTime end)
         {
             base.Zoom(start, end);
+            UpdateTable();
         }
 
         public override void AddReader(IReader reader)
