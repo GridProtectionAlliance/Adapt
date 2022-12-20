@@ -114,6 +114,7 @@ namespace Adapt.DataSources
                 }
                 catch (Exception ex)
                 {
+                    LogError($"unable to parse Filename from {fileInfo.Name}");
                     continue;
                 }
 
@@ -129,6 +130,14 @@ namespace Adapt.DataSources
 
         public async IAsyncEnumerable<IFrame> GetData(List<AdaptSignal> signals, DateTime start, DateTime end)
         {
+            // Get Config Frame
+            if (!m_ConfigFrameSource.Task.IsCompleted && m_ConfigFrameSource.Task.Status != TaskStatus.WaitingForActivation)
+                yield break;
+
+            IConfigurationFrame configuration = m_ConfigFrameSource.Task.Result;
+            int Nfps = configuration.FrameRate;
+
+
             n_filesProcessed = 0;
             n_files = 0;
             //Create List of Relevant Files
@@ -150,7 +159,7 @@ namespace Adapt.DataSources
             files.Sort();
 
             CancellationTokenSource tokenSource = new CancellationTokenSource();
-            ReadFile(files, tokenSource.Token).Start();
+            ReadFile(files, Nfps, tokenSource.Token).Start();
 
             await foreach(IDataFrame frame in m_dataQueue.Reader.ReadAllAsync())
             {
@@ -221,7 +230,7 @@ namespace Adapt.DataSources
 
         }
 
-        public Task ReadFile(List<DateTime> files, CancellationToken cancellationToken)
+        public Task ReadFile(List<DateTime> files, double framesPerSecond, CancellationToken cancellationToken)
         {
             return new Task(() => {
 
@@ -240,7 +249,7 @@ namespace Adapt.DataSources
                     List<string> activeFileNames = fileNames.Skip(i * n_files).Take(n_files).ToList();
                     readers.Add(new Tuple<Channel<IDataFrame>,int,string>(Channel.CreateUnbounded<IDataFrame>(), activeFileNames.Count(), activeFileNames.Last() ));
                     
-                    GenerateReader(activeFileNames, readers[i],cancellationToken);
+                    GenerateReader(activeFileNames, readers[i], framesPerSecond* 60.0D, cancellationToken);
                 }
                 CombineQueues(readers).Wait();
                 m_dataQueue.Writer.Complete();
@@ -299,7 +308,7 @@ namespace Adapt.DataSources
             }
         }
 
-        private void GenerateReader(List<string> files, Tuple<Channel<IDataFrame>, int, string> reader, CancellationToken cancellationToken)
+        private void GenerateReader(List<string> files, Tuple<Channel<IDataFrame>, int, string> reader, double framesPerFile, CancellationToken cancellationToken)
         {
             Task.Run(() => {
 
@@ -314,18 +323,29 @@ namespace Adapt.DataSources
                     parser.PhasorProtocol = PhasorProtocol.IEEEC37_Pdat;
                     parser.TransportProtocol = Gemstone.Communication.TransportProtocol.File;
                     parser.ConnectionString = $"file={files[i]}";
-                    LogInfo($"reading File: {files[i]}");
-                    parser.CompletedFileParsing += (object sender, EventArgs<int> conf) => { fileComplete.Set(); };
+                    LogInfo($"Reading File {files[i]} started");
+                    int nFrames = 0;
                     parser.ReceivedDataFrame += (object sender, EventArgs<IDataFrame> conf) => {
                         reader.Item1.Writer.TryWrite(conf.Argument);
+                        nFrames++;
+                        if (nFrames >= framesPerFile)
+                            fileComplete.Set();
                     };
+
+                    parser.CompletedFileParsing += (object sender, EventArgs<int> conf) => { 
+                        LogInfo($"Reading File {files[i]} complete.");
+                        };
+                    
                     parser.DefinedFrameRate = 10000000;
                     parser.DisconnectAtEOF = true;
                     parser.ParsingException += ParsingException;
                     parser.Start();
-                    WaitHandle.WaitAny(new WaitHandle[] { fileComplete, cancellationToken.WaitHandle }, 5000);
+                    int resolvingIndex = WaitHandle.WaitAny(new WaitHandle[] { fileComplete, cancellationToken.WaitHandle }, 5000);
                     parser.Stop();
-                    LogInfo($"Reading File {files[i]} complete");
+                    if (resolvingIndex == 0)
+                        LogInfo($"Parsing File {files[i]} complete with {nFrames} Frames found");
+                    else
+                        LogError($"Parsing File {files[i]} timed out with {nFrames} Frames found");
                 }
                 reader.Item1.Writer.Complete();
 
