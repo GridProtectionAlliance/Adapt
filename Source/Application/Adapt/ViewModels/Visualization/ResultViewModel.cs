@@ -118,10 +118,18 @@ namespace Adapt.ViewModels
             m_processor.MessageRecieved += (object e, MessageArgs arg) =>
             {
                 m_progress.RecievedMessage(arg);
-                if (arg.ex is null)
-                    Log.Logger.Information(arg.Message);
-                else
+                if (arg.Level == MessageArgs.MessageLevel.Error && arg.ex is null)
+                    Log.Logger.Error(arg.Message);
+                else if (arg.Level == MessageArgs.MessageLevel.Error)
                     Log.Logger.Error(arg.ex, arg.Message);
+                else if (arg.Level == MessageArgs.MessageLevel.Info && arg.ex is null)
+                    Log.Logger.Information(arg.Message);
+                else if (arg.Level == MessageArgs.MessageLevel.Info)
+                    Log.Logger.Information(arg.ex, arg.Message);
+                else if (arg.Level == MessageArgs.MessageLevel.Debug && arg.ex is null)
+                    Log.Logger.Debug(arg.Message);
+                else if (arg.Level == MessageArgs.MessageLevel.Debug)
+                    Log.Logger.Debug(arg.ex, arg.Message);
             };
 
             OnPropertyChanged(nameof(ProgressVM));

@@ -107,7 +107,9 @@ namespace Adapt.ViewModels.Common
 
         public void RecievedMessage(MessageArgs arg)
         {
-             m_messages.Enqueue(new MessageVM() { Text = arg.Message }); 
+            if (arg.Level == MessageArgs.MessageLevel.Debug)
+                return;
+            m_messages.Enqueue(new MessageVM() { Text = arg.Message }); 
             OnPropertyChanged(nameof(Messages));
         }
         #endregion

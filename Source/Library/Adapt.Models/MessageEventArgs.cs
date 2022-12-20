@@ -35,6 +35,7 @@ namespace Adapt.Models
         {
             Error,
             Info,
+            Debug,
         }
        
 
@@ -43,6 +44,7 @@ namespace Adapt.Models
         /// </summary>
         public string Message { get; }
 
+        public MessageLevel Level { get; }
         public Exception ex { get; }
 
         /// <summary>
@@ -53,6 +55,7 @@ namespace Adapt.Models
         public MessageArgs(string Message, MessageLevel Level)
         {
             this.Message = Message;
+            this.Level = Level;
             this.ex = null;
         }
 
@@ -65,6 +68,7 @@ namespace Adapt.Models
         public MessageArgs(string Message, Exception ex, MessageLevel Level)
         {
             this.Message = Message;
+            this.Level = Level;
             this.ex = ex;
         }
 
