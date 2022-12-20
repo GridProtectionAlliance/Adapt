@@ -25,41 +25,63 @@ using GemstoneAnalytic;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using static GemstoneWPF.Editors.DigitalFilterWindowViewModel;
 
 namespace GemstoneWPF.Editors
 {
     class DigitalFilterWindowViewModel : ViewModelBase
     {
-
         #region [ Members ]
 
-        public class CoefficentVM: ViewModelBase
+        public class CoeffientSet: ViewModelBase, IEditableObject
         {
-            private double m_value;
-            public int Order { get; set; }
-            public double Value 
-            { 
-                get => m_value;
+            private int m_order;
+            private double m_input;
+            private double m_output;
+
+            public int Order 
+            {
+                get => m_order;
+            }
+
+            public double OutputCoefficent
+            {
+                get => m_output;
                 set
                 {
-                    m_value = value;
+                    m_output = value;
                     OnPropertyChanged();
                 }
             }
 
-            public CoefficentVM(int order)
+            public double InputCoefficent
             {
-                m_value = 1.0D;
-                Order = order;
+                get => m_input;
+                set
+                {
+                    m_input = value;
+                    OnPropertyChanged();
+                }
             }
-            public CoefficentVM(int order, double value) : this(order)
+
+            public CoeffientSet(int index)
             {
-                m_value = value;
+                m_order = index;
+                m_input = 1.0D;
+                m_output = 1.0D;
             }
+
+            public void BeginEdit() {}
+
+            public void CancelEdit() {}
+
+            public void EndEdit() {}
         }
 
         private Action<object> m_completeAction; 
@@ -68,6 +90,7 @@ namespace GemstoneWPF.Editors
         #region [ Properties ]
 
         private int m_order = 1;
+        
         /// <summary>
         /// The order of the Filter
         /// </summary>
@@ -78,17 +101,16 @@ namespace GemstoneWPF.Editors
             {
                 m_order = value;
                 OnOrderChange();
-                OnPropertyChanged();
+                OnPropertyChanged(); 
             }
         }
 
-        public ObservableCollection<CoefficentVM> InputCoefficents
-        {
-            get;
-            set;
-        }
+        /// <summary>
+        /// Flag indicating whether the formula should be shown or if the filter should be shown as a Table of coefficents
+        /// </summary>
+        public bool ShowSimple => m_order < 5;
 
-        public ObservableCollection<CoefficentVM> OutputCoefficents
+        public ObservableCollection<CoeffientSet> Coeffients 
         {
             get;
             set;
@@ -107,14 +129,30 @@ namespace GemstoneWPF.Editors
             {
 
                 m_order = 1;
-                OutputCoefficents = new ObservableCollection<CoefficentVM>() { new CoefficentVM(0), new CoefficentVM(1) };
-                InputCoefficents = new ObservableCollection<CoefficentVM>() { new CoefficentVM(0), new CoefficentVM(1) };
+                Coeffients = new ObservableCollection<CoeffientSet>() { new CoeffientSet(0), new CoeffientSet(1) };
+               
             }
             else
             {
                 m_order = flt.Order;
-                InputCoefficents = new ObservableCollection<CoefficentVM>(flt.InputCoefficents.Select((v, i) => new CoefficentVM(i, v)));
-                OutputCoefficents = new ObservableCollection<CoefficentVM>(flt.OutputCoefficents.Select((v, i) => new CoefficentVM(i, v)));
+                List<CoeffientSet> coefficents = new List<CoeffientSet>();
+                for (int i=0; i <= m_order; i++)
+                {
+                    CoeffientSet cof = new CoeffientSet(i);
+
+                    if (flt.InputCoefficents.Count() > i)
+                        cof.InputCoefficent = flt.InputCoefficents[i];
+                    else
+                        cof.InputCoefficent = 0.0D;
+
+                    if (flt.OutputCoefficents.Count() > i)
+                        cof.OutputCoefficent = flt.OutputCoefficents[i];
+                    else
+                        cof.OutputCoefficent = 0.0D;
+
+                    coefficents.Add(cof);
+                }
+                Coeffients = new ObservableCollection<CoeffientSet>(coefficents);
             }
 
             CreateCommand = new RelayCommand(() => CreateFilter(), () => true);
@@ -129,33 +167,35 @@ namespace GemstoneWPF.Editors
             if (m_order < 1)
                 m_order = 1;
 
-            if (m_order > 10)
-                m_order = 10;
+            if (m_order > 100)
+                m_order = 100;
 
-            InputCoefficents = new ObservableCollection<CoefficentVM>();
-            OutputCoefficents = new ObservableCollection<CoefficentVM>();
+            Coeffients = new ObservableCollection<CoeffientSet>();
+           
             for (int i = 0; i <= m_order; i++)
             {
-                InputCoefficents.Add(new CoefficentVM(i));
-                OutputCoefficents.Add(new CoefficentVM(i));
+                Coeffients.Add(new CoeffientSet(i));
             }
 
-            OnPropertyChanged(nameof(InputCoefficents));
-            OnPropertyChanged(nameof(OutputCoefficents));
+            OnPropertyChanged(nameof(Coeffients));
+            OnPropertyChanged(nameof(ShowSimple));
         }
 
         private void CreateFilter()
         {
-            if (InputCoefficents.Count() == 0 || OutputCoefficents.Count() == 0)
+            if (Coeffients.Count() == 0 || !Coeffients.Any(c => c.InputCoefficent != 0.0D) || !Coeffients.Any(c => c.OutputCoefficent != 0.0D))
             {
-                Popup("At least 1 Coefficient has to be specified on the Input and Output side.", "Error", System.Windows.MessageBoxImage.Error);
+                Popup("At least 1 non-zero Coefficient has to be specified on the Input and Output side.", "Error", System.Windows.MessageBoxImage.Error);
                 return;
             }
 
-            DigitalFilter filter = new DigitalFilter(InputCoefficents.Select(i => i.Value).ToArray(), OutputCoefficents.Select(o => o.Value).ToArray());
+            DigitalFilter filter = new DigitalFilter(Coeffients.Select(i => i.InputCoefficent).ToArray(), Coeffients.Select(o => o.OutputCoefficent).ToArray());
             m_completeAction(filter);
 
         }
+
+        
+  
         #endregion
 
     }

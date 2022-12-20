@@ -4,15 +4,22 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GemstoneWPF.Editors"
+        xmlns:gemstonewpf="clr-namespace:GemstoneWPF"
         mc:Ignorable="d"
+        xmlns:System="clr-namespace:System;assembly=System.Runtime"
         Title="Digital Filter Wizard" Height="450" Width="800">
+    <Window.Resources>
+        <gemstonewpf:ObjectToVisibility x:Key="ObjectToVisibility" />
+        <System:Boolean x:Key="FalseValue">False</System:Boolean>
+        <System:Boolean x:Key="TrueValue">True</System:Boolean>
+    </Window.Resources>
     <StackPanel Orientation="Vertical">
         <StackPanel Orientation="Horizontal">
             <TextBlock Margin="20 5">Filter Order:</TextBlock>
             <TextBox Width="50" Margin="0 5" Text="{Binding Order, Mode=TwoWay}"></TextBox>
         </StackPanel>
-        <WrapPanel Margin="20 5">
-            <ItemsControl ItemsSource="{Binding OutputCoefficents}" AlternationCount="{Binding RelativeSource={RelativeSource Self}, Path=Items.Count}">
+        <WrapPanel Margin="20 5" Visibility="{Binding ShowSimple, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource FalseValue}}">
+            <ItemsControl ItemsSource="{Binding Coeffients}" AlternationCount="{Binding RelativeSource={RelativeSource Self}, Path=Items.Count}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="Horizontal" />
@@ -22,7 +29,7 @@
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal" Margin="0 0 5 0">
                             <TextBlock Text="+" Margin="5 0 5 0" x:Name="Addition"/>
-                            <TextBox Text="{Binding Value}" Margin="0 0 5 0" />
+                            <TextBox Text="{Binding OutputCoefficent}" Margin="0 0 5 0" />
                             <TextBlock Text="y["/>
                             <TextBlock Text="{Binding Order}"/>
                             <TextBlock Text="]"/>
@@ -36,7 +43,7 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
             <TextBlock Text="=" Margin="0 0 5 0"/>
-            <ItemsControl ItemsSource="{Binding InputCoefficents}" AlternationCount="{Binding RelativeSource={RelativeSource Self}, Path=Items.Count}">
+            <ItemsControl ItemsSource="{Binding Coeffients}" AlternationCount="{Binding RelativeSource={RelativeSource Self}, Path=Items.Count}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="Horizontal" />
@@ -46,7 +53,7 @@
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal" Margin="0 0 5 0">
                             <TextBlock Text="+" Margin="5 0 5 0" x:Name="Addition"/>
-                            <TextBox Text="{Binding Value}" Margin="0 0 5 0" />
+                            <TextBox Text="{Binding InputCoefficent}" Margin="0 0 5 0" />
                             <TextBlock Text="x["/>
                             <TextBlock Text="{Binding Order}"/>
                             <TextBlock Text="]"/>
@@ -60,6 +67,10 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </WrapPanel>
+        <StackPanel Margin="20 5" Visibility="{Binding ShowSimple, Converter={StaticResource ObjectToVisibility}, ConverterParameter={StaticResource TrueValue}}">
+            <TextBlock Text="Coefficents for a LTI digital filter in the form a[0] y[k] + a[1] y[k-1].... = b[0] x[k] + b[1] x[k-1]... b[n] x[k-n] " Margin="0 0 5 0"/>
+            <DataGrid ItemsSource="{Binding Coeffients, Mode=TwoWay}" />
+        </StackPanel>
         <Button Content="Create Filter" Margin="20 5" Command="{Binding CreateCommand}"/>
     </StackPanel>
 </Window>
