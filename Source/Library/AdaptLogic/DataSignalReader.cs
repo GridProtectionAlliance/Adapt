@@ -22,6 +22,7 @@
 // ******************************************************************************************************
 
 using Adapt.Models;
+using GemstoneAnalytic;
 using GemstoneCommon;
 using System;
 using System.Collections;
@@ -178,7 +179,11 @@ namespace AdaptLogic
                     if ((pt.Tmin >= start && pt.Tmax <= end) && depth == NLevels)
                         results.Add(pt);
                     else if (depth == NLevels)
-                        results.Add(Aggregate(GetPoints(file, NLevels +1, NLevels + 1, start, end)));
+                    {
+                        GraphPoint agg = Aggregate(GetPoints(file, NLevels + 1, NLevels + 1, start, end));
+                        if (!(agg is null))
+                            results.Add(agg);
+                    }                       
                     else
                         results.AddRange(GetPoints(file, depth, currentLevel + 1, start, end));
                 }
@@ -241,7 +246,12 @@ namespace AdaptLogic
                 if ((pt.Tmin >= start && pt.Tmax <= end)  && currentLevel == depth)
                     results.Add(pt);
                 else if (currentLevel >= depth)
-                    results.Add( Aggregate(GetPoints(folder, NLevels+1, nextLevel, start, end)));
+                {
+                    GraphPoint agg = Aggregate(GetPoints(folder, NLevels + 1, nextLevel, start, end));
+                    if (!(agg is null))
+                        results.Add(agg);
+
+                }
                 else 
                     results.AddRange(GetPoints(folder, depth, nextLevel, start, end));
             }
@@ -251,6 +261,9 @@ namespace AdaptLogic
 
         private GraphPoint Aggregate( IEnumerable<GraphPoint> points)
         {
+            if (points.Count() == 0)
+                return null;
+
             GraphPoint pt = new GraphPoint();
             pt.N = points.Sum(item => item.N);
             pt.Min = points.Min(item => item.Min);
