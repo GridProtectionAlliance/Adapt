@@ -66,7 +66,12 @@ namespace AdaptLogic
         #endregion
 
         #region [ Properties]
-        
+
+        /// <summary>
+        /// Logs Messages and exceptions
+        /// </summary>
+        public event EventHandler<MessageArgs> MessageRecieved;
+
         #endregion
 
         #region [ Methods ]
@@ -87,6 +92,8 @@ namespace AdaptLogic
             string minute = data.FirstOrDefault()?.Timestamp.ToString("mm");
             string second = data.FirstOrDefault()?.Timestamp.ToString("ss");
            
+            
+
             double min = data.Min(pt => pt.Value);
             double max = data.Max(pt => pt.Value);
             double avg = data.Average(pt => pt.Value);

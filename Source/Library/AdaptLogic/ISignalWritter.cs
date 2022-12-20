@@ -39,7 +39,13 @@ namespace AdaptLogic
     /// </summary>
     public interface ISignalWritter
     {
+        #region [ Properties ]
+        /// <summary>
+        /// Logs Messages and exceptions
+        /// </summary>
+        public event EventHandler<MessageArgs> MessageRecieved;
 
+        #endregion
         #region [ Methods ]
 
         public void WriteSecond(List<ITimeSeriesValue> data, bool forceIndexGen);

@@ -79,7 +79,10 @@ namespace AdaptLogic
         #endregion
 
         #region [ Properties]
-
+        /// <summary>
+        /// Logs Messages and exceptions
+        /// </summary>
+        public event EventHandler<MessageArgs> MessageRecieved;
         #endregion
 
         #region [ Methods ]

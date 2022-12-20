@@ -189,7 +189,8 @@ namespace AdaptLogic
                 try
                 {
                     ISignalWritter writer = new DataSignalWritter(m_rootFolder);
-                 
+                    writer.MessageRecieved += (object source, MessageArgs args) => { MessageRecieved?.Invoke(source, args); };
+
                     ITimeSeriesValue point;
                     bool processFirst = true;
                     while (await m_queue.Reader.WaitToReadAsync(cancellationToken))
@@ -210,6 +211,7 @@ namespace AdaptLogic
                             GenerateEventParameters(point);
                             processFirst = false;
                             writer = new EventSignalWritter(m_rootFolder, m_eventParameters);
+                            writer.MessageRecieved += (object source, MessageArgs args) => { MessageRecieved?.Invoke(source, args); };
                         }    
 
                         if (double.IsNaN(point.Value))
