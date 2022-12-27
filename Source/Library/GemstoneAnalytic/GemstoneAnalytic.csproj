@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <Version>0.0.01</Version>
     <Company>Grid Protection Alliance</Company>
     <Copyright>MIT License</Copyright>
