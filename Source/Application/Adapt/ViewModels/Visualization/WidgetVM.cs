@@ -165,7 +165,7 @@ namespace Adapt.ViewModels.Vizsalization
             };
             m_widget.Zoom(start, end);
             m_widget.ChangedWindow += WindowChanged;
-
+            m_widget.DataSource = parent.DataSource;
             CreateContextMenue(dataReader, Devices);
 
         }

@@ -22,6 +22,7 @@
 // ******************************************************************************************************
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace Adapt.Models
@@ -78,6 +79,12 @@ namespace Adapt.Models
         /// A Function that is called to get Display Names for PMUs
         /// </summary>
         public Func<string,string> GetDeviceDisplay { set; }
+
+        /// <summary>
+        /// The <see cref="IDataSource"/> used for these results.
+        /// This is set for potential use in export functionality
+        /// </summary>
+        public IDataSource DataSource { set; }
 
     }
 }

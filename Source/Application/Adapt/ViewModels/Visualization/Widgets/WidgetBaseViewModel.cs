@@ -22,6 +22,7 @@
 // ******************************************************************************************************
 using Adapt.Models;
 using AdaptLogic;
+using Gemstone.Units;
 using GemstoneWPF;
 using System;
 using System.Collections.Generic;
@@ -42,6 +43,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         public event EventHandler<ZoomEventArgs> ChangedWindow;
         public virtual List<IContextMenu> Actions { get; } = new List<IContextMenu>();
         public virtual Func<string,string> GetDeviceDisplay { set { } }
+        public virtual IDataSource DataSource { set { } }
         #endregion
 
         #region [ constructor ]

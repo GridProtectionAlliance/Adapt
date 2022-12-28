@@ -45,7 +45,6 @@ namespace AdaptLogic
     public class TaskProcessor
     {
         #region [ Members ]
-        private IDataSource m_Source;
         private Channel<IFrame> m_sourceQueue;
 
         private Dictionary<string, List<AdaptSignal>> m_TemplateInputs;
@@ -89,6 +88,11 @@ namespace AdaptLogic
         /// All Devices associated with the Outputs of this Task
         /// </summary>
         public IEnumerable<IDevice> Devices { get; private set; }
+
+        /// <summary>
+        /// The <see cref="IDataSource"/> Instance used for this Task
+        /// </summary>
+        public IDataSource DataSource { get; private set; }
         #endregion
 
         #region [ Constructor ]       
@@ -100,15 +104,15 @@ namespace AdaptLogic
         public TaskProcessor(AdaptTask task)
         {
             SignalWritter.CleanAppData();
-            m_Source = CreateSourceInstance(task.DataSourceModel);
+            DataSource = CreateSourceInstance(task.DataSourceModel);
 
             m_dataSourceProgress = 0;
 
-            if (m_Source == null)
+            if (DataSource == null)
                 return;
 
             List<AdaptSignal> inputSignals = task.SignalMappings.SelectMany(s => s.Values).GroupBy((a) => a.ID).Select(g => g.FirstOrDefault()).ToList();
-            List<AdaptSignal> sourceSignals = m_Source.GetSignals().ToList();
+            List<AdaptSignal> sourceSignals = DataSource.GetSignals().ToList();
 
             if (inputSignals.Select((s) => sourceSignals.FindIndex((ss) => ss.ID == s.ID)).Any(s => s < 0))
             {
@@ -248,7 +252,7 @@ namespace AdaptLogic
             {
                 outputSignals = task.SignalMappings.SelectMany(s => s.Values).GroupBy((a) => a.ID).Select(g => g.FirstOrDefault()).ToList();
                 List<string> deviceIDs = outputSignals.Select(item => item.Device).Distinct().ToList();
-                Devices = m_Source.GetDevices().Where(d => deviceIDs.Contains(d.ID));
+                Devices = DataSource.GetDevices().Where(d => deviceIDs.Contains(d.ID));
             }
 
             if (m_processors.SelectMany(item => item.Value).Where(item => item.FramesPerSecond > 0).Any())
@@ -293,7 +297,7 @@ namespace AdaptLogic
         /// <returns> A Task</returns>
         public Task StartTask()
         {
-            if (m_Source == null)
+            if (DataSource == null)
                 return new Task<bool>(() => false);
 
             m_mainProcess = Task.Run(() =>
@@ -327,24 +331,24 @@ namespace AdaptLogic
         private async void GetData(CancellationToken cancelationToken)
         {
             try
-            { 
-                m_Source.MessageRecieved += ProcessMessage;
+            {
+                DataSource.MessageRecieved += ProcessMessage;
             
                 int count = 0;
-                if (!m_Source.SupportProgress)
+                if (!DataSource.SupportProgress)
                 {
                     ProgressArgs args = new ProgressArgs("This DataSource does not support Progress updates.", false, (int)50);
                     m_dataSourceProgress = 1.0;
                     ReportProgress?.Invoke(this, args);
                 }
 
-                await foreach (IFrame frame in m_Source.GetData(m_sourceSignals, m_start, m_end))
+                await foreach (IFrame frame in DataSource.GetData(m_sourceSignals, m_start, m_end))
                 {
                     frame.Timestamp = Ticks.RoundToSubsecondDistribution(frame.Timestamp, m_commonFrameRate);
                     await m_sourceQueue.Writer.WriteAsync(frame, cancelationToken);
                     count++;
-                    if (count % 1000 == 0 && m_Source.SupportProgress)
-                        ReportDatasourceProgress(m_Source.GetProgress());
+                    if (count % 1000 == 0 && DataSource.SupportProgress)
+                        ReportDatasourceProgress(DataSource.GetProgress());
                 }
             }
             catch (Exception ex)

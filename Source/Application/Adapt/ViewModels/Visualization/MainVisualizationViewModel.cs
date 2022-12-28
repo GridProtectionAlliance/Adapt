@@ -56,6 +56,7 @@ namespace Adapt.ViewModels.Vizsalization
         private Dictionary<string, Type> m_loadedWigets;
         private RelayCommand m_addWidgetCmd;
         private RelayCommand m_resetTimeCMD;
+        private IDataSource m_dataSource;
         #endregion
 
         #region[ Properties ]
@@ -132,6 +133,11 @@ namespace Adapt.ViewModels.Vizsalization
         {
             get { return m_loadedWigets.Keys.ToList(); }
         }
+
+        /// <summary>
+        /// The <see cref="IDataSource"/> used when prodiucing these results.
+        /// </summary>
+        public IDataSource DataSource => m_dataSource;
         #endregion
 
         #region[ Constructor]
@@ -141,6 +147,7 @@ namespace Adapt.ViewModels.Vizsalization
             m_endAvailable = task.End;
             m_startVisualization = task.Start;
             m_endVisualization = task.End;
+            m_dataSource = processor.DataSource;
 
             Devices = processor.Devices.ToDictionary((d) => d.ID);
 
