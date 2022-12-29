@@ -1,5 +1,6 @@
 using Adapt.Models;
 using AdaptLogic;
+using Gemstone.Units;
 using GemstoneAnalytic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -8,6 +9,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -85,6 +87,57 @@ namespace EventWriterTests
             WriteEvents(events, new AdaptSignal("EmptyWriteTest", TestSignal));
             ReadSummary();
             ReadSummaries(SignalReader.GetAvailableReader().First().SignalGuid, 2020, 1, 1, 0, 0);
+        }
+
+
+        [TestMethod]
+        public void TestFFT()
+        {
+            // Case N=1
+            double[] X = new double[] { 10 };
+            FFT fft = new FFT(X);
+
+            //Result should be 10.0
+
+            // Case N=2 - 2 cases
+            X = new double[] { 10, -10 };
+            fft = new FFT(X);
+
+            // result should be 0, 20
+
+            // Case N= 8 DC
+            X = new double[] { 10, 10, 10, 10, 10, 10, 10, 10 };
+            fft = new FFT(X);
+
+            //Case N=8 Sin
+            X = new double[] { 10, -10, 10, -10, 10, -10, 10, -10 };
+            fft = new FFT(X);
+
+            //Case N=8 Cos
+            X = new double[] { -10, 10, -10, 10, -10, 10, -10, 10 };
+            fft = new FFT(X);
+
+            // Case N= 10 Simple
+            X = new double[] { -10, 10, -10, 10, -10, 10, -10, 10, -10, 10 };
+            fft = new FFT(X);
+
+            //Case N=8 Sin
+            X = new double[] { 10, -10, 10, -10, 10, -10, 0, 0 };
+            fft = new FFT(X);
+
+
+            // N = 1500, Complex
+            double Fs = 1000.0D;
+            double T = 1.0D / Fs;
+            double L = 1500.0D;
+            double[] t = new double[1500];
+            Array.Fill(t,0.0D);
+            t = t.Select((v, i) => (double)i*T).ToArray();
+
+            double[] S = t.Select((v, i) => 0.7 * Math.Sin(2.0D * Math.PI * 50.0D * v) + Math.Sin(2.0D * Math.PI * 120.0D * v)).ToArray();
+
+            fft = new FFT(S);
+
         }
 
         private void WriteEvents(List<AdaptEvent> events, AdaptSignal signal)

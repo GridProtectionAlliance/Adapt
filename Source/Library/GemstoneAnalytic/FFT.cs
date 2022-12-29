@@ -99,7 +99,7 @@ namespace GemstoneAnalytic
                 Frequency[2*w] = a*2;
 
                 Complex p = fft_even.ComplexMagnitude[w];
-                Complex q = new Complex(Math.Cos(-a * w), Math.Sin(-a * w))*fft_odd.ComplexMagnitude[w];
+                Complex q = new Complex(Math.Cos(-a), Math.Sin(-a))*fft_odd.ComplexMagnitude[w];
                 ComplexMagnitude[w] = p+q;
                 ComplexMagnitude[w+n/2] = p-q;
             }
