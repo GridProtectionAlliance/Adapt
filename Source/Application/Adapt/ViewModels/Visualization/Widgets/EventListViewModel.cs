@@ -20,12 +20,14 @@
 //       Generated original version of source code.
 //
 // ******************************************************************************************************
+using Adapt.DataSources;
 using Adapt.Models;
 using Adapt.View.Visualization.Widgets;
 using Adapt.ViewModels.Vizsalization;
 using AdaptLogic;
 using GemstoneCommon;
 using GemstoneWPF;
+using Microsoft.Extensions.Logging;
 using OxyPlot;
 using OxyPlot.Axes;
 using OxyPlot.Series;
@@ -49,6 +51,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
         private DataTable m_data;
         private UIElement m_xamlClass;
         private Func<string, string> m_getDeviceName = null;
+        private IDataSource m_dataSource;
         #endregion
 
         #region [ Properties ]
@@ -58,8 +61,12 @@ namespace Adapt.ViewModels.Visualization.Widgets
         }
         public bool HasSignal => m_readers.Count() > 0;
         public override UIElement UserControl => m_xamlClass;
-        public override List<IContextMenu> Actions => new List<IContextMenu>() { new WidgetVM.ContextMenueVM("Export to CSV", ExportEventData) };
+        public override List<IContextMenu> Actions => new List<IContextMenu>() { 
+            new WidgetVM.ContextMenueVM("Export to CSV", ExportEventData),
+            new WidgetVM.ContextMenueVM("Export to PI AF", ExportEventFrames),
+        };
         public override Func<string, string> GetDeviceDisplay { set { m_getDeviceName = value; } }
+        public override IDataSource DataSource { set => m_dataSource = value; }
         #endregion
 
         #region [ Constructor ]
@@ -164,6 +171,20 @@ namespace Adapt.ViewModels.Visualization.Widgets
 
                 File.WriteAllText(saveFileDialog.FileName, sbbuilder.ToString());
             }
+        }
+
+        private void ExportEventFrames()
+        {
+            if (m_dataSource is PIASF)
+            {
+                foreach (IReader reader in m_readers)
+                {
+                    IEnumerable<AdaptEvent> evt = reader.GetEvents(m_start, m_end);
+                    ((PIASF)m_dataSource).ExportEvents(evt, reader.Signal.Name);
+                }
+            }
+            else
+                Popup("This is only available for Tasks based on an OSISOft PI Asset Framework Data Source", "Unable to export.", MessageBoxImage.Exclamation);
         }
     }
 

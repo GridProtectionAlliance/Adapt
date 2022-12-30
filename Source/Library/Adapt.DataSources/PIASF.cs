@@ -27,6 +27,7 @@ using Adapt.Models;
 using AFSDKnetcore;
 using AFSDKnetcore.AF;
 using AFSDKnetcore.AF.Asset;
+using AFSDKnetcore.AF.EventFrame;
 using AFSDKnetcore.AF.PI;
 using AFSDKnetcore.AF.Search;
 using Gemstone;
@@ -41,9 +42,7 @@ using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using static Common.Constants;
-
 [assembly:InternalsVisibleTo("Adapt")]
 
 namespace Adapt.DataSources
@@ -339,14 +338,51 @@ namespace Adapt.DataSources
             MessageRecieved?.Invoke(this, new MessageArgs(message, ex, MessageArgs.MessageLevel.Info));
         }
 
-        private void LogError(string message, Exception ex)
+        private void LogError(string message, Exception ex=null)
         {
             MessageRecieved?.Invoke(this, new MessageArgs(message, ex, MessageArgs.MessageLevel.Error));
         }
 
         /// <summary>
-        /// Function to start AFSDKHost if necessary
+        /// Saves the Results to the PI System
         /// </summary>
+        public void ExportEvents(IEnumerable<AdaptEvent> events, string eventDescription)
+        {
+            if (m_server is null || !m_server.ConnectionInfo.IsConnected)
+                ConnectPI();
+
+            AFDatabase database = m_server.Databases[m_settings.InstanceName];
+
+            AFElementTemplate eventFrameTemplate = database.ElementTemplates[m_settings.EventFrameTemplate];
+
+            if (eventFrameTemplate is null)
+            {
+                LogError($"Failed to find \"{m_settings.EventFrameTemplate}\" event frame template.");
+                return;
+            }
+
+            AFElement element;
+            using AFElementSearch elementSearch = new(database, "PrimaryElementSearch", m_settings.ExportElementFilter);
+                element = elementSearch.FindObjects().FirstOrDefault();
+
+            List<AFEventFrame> eventFrames = events.Select((evt) => {
+                DateTime startTime = evt.Timestamp;
+                DateTime endTime = (DateTime)evt.Timestamp + new TimeSpan(0, 0, (int)evt.LenghtSeconds);
+
+                AFEventFrame frame = new(database, $"{m_settings.EventFrameTemplate}_SciSync_{startTime:yyyyMMddHHmmss}", eventFrameTemplate);
+
+                // Description needs to contain info of event......
+                frame.Description = $"{eventDescription} Event Frame for SciSync";
+                frame.Description = frame.Description + " " + string.Join(" ",evt.ParameterNames.Select((n,i) => n + ": " + evt.Parameters[i].ToString()));
+                frame.SetStartTime(startTime);
+                frame.SetEndTime(endTime);
+                frame.PrimaryReferencedElement = element;
+
+                frame.CheckIn();
+                return frame;
+            }).ToList();
+        }
+
 
         #endregion
 

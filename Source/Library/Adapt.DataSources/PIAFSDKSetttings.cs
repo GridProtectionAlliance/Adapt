@@ -39,6 +39,13 @@ namespace Adapt.DataSources
 
         [DefaultValue("Category:'PMU'")]
         public string Filter { get; set; }
-        
+
+        [DefaultValue("Frequency Excursion")]
+        public string EventFrameTemplate { get; set; }
+
+
+        [DefaultValue("Category:'PMU'")]
+        public string ExportElementFilter { get; set; }
+
     }
 }
