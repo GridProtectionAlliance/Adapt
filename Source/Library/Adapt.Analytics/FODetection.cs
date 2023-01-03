@@ -139,21 +139,21 @@ namespace Adapt.DataSources
             
             // Compute Threshold
 
-            double[] threshold = ambientWPG.Power.Select(v => v*Math.Log(m_settings.Pfa / NFreq)).ToArray();
+            double[] threshold = ambientWPG.Magnitude.Select(v => v*Math.Log(m_settings.Pfa / NFreq)).ToArray();
 
             // If Exceeds Threshold compute Freq, Ammplitude
             double[] relevantFreq = signalWPG.Frequency.Select(item => item * m_fps / (2 * Math.PI))
-                .Where((f,i) => f < m_settings.maxfreq && f < m_settings.minFreq && threshold[i] < signalWPG.Power[i])
+                .Where((f,i) => f < m_settings.maxfreq && f < m_settings.minFreq && threshold[i] < signalWPG.Magnitude[i])
                 .ToArray();
 
-            double[] relevantSignal = signalWPG.Power
+            double[] relevantSignal = signalWPG.Magnitude
                 .Where((v, i) => signalWPG.Frequency[i]*m_fps/ (2* Math.PI) < m_settings.maxfreq &&
                     signalWPG.Frequency[i] * m_fps / (2 * Math.PI) < m_settings.minFreq && threshold[i] < v)
                 .ToArray();
 
-            double[] relevantAmbient = ambientWPG.Power
+            double[] relevantAmbient = ambientWPG.Magnitude
                 .Where((v, i) => signalWPG.Frequency[i] * m_fps / (2 * Math.PI) < m_settings.maxfreq &&
-                    signalWPG.Frequency[i] * m_fps / (2 * Math.PI) < m_settings.minFreq && threshold[i] < signalWPG.Power[i])
+                    signalWPG.Frequency[i] * m_fps / (2 * Math.PI) < m_settings.minFreq && threshold[i] < signalWPG.Magnitude[i])
                 .ToArray();
             
 

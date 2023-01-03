@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace GemstoneAnalytic
 {
@@ -37,13 +38,51 @@ namespace GemstoneAnalytic
     {
         #region[ Properties ]
 
-        public double[] Power { get; }
+        public double[] Magnitude => ComplexMagnitude.Select(item => item.Magnitude).ToArray();
+        public Complex[] ComplexMagnitude { get; }
 
         public double[] Frequency { get; }
+
         #endregion[ Properties ]
 
 
         #region[ Constructors ]
+
+        public WelshPeriodoGramm(double[] signal1, double[] signal2, double[] windowFunction, int windowOverlap, int medianFilterOrder = 0)
+        {
+            int dataLength = signal1.Count(); 
+            int windowLength = windowFunction.Length;
+            int nWindows = 1 + (int)Math.Floor((double)(dataLength - windowLength) / (double)(windowLength - windowOverlap));
+
+            double windowSum = windowFunction.Sum(x => x * x);
+
+            IEnumerable<Complex> P = new List<Complex>();
+            for (int i = 0; i < nWindows; i++)
+            {
+                int start = i * (windowLength - windowOverlap);
+                FFT fft1 = new FFT(signal1.Skip(start).Take(windowLength).ToArray());
+                FFT fft2 = new FFT(signal2.Skip(start).Take(windowLength).ToArray());
+                if (i == 0)
+                {
+                    Frequency = fft1.Frequency;
+                    P = fft1.ComplexMagnitude.Select(p => p*0.0D).ToList();
+                }
+                if (medianFilterOrder > 0)
+                {
+                    double Q = 0.0D;
+                    for (double j = (medianFilterOrder + 1) / 2; j <= medianFilterOrder; j += 1.0D)
+                        Q += 1.0D / j;
+                    Complex[] agg = fft1.ComplexMagnitude.Select((v,i) => v * Complex.Conjugate(fft2.ComplexMagnitude[i])).ToArray();
+                    double[] medFFT = ApplyMedianFilter(medianFilterOrder, agg.Select(v => v.Magnitude).ToArray());
+
+                    P = P.Select((item, index) => item + (1.0D / (windowSum * (double)nWindows) * Q) * Complex.FromPolarCoordinates(medFFT[index], agg[index].Phase));
+                }
+                else
+                    P = P.Select((item, index) => item + (1.0D / (windowSum * nWindows)) * fft1.ComplexMagnitude[index] * Complex.Conjugate(fft2.ComplexMagnitude[index]));
+            }
+
+            ComplexMagnitude = P.ToArray();
+        }
 
         public WelshPeriodoGramm(double[] data, double[] windowFunction, int windowOverlap, int medianFilterOrder=0 )
         {
@@ -53,7 +92,7 @@ namespace GemstoneAnalytic
 
             double windowSum = windowFunction.Sum(x => x * x);
 
-            IEnumerable<double> P = new List<double>();
+            IEnumerable<Complex> P = new List<Complex>();
             for (int i = 0; i < nWindows; i++)
             {
                 int start = i* (windowLength - windowOverlap);
@@ -61,7 +100,7 @@ namespace GemstoneAnalytic
                 if (i == 0)
                 {
                     Frequency = fft.Frequency;
-                    P = fft.Magnitude.Select(p => 0.0D).ToList();
+                    P = fft.ComplexMagnitude.Select(p => p*0.0D).ToList();
                 }
                 if (medianFilterOrder > 0)
                 {
@@ -72,15 +111,17 @@ namespace GemstoneAnalytic
                     P = P.Select((item, index) => item + (1.0D / (windowSum * (double)nWindows)* Q) * medFFT[index] * medFFT[index]);
                 }
                 else
-                    P = P.Select((item, index) => item + (1.0D / (windowSum * nWindows)) * fft.Magnitude[index] * fft.Magnitude[index]);
+                    P = P.Select((item, index) => item + (1.0D / (windowSum * nWindows)) * fft.ComplexMagnitude[index] * Complex.Conjugate(fft.ComplexMagnitude[index]));
             }
 
-            Power = P.ToArray();
+            ComplexMagnitude = P.ToArray();
         }
 
         public WelshPeriodoGramm(double[] data, WindowFunction fx, int windowLength, int windowOverlap,int medianFilterOrder= 0) : this(data, WindowingFunctions.Create(fx, windowLength), windowOverlap, medianFilterOrder)
         {}
 
+        public WelshPeriodoGramm(double[] signal1, double[] signal2, WindowFunction fx, int windowLength, int windowOverlap, int medianFilterOrder = 0) : this(signal1,signal2, WindowingFunctions.Create(fx, windowLength), windowOverlap, medianFilterOrder)
+        { }
 
         #endregion [ Constructors ]
 
