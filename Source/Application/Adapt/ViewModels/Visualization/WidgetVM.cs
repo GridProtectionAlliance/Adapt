@@ -200,7 +200,7 @@ namespace Adapt.ViewModels.Vizsalization
             }
             menue.AddRange(m_widget.Actions);
 
-            menue.Add(new ContextMenueVM("Remove Widget", () => { RemoveWidget(); }));
+            menue.Add(new ContextMenueVM("Remove Panel", () => { RemoveWidget(); }));
             ContextMenue = new ObservableCollection<IContextMenu>(menue);
             OnPropertyChanged(nameof(ContextMenue));
         }

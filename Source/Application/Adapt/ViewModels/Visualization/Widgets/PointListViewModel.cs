@@ -109,6 +109,7 @@ namespace Adapt.ViewModels.Visualization.Widgets
             {
                 m_data.Columns.Add("Please Select a shorter timerange. This Widget is only available for < 30 sec");
                 OnPropertyChanged(nameof(DataTable));
+                return;
             }
 
             m_data.Columns.Add("Date");
