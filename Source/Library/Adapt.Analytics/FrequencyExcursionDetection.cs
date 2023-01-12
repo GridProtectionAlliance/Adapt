@@ -57,19 +57,19 @@ namespace Adapt.DataSources
 
         public class Setting 
         {
-            [DisplayName("Upper Threshold")]
+            [SettingName("Upper Threshold")]
             [DefaultValue(65)]
             public double upper { get; set; }
 
-            [DisplayName("Lower Threshold")]
+            [SettingName("Lower Threshold")]
             [DefaultValue(45)]
             public double lower { get; set; }
 
-            [DisplayName("Excursion Type")]
+            [SettingName("Excursion Type")]
             [DefaultValue(ExcursionType.UpperAndLower)]
             public ExcursionType excursionType { get; set; }
 
-            [DisplayName("Minimum Duration (s)")]
+            [SettingName("Minimum Duration (s)")]
             [DefaultValue(0.5)]
             public double minDur { get; set; }
         }

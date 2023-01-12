@@ -54,31 +54,31 @@ namespace Adapt.DataSources
         {
            
 
-            [DisplayName("Minimum Frequency (Hz)")]
+            [SettingName("Minimum Frequency (Hz)")]
             [DefaultValue(0)]
             public double minFreq { get; set; }
 
-            [DisplayName("Maximum Frequency (Hz)")]
+            [SettingName("Maximum Frequency (Hz)")]
             [DefaultValue(30)]
             public double maxfreq { get; set; }
 
-            [DisplayName("Window Size (s)")]
+            [SettingName("Window Size (s)")]
             [DefaultValue(600)]
             public double windowSize { get; set; }
 
-            [DisplayName("Welch Window Size (s)")]
+            [SettingName("Welch Window Size (s)")]
             [DefaultValue(200)]
             public double FFTWindowSize { get; set; }
 
-            [DisplayName("Window Function")]
+            [SettingName("Window Function")]
             [DefaultValue(WindowFunction.hann)]
             public WindowFunction PeriodogramWindow { get; set; }
 
-            [DisplayName("Probability of false alarm")]
+            [SettingName("Probability of false alarm")]
             [DefaultValue(0.01)]
             public double Pfa { get; set; }
 
-            [DisplayName("Freq Tolerance (Hz)")]
+            [SettingName("Freq Tolerance (Hz)")]
             [DefaultValue(0.2)]
             public double FrequencyTolerance { get; set; }
 

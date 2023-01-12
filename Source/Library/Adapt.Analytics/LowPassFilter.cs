@@ -45,11 +45,11 @@ namespace Adapt.DataSources
         private Setting m_settings;
         public class Setting 
         { 
-            [DisplayName("Order of the Filter")]
+            [SettingName("Order of the Filter")]
             [DefaultValue(2)]
             public int N { get; set; }
 
-            [DisplayName("Corner Frequency")]
+            [SettingName("Corner Frequency")]
             [DefaultValue(120)]
             public double Fc { get; set; }
         }
