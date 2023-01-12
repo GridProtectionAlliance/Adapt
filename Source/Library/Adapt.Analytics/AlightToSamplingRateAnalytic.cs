@@ -53,7 +53,7 @@ namespace Adapt.DataSources
 
         public IEnumerable<string> InputNames()
         {
-            return new List<string>() { "Aligned" };
+            return new List<string>() { "Signal" };
         }
 
         public override ITimeSeriesValue[] Compute(IFrame frame, IFrame[] previousFrames, IFrame[] future) 
