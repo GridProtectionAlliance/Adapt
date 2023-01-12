@@ -141,7 +141,7 @@ namespace Adapt.DataSources
                 double TrendTime = frame.Timestamp - m_trendTicks;
                 double TrendAmount = filtered - m_trendValue;
                 
-                double DetSlope = (m_settings.MaxChange - m_settings.MinChange) / ((m_settings.MaxDuration - m_settings.MinChange)* Ticks.PerSecond);
+                double DetSlope = (m_settings.MaxChange - m_settings.MinChange) / ((m_settings.MaxDuration - m_settings.MinDuration) * Ticks.PerSecond);
                 double DetYint = m_settings.MaxChange - DetSlope * m_settings.MaxDuration*Ticks.PerSecond;
                 isEvent = Math.Abs(TrendAmount) > m_settings.MinChange &&
                     (TrendTime < m_settings.MinDuration * Ticks.PerSecond) &&
@@ -230,7 +230,7 @@ namespace Adapt.DataSources
             double TrendTime = ticks - m_trendTicks;
             double TrendAmount = m_prevFiltered - m_trendValue;
 
-            double DetSlope = (m_settings.MaxChange - m_settings.MinChange) / ((m_settings.MaxDuration - m_settings.MinChange) * Ticks.PerSecond);
+            double DetSlope = (m_settings.MaxChange - m_settings.MinChange) / ((m_settings.MaxDuration - m_settings.MinDuration) * Ticks.PerSecond);
             double DetYint = m_settings.MaxChange - DetSlope * m_settings.MaxDuration * Ticks.PerSecond;
             bool isEvent = Math.Abs(TrendAmount) > m_settings.MinChange &&
                 (TrendTime < m_settings.MinDuration * Ticks.PerSecond) &&
