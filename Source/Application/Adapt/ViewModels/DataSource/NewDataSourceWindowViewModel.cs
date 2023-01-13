@@ -175,11 +175,11 @@ namespace Adapt.ViewModels
             {
                 if (ex.InnerException != null)
                 {
-                    Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Add DataSource Exception:", MessageBoxImage.Error);
+                    Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Add Data Source Exception:", MessageBoxImage.Error);
                 }
                 else
                 {
-                    Popup(ex.Message, "Add DataSource Exception:", MessageBoxImage.Error);
+                    Popup(ex.Message, "Add Data Source Exception:", MessageBoxImage.Error);
                 }
             }
             finally

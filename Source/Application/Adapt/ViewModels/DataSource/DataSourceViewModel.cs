@@ -100,7 +100,7 @@ namespace Adapt.ViewModels
             {
                 if (!PassedTest && value != 0)
                 {
-                    Popup("The DataSource needs to be able to connect to the Source System. Please Test the Datasource to ensure it can connect to the Source System.", "Test DataSource", MessageBoxImage.Exclamation);
+                    Popup("The Data Source needs to be able to connect to the Source System. Please Test the Data Source to ensure it can connect to the Source System.", "Test Data Source", MessageBoxImage.Exclamation);
                     m_selectedTabIndex = 0;
                 }
                 else
@@ -315,14 +315,14 @@ namespace Adapt.ViewModels
 
                 
                 if (PassedTest)
-                    Popup("This DataSource is set up Properly and SciSync was able to get data.", "Success", MessageBoxImage.Information);
+                    Popup("This Data Source is set up Properly and SciSync was able to get data.", "Success", MessageBoxImage.Information);
                 else
-                    Popup("This DataSource is not set up Properly and SciSync was unable to get data. Please check the settings.", "Failed", MessageBoxImage.Error);
+                    Popup("This Data Source is not set up Properly and SciSync was unable to get data. Please check the settings.", "Failed", MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
                 PassedTest = false;
-                Popup("This DataSource is not set up Properly and SciSync was unable to get data. Please check the settings.", "Failed", MessageBoxImage.Error);
+                Popup("This Data Source is not set up Properly and SciSync was unable to get data. Please check the settings.", "Failed", MessageBoxImage.Error);
                 Log.Logger.Warning(ex, $"DataSource {Name} ({m_dataSourceTypes[AdapterTypeSelectedIndex].Type.FullName}) Testing Failed");                
             }
             finally
@@ -400,11 +400,11 @@ namespace Adapt.ViewModels
             {
                 if (ex.InnerException != null)
                 {
-                    Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Load DataSource Exception:", MessageBoxImage.Error);
+                    Popup(ex.Message + Environment.NewLine + "Inner Exception: " + ex.InnerException.Message, "Load Data Source Exception:", MessageBoxImage.Error);
                 }
                 else
                 {
-                    Popup(ex.Message, "Load DataSource Exception:", MessageBoxImage.Error);
+                    Popup(ex.Message, "Load Data Source Exception:", MessageBoxImage.Error);
                 }
             }
             finally
@@ -605,7 +605,7 @@ namespace Adapt.ViewModels
                 return true;
             if (m_hasChanged)
             {
-                if (Confirmation("Changes to this DataSource have not been saved. Would you like to test and save the DataSource and continue?", "Changes not Saved", MessageBoxImage.Warning))
+                if (Confirmation("Changes to this Data Source have not been saved. Would you like to test and save the Data Source and continue?", "Changes not Saved", MessageBoxImage.Warning))
                 {
                     Save();
                     return true;

@@ -17,7 +17,7 @@
 
         <Image Source="/Adapt;component/Resources/DataSource.png" Grid.Row="0" Width="300" Height="75" Margin="2" HorizontalAlignment="Left"/>
         <TextBlock Grid.Row="1" Text="Please Select A Data Source" VerticalAlignment="Center" Margin="2,0" FontWeight="Black" TextWrapping="WrapWithOverflow" HorizontalAlignment="Left"/>
-        <Button Grid.Row="2" Content="Add DataSource" ToolTip="Add A New Data Source" Margin="0,5" Width="100" HorizontalAlignment="Left" Command="{Binding AddNewCommand}"/>
+        <Button Grid.Row="2" Content="Add Data Source" ToolTip="Add A New Data Source" Margin="0,5" Width="100" HorizontalAlignment="Left" Command="{Binding AddNewCommand}"/>
 
         <ListView VerticalAlignment="Top" Grid.Row="3" Height="auto" ItemsSource="{Binding DataSource}" BorderThickness="0" SelectedIndex="{Binding SelectedIndex, Mode=TwoWay}">
             <ListView.ItemTemplate>

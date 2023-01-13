@@ -135,7 +135,7 @@ namespace Adapt.ViewModels.Vizsalization
         }
 
         /// <summary>
-        /// The <see cref="IDataSource"/> used when prodiucing these results.
+        /// The <see cref="IDataSource"/> used when producing these results.
         /// </summary>
         public IDataSource DataSource => m_dataSource;
         #endregion

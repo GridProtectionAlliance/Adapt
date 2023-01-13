@@ -116,7 +116,7 @@ namespace AdaptLogic
 
             if (inputSignals.Select((s) => sourceSignals.FindIndex((ss) => ss.ID == s.ID)).Any(s => s < 0))
             {
-                MessageRecieved?.Invoke(this, new MessageArgs($"The following Signals are not found in the datasource: {string.Join(",", inputSignals.Where((s) => sourceSignals.FindIndex((ss) => ss.ID == s.ID) < 0).Select(s => s.Name))}",
+                MessageRecieved?.Invoke(this, new MessageArgs($"The following Signals are not found in the Data Source: {string.Join(",", inputSignals.Where((s) => sourceSignals.FindIndex((ss) => ss.ID == s.ID) < 0).Select(s => s.Name))}",
                     MessageArgs.MessageLevel.Error));
             }
 
@@ -285,7 +285,7 @@ namespace AdaptLogic
             }
             catch (Exception ex)
             {
-                MessageRecieved?.Invoke(this, new MessageArgs("An error occurred creating the DataSource", ex, MessageArgs.MessageLevel.Error));
+                MessageRecieved?.Invoke(this, new MessageArgs("An error occurred creating the Data Source", ex, MessageArgs.MessageLevel.Error));
                 return null;
             }
 
@@ -337,7 +337,7 @@ namespace AdaptLogic
                 int count = 0;
                 if (!DataSource.SupportProgress)
                 {
-                    ProgressArgs args = new ProgressArgs("This DataSource does not support Progress updates.", false, (int)50);
+                    ProgressArgs args = new ProgressArgs("This Data Source does not support progress updates.", false, (int)50);
                     m_dataSourceProgress = 1.0;
                     ReportProgress?.Invoke(this, args);
                 }
@@ -353,11 +353,11 @@ namespace AdaptLogic
             }
             catch (Exception ex)
             {
-                MessageRecieved?.Invoke(this, new MessageArgs("An Error occurred when trying to load data.", ex, MessageArgs.MessageLevel.Error));
+                MessageRecieved?.Invoke(this, new MessageArgs("An error occurred when trying to load data.", ex, MessageArgs.MessageLevel.Error));
             }
             finally
             {
-                MessageRecieved?.Invoke(this, new MessageArgs("Finished Loading Data from DataSource", MessageArgs.MessageLevel.Info));
+                MessageRecieved?.Invoke(this, new MessageArgs("Finished loading data from Data Source", MessageArgs.MessageLevel.Info));
                 m_sourceQueue.Writer.Complete();
             }
         }

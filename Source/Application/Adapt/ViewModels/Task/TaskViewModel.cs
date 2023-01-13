@@ -222,7 +222,7 @@ namespace Adapt.ViewModels
             }
             catch (Exception ex)
             {
-                Log.Logger.Error(ex, $"Datasource {DataSource.ID} Test Failed Exception: {ex.Message} StackTrace: {ex.StackTrace}");
+                Log.Logger.Error(ex, $"Data Source {DataSource.ID} Test Failed Exception: {ex.Message} StackTrace: {ex.StackTrace}");
                 ValidatedDataSource = false;
             }
             finally
