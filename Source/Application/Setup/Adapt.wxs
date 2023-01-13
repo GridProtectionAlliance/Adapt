@@ -21,7 +21,7 @@
       <UIRef Id="WixUI_ErrorProgressText" />
     </UI>
 
-    <WixVariable Id="WixUILicenseRtf" Value="$(var.SolutionDir)..\LICENSE" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.SolutionDir)\INSTALL_LICENSE.rtf" />
     <WixVariable Id="WixUIBannerBmp" Value="$(var.SolutionDir)Application\Setup\Adapt_Header.png" />
     <WixVariable Id="WixUIDialogBmp" Value="$(var.SolutionDir)Application\Setup\Adapt_Dialog.png" />
     
